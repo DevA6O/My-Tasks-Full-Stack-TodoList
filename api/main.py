@@ -2,12 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi.exceptions import RequestValidationError
+from database import models # -> required to load every model
+from database.connection import init_models
 from exception_handler import validation_exception_handler
 from routes.auth.register import router as RegisterRouter
 
 @asynccontextmanager
 async def lifespan(api: FastAPI):
     # Load db models
+    await init_models()
     yield
 
 api = FastAPI(lifespan=lifespan)
