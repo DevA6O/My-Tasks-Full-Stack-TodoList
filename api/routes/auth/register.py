@@ -1,6 +1,7 @@
 import bcrypt
 import logging
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from .validation_models import RegisterModel
 
@@ -27,4 +28,7 @@ class Register:
 @router.post("/api/register")
 async def register(data: RegisterModel):
     """ Route to register a new user """
-    return {"status_code": 201, "detail": "Account successfully created"}
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED, content={
+        "message": "Account successfully created."
+    })
