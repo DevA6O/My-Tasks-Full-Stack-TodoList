@@ -4,3 +4,4 @@ uvicorn
 pyjwt
 passlib
 bcrypt
+SQLAlchemy
