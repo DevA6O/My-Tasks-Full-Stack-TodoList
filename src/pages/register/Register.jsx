@@ -28,10 +28,9 @@ export default function Register() {
                 },
                 body: JSON.stringify(formData)
             });
-
             const data = await response.json();
 
-            if (response.ok && data.status_code === 201) {
+            if (response.ok && response.status === 201) {
                 console.log("Register successfully")
             } else {
                 console.error("Error: ", data.detail || "Unknown Error");
