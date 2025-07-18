@@ -10,6 +10,15 @@ fake_username: str = "TestUser"
 fake_email: str = "test@email.com"
 fake_pwd: str = "secure_password123"
 
+def test_hash_pwd(db_session: AsyncSession):
+    data = RegisterModel(username=fake_username, email=fake_email, password=fake_pwd)
+    register = Register(db_session=db_session, data=data)
+
+    hashed = register.hash_pwd()
+    assert hashed is not None
+    assert isinstance(hashed, bytes)
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "username, email, password, expected_value", 
