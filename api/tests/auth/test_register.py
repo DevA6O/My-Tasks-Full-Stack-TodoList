@@ -12,7 +12,7 @@ from routes.auth.register import Register, RegisterModel
 from main import api
 
 fake_username: str = "TestUser"
-fake_email: str = "test2@email.com"
+fake_email: str = "test@email.com"
 fake_pwd: str = "secure_password123"
 
 load_dotenv()
