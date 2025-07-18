@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -6,6 +7,8 @@ from database import models # -> required to load every model
 from database.connection import init_models
 from exception_handler import validation_exception_handler
 from routes.auth.register import router as RegisterRouter
+
+logging.basicConfig(level=logging.INFO, format="[%(name)s | %(levelname)s] - %(asctime)s: %(message)s")
 
 @asynccontextmanager
 async def lifespan(api: FastAPI):
