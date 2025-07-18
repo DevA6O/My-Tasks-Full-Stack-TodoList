@@ -1,25 +1,41 @@
-import React, { useState } from "react";
+import React from "react";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+
+const schema = yup.object().shape({
+    username: yup
+        .string()
+        .min(2, "Username must have at least 2 characters.")
+        .max(16, "Username coudn't have more than 16 characters.")
+        .required("Username is required."),
+    email: yup
+        .string()
+        .matches(
+            /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
+            "Email must be a valid email address."
+        )
+        .required("Email is required."),
+    password: yup
+        .string()
+        .min(8, "Password must have at least 8 characters.")
+        .max(32, "Password cannot have more than 32 characters.")
+        .required("Password is required.")
+})
 
 export default function Register() {
     // Define values
-    const [formData, setFormData] = useState({
-        username: "",
-        email: "",
-        password: ""
+    const {
+        register,
+        handleSubmit,
+        setError,
+        formState: { errors },
+    } = useForm({
+        resolver: yupResolver(schema),
+        mode: "onTouched"
     });
 
-    // Updates the corresponding field in formData whenever an input changes
-    const handleChange = (event) => {
-        setFormData(prev => ({
-            ...prev,
-            [event.target.id]: event.target.value
-        }));
-    };
-
-    // Handle the form submission and send data to the backend
-    const handleSubmit = async (event) => {
-        event.preventDefault(); // To not reload the page
-
+    const onSubmit = async (formData) => {
         try {
             const response = await fetch("http://127.0.0.1:8000/api/register", {
                 method: "POST",
@@ -31,13 +47,25 @@ export default function Register() {
             const data = await response.json();
 
             if (response.ok && response.status === 201) {
-                console.log("Register successfully")
-            } else {
-                console.error("Error: ", data.detail || "Unknown Error");
+                console.log("Register successfully");
+
+            } else { // Display error message 
+                const field = data.detail.field;
+                
+                if (field !== null) {
+                    setError(field, {
+                        type: "server",
+                        "message": data.detail.message
+                    });
+                } else {
+                    window.alert("Server error: Please try again later.");
+                    window.location.reload();
+                };
             };
+
         } catch (error) {
             console.error("Network error: ", error);
-        };
+        }
     };
 
     return (
@@ -45,19 +73,21 @@ export default function Register() {
             <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
                 <h1 className="text-center text-2xl font-bold mb-6 text-gray-800">Create an Account</h1>
 
-                <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+                <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
                     <div className="flex flex-col">
                         <label htmlFor="username" className="mb-1 text-sm font-medium text-gray-700">Username</label>
                         <input
                             type="text"
                             id="username"
-                            value={formData.username}
-                            onChange={handleChange}
+                            {...register("username")}
                             required
                             maxLength={16}
                             minLength={2}
                             className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                         />
+                        {errors.username && (
+                            <span className="text-red-500 text-sm mt-1">{errors.username.message}</span>
+                        )}
                     </div>
 
                     <div className="flex flex-col">
@@ -65,11 +95,13 @@ export default function Register() {
                         <input
                             type="email"
                             id="email"
-                            value={formData.email}
-                            onChange={handleChange}
+                            {...register("email")}
                             required
                             className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                         />
+                        {errors.email && (
+                            <span className="text-red-500 text-sm mt-1">{errors.email.message}</span>
+                        )}
                     </div>
 
                     <div className="flex flex-col">
@@ -77,13 +109,15 @@ export default function Register() {
                         <input
                             type="password"
                             id="password"
-                            value={formData.password}
-                            onChange={handleChange}
+                            {...register("password")}
                             required
                             minLength={8}
                             maxLength={32}
                             className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                         />
+                        {errors.password && (
+                            <span className="text-red-500 text-sm mt-1">{errors.password.message}</span>
+                        )}
                     </div>
 
                     <button

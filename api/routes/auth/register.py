@@ -68,12 +68,12 @@ async def register(data: RegisterModel, db_session: AsyncSession = Depends(get_d
 
         msg: str = "An unknown error occurred: Account cannot be created."
         logger.info(msg, extra={"email": data.email})
-        http_exception.detail = msg
+        http_exception.detail = {"message": msg, "field": None}
     except ValueError as e:
         logger.error(str(e), exc_info=False, extra={"email": data.email})
-        http_exception.detail = str(e)
+        http_exception.detail = {"message": str(e), "field": "email"}
     except IntegrityError as e: # Fallback - for example the created id / email is the same
         logger.exception(str(e), exc_info=True, extra={"email": data.email})
-        http_exception.detail = "Account could not be created in this time. Please try it later again."
+        http_exception.detail = {"message": "Account could not be created in this time. Please try it later again.", "field": None}
     
     raise http_exception
