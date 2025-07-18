@@ -1,0 +1,9 @@
+fastapi[standard]
+pydantic
+uvicorn
+pyjwt
+passlib
+bcrypt
+SQLAlchemy
+aiosqlite
+pytest-asyncio
