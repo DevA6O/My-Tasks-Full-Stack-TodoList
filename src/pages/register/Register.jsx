@@ -52,12 +52,17 @@ export default function Register() {
             } else { // Display error message 
                 const field = data.detail.field;
                 
-                setError(field, {
-                    type: "server",
-                    "message": data.detail.message
-                });
-            }
-            
+                if (field !== null) {
+                    setError(field, {
+                        type: "server",
+                        "message": data.detail.message
+                    });
+                } else {
+                    window.alert("Server error: Please try again later.");
+                    window.location.reload();
+                };
+            };
+
         } catch (error) {
             console.error("Network error: ", error);
         }
