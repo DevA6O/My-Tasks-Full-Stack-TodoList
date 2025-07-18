@@ -12,6 +12,29 @@ fake_pwd: str = "secure_password123"
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    "username, email, password, expected_value", 
+    [
+        (fake_username, fake_email, fake_pwd, True), # Success
+        (fake_username, fake_email, fake_pwd, None), # No user
+    ]
+)
+async def test_is_email_registered(
+    username: str, email: str, password: str, expected_value: str, db_session: AsyncSession
+) -> None:
+    data = RegisterModel(username=username, email=email, password=password)
+    register = Register(db_session=db_session, data=data)
+
+    if expected_value:
+        await register.create_user()
+        is_registered = await register.is_email_registered()
+        assert is_registered
+    else:
+        is_registered = await register.is_email_registered()
+        assert is_registered is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     "username, email, password, expected_error",
     [
         (fake_username, fake_email, fake_pwd, None), # Success
