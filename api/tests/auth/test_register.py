@@ -1,17 +1,18 @@
 import os
 import pytest
 from dotenv import load_dotenv
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from httpx import AsyncClient, ASGITransport
 from pydantic import ValidationError
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 from database.models import User
-from routes.auth.register import Register
-from routes.auth.validation_models import RegisterModel
+from database.connection import get_db
+from routes.auth.register import Register, RegisterModel
 from main import api
 
 fake_username: str = "TestUser"
-fake_email: str = "test@email.com"
+fake_email: str = "test2@email.com"
 fake_pwd: str = "secure_password123"
 
 load_dotenv()
@@ -50,7 +51,7 @@ async def test_is_email_registered(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "username, email, password, expected_error",
+    "username, email, password, expected_exception",
     [
         (fake_username, fake_email, fake_pwd, None), # Success
         ("", fake_email, fake_pwd, ValidationError), # Min-Length Error for username
@@ -62,11 +63,11 @@ async def test_is_email_registered(
     ]
 )
 async def test_create_user(
-    username: str, email: str, password: str, expected_error: Exception, db_session: AsyncSession
+    username: str, email: str, password: str, expected_exception: Optional[Exception], db_session: AsyncSession
 ) -> None:
     # If the we expect a ValidationError
-    if expected_error is ValidationError:
-        with pytest.raises(expected_error):
+    if expected_exception is ValidationError:
+        with pytest.raises(expected_exception):
             RegisterModel(username=username, email=email, password=password)
         return
     
@@ -84,22 +85,40 @@ async def test_create_user(
     assert result is not None
 
     # Check if the expected error is a ValueError
-    if expected_error is ValueError:
+    if expected_exception is ValueError:
         with pytest.raises(ValueError):
             await register.create_user()
 
 
 @pytest.mark.asyncio
-async def test_register_route(db_session: AsyncSession):
-    async with AsyncClient(app=api, base_url=os.getenv("VITE_API_URL")) as ac:
-        payload = {
-            "username": fake_username,
-            "email": fake_email,
-            "password": fake_pwd
-        }
-        
-        response = await ac.post("/register", json=payload)
+@pytest.mark.parametrize(
+    "username, email, password, expected_status_code, expected_exception",
+    [
+        (fake_username, fake_email, fake_pwd, 201, None), # Success
+        (fake_username, fake_email, fake_pwd, 401, ValueError), # Email is already registered
+    ]
+)
+async def test_register_route(
+    username: str, email: str, password: str, expected_status_code: int, 
+    expected_exception: Optional[Exception], db_session: AsyncSession
+) -> None:
+    # Overwriting of the db_session
+    api.dependency_overrides[get_db] = lambda: db_session
+    transport = ASGITransport(app=api)
 
-        assert response.status_code == 201
-        import logging
-        logging.info(response)
+    async with AsyncClient(transport=transport, base_url=os.getenv("VITE_API_URL")) as ac:
+        payload: dict = {
+            "username": username,
+            "email": email,
+            "password": password
+        }
+
+        response = await ac.post("/register", json=payload)    
+
+        if expected_exception:
+            response = await ac.post("/register", json=payload)
+
+        assert response.status_code == expected_status_code
+
+    # Clears the overwriting
+    api.dependency_overrides.clear()
