@@ -1,14 +1,20 @@
+import os
 import pytest
+from dotenv import load_dotenv
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import ValidationError
 from sqlalchemy import select
 from database.models import User
 from routes.auth.register import Register
 from routes.auth.validation_models import RegisterModel
+from main import api
 
 fake_username: str = "TestUser"
 fake_email: str = "test@email.com"
 fake_pwd: str = "secure_password123"
+
+load_dotenv()
 
 def test_hash_pwd(db_session: AsyncSession):
     data = RegisterModel(username=fake_username, email=fake_email, password=fake_pwd)
@@ -81,3 +87,19 @@ async def test_create_user(
     if expected_error is ValueError:
         with pytest.raises(ValueError):
             await register.create_user()
+
+
+@pytest.mark.asyncio
+async def test_register_route(db_session: AsyncSession):
+    async with AsyncClient(app=api, base_url=os.getenv("VITE_API_URL")) as ac:
+        payload = {
+            "username": fake_username,
+            "email": fake_email,
+            "password": fake_pwd
+        }
+        
+        response = await ac.post("/register", json=payload)
+
+        assert response.status_code == 201
+        import logging
+        logging.info(response)

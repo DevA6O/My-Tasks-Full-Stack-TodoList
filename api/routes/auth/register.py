@@ -43,7 +43,7 @@ class Register:
         try:
             await self.db_session.execute(stmt)
             await self.db_session.commit()
-        except IntegrityError:
+        except IntegrityError: # Fallback -> for example the id / email is the same
             logger.exception("Failed to create a new user", exc_info=True, extra={"email": self.data.email})
             await self.db_session.rollback()
             raise
@@ -72,7 +72,7 @@ async def register(data: RegisterModel, db_session: AsyncSession = Depends(get_d
     except ValueError as e:
         logger.error(str(e), exc_info=False, extra={"email": data.email})
         http_exception.detail = str(e)
-    except IntegrityError as e:
+    except IntegrityError as e: # Fallback - for example the id / email is the same
         logger.exception(str(e), exc_info=True, extra={"email": data.email})
         http_exception.detail = "Account could not be created in this time. Please try it later again."
     
