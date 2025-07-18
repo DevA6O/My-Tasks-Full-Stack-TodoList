@@ -70,7 +70,7 @@ async def register(data: RegisterModel, db_session: AsyncSession = Depends(get_d
         logger.info(msg, extra={"email": data.email})
         http_exception.detail = msg
     except ValueError as e:
-        logger.exception(str(e), exc_info=True, extra={"email": data.email})
+        logger.error(str(e), exc_info=False, extra={"email": data.email})
         http_exception.detail = str(e)
     except IntegrityError as e:
         logger.exception(str(e), exc_info=True, extra={"email": data.email})
