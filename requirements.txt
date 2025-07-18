@@ -6,3 +6,4 @@ passlib
 bcrypt
 SQLAlchemy
 aiosqlite
+pytest-asyncio
