@@ -10,7 +10,7 @@ from typing import Optional
 from database.models import User
 from database.connection import get_db
 from .validation_models import RegisterModel
-from security.jwt import add_token
+from security.jwt import set_refresh_token
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ async def register(data: RegisterModel, db_session: AsyncSession = Depends(get_d
 
         if user_obj and user_obj is not None:
             logger.info("Account successfully created", extra={"email": data.email})
-            response: JSONResponse = await add_token(user_id=user_obj.id, status_code=201)
+            response: JSONResponse = await set_refresh_token(user_id=user_obj.id, status_code=201)
             return response
 
         msg: str = "An unknown error occurred: Account cannot be created."
