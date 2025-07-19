@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, status, APIRouter, Request, Response
 from fastapi.responses import JSONResponse
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError, PyJWTError
 from typing import Annotated
 from passlib.context import CryptContext
@@ -16,6 +16,9 @@ from database.models import User
 from database.connection import get_db
 
 load_dotenv()
+
+# NOTE: Maybe add a revoke session function 
+# (with database management where the user can remove some session from his account, like Discord, Spotify, ...)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -93,7 +96,7 @@ async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200):
 
 
 @router.post("/api/refresh")
-async def refresh_token(request: Request, response: Response):
+async def refresh_token(request: Request, response: Response, db_session: AsyncSession = Depends(get_db)):
     """ Checks whether a refresh token is valid and returns an access token if it is valid """
     refresh_token = request.cookies.get("refresh_token")
 
@@ -104,9 +107,13 @@ async def refresh_token(request: Request, response: Response):
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
 
-        if user_id is None:
+        stmt = select(User).where(User.id == uuid.UUID(user_id))
+        result_obj = await db_session.execute(stmt)
+        result = result_obj.scalar_one_or_none()
+
+        if user_id is None or result is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User could not be identified.")
-        
+
         access_token = create_token(data={"sub": user_id})
         return JSONResponse(status_code=status.HTTP_200_OK, content={"access_token": access_token, "token_type": "bearer"})
     except PyJWTError:
