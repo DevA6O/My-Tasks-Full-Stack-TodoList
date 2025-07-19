@@ -10,6 +10,7 @@ from typing import Optional
 from database.models import User
 from database.connection import get_db
 from .validation_models import RegisterModel
+from security.jwt import add_token
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -38,17 +39,19 @@ class Register:
             raise ValueError("E-mail address is already registered.")
 
         hashed_pwd: bytes = self.hash_pwd()
-        stmt = insert(User).values(name=self.data.username, email=self.data.email, password=hashed_pwd)
+        stmt = (
+            insert(User).values(name=self.data.username, email=self.data.email, password=hashed_pwd)
+            .returning(User)
+        )
         
         try:
-            await self.db_session.execute(stmt)
+            user_obj = await self.db_session.execute(stmt)
             await self.db_session.commit()
+            return user_obj.scalar_one_or_none()
         except IntegrityError: # Fallback -> for example the created id / email is the same
             logger.exception("Failed to create a new user", exc_info=True, extra={"email": self.data.email})
             await self.db_session.rollback()
             raise
-
-        return True
 
 
 
@@ -59,21 +62,21 @@ async def register(data: RegisterModel, db_session: AsyncSession = Depends(get_d
 
     try:
         register = Register(db_session=db_session, data=data)    
-        is_created = await register.create_user()
+        user_obj = await register.create_user()
 
-        if is_created:
-            msg: str = "Account successfully created"
-            logger.info(msg, extra={"email": data.email})
-            return JSONResponse(status_code=status.HTTP_201_CREATED, content={"message": msg})
+        if user_obj and user_obj is not None:
+            logger.info("Account successfully created", extra={"email": data.email})
+            response: JSONResponse = await add_token(user_id=user_obj.id, status_code=201)
+            return response
 
         msg: str = "An unknown error occurred: Account cannot be created."
         logger.info(msg, extra={"email": data.email})
-        http_exception.detail = {"message": msg, "field": None}
+        http_exception.detail = msg
     except ValueError as e:
         logger.error(str(e), exc_info=False, extra={"email": data.email})
-        http_exception.detail = {"message": str(e), "field": "email"}
+        http_exception.detail = str(e)
     except IntegrityError as e: # Fallback - for example the created id / email is the same
         logger.exception(str(e), exc_info=True, extra={"email": data.email})
-        http_exception.detail = {"message": "Account could not be created in this time. Please try it later again.", "field": None}
+        http_exception.detail = "Account could not be created in this time. Please try it later again."
     
     raise http_exception
