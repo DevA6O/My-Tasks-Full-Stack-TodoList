@@ -6,10 +6,10 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jwt.exceptions import InvalidTokenError
+from jwt.exceptions import InvalidTokenError, PyJWTError
 from typing import Annotated
 from passlib.context import CryptContext
 from database.models import User
@@ -17,6 +17,7 @@ from database.connection import get_db
 
 load_dotenv()
 
+router = APIRouter()
 logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -73,16 +74,12 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     return {"user_id": user_id, "username": user_obj.name}
 
 async def add_token(user_id: uuid.UUID, status_code: int = 200):
-    """ Create a refresh and access token """
-    access_token = create_token(data={"sub": str(user_id)})
+    """ Set refresh token as HttpOnly cookie (no access_token returned) """
     refresh_token = create_token(data={"sub": str(user_id)}, expire_delta=timedelta(days=7))
 
     SECURE_HTTPS = os.getenv("SECURE_HTTPS", "False").lower() == "true"
 
-    response = JSONResponse(
-        status_code=status_code, 
-        content={"access_token": access_token, "token_type": "bearer"}
-    )
+    response = JSONResponse(status_code=status_code, content={})
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -93,3 +90,24 @@ async def add_token(user_id: uuid.UUID, status_code: int = 200):
         path="/"
     )
     return response
+
+
+@router.post("/api/refresh")
+async def refresh_token(request: Request, response: Response):
+    """ Checks whether a refresh token is valid and returns an access token if it is valid """
+    refresh_token = request.cookies.get("refresh_token")
+
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token")
+    
+    try:
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+
+        if user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User could not be identified.")
+        
+        access_token = create_token(data={"sub": user_id})
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"access_token": access_token, "token_type": "bearer"})
+    except PyJWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token.")
