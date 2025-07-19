@@ -73,7 +73,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 
     return {"user_id": user_id, "username": user_obj.name}
 
-async def add_token(user_id: uuid.UUID, status_code: int = 200):
+async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200):
     """ Set refresh token as HttpOnly cookie (no access_token returned) """
     refresh_token = create_token(data={"sub": str(user_id)}, expire_delta=timedelta(days=7))
 
