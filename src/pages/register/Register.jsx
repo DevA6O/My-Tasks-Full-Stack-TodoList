@@ -37,8 +37,9 @@ export default function Register() {
 
     const onSubmit = async (formData) => {
         try {
-            const response = await fetch("http://127.0.0.1:8000/api/register", {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/register`, {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json"
                 },
