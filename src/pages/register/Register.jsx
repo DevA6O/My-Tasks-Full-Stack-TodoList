@@ -24,7 +24,6 @@ const schema = yup.object().shape({
 })
 
 export default function Register() {
-    // Define values
     const {
         register,
         handleSubmit,
@@ -48,8 +47,7 @@ export default function Register() {
             const data = await response.json();
 
             if (response.ok && response.status === 201) {
-                console.log("Register successfully");
-
+                window.location.href = "/"; // Reload html and the memory
             } else { // Display error message 
                 const field = data.detail.field;
                 
