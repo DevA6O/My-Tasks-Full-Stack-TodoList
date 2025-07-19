@@ -24,7 +24,6 @@ const schema = yup.object().shape({
 })
 
 export default function Register() {
-    // Define values
     const {
         register,
         handleSubmit,
@@ -37,8 +36,9 @@ export default function Register() {
 
     const onSubmit = async (formData) => {
         try {
-            const response = await fetch("http://127.0.0.1:8000/api/register", {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/register`, {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json"
                 },
@@ -47,8 +47,7 @@ export default function Register() {
             const data = await response.json();
 
             if (response.ok && response.status === 201) {
-                console.log("Register successfully");
-
+                window.location.href = "/"; // Reload html and the memory
             } else { // Display error message 
                 const field = data.detail.field;
                 
