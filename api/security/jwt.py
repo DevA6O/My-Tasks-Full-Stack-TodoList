@@ -30,9 +30,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 15
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def create_token(data: dict, expire_delta: timedelta | None = None):
+def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
     """ Creates a access / refresh token """
-    to_encode = data.copy()
+    to_encode: dict = data.copy()
     if expire_delta:
         expire = datetime.now(timezone.utc) + expire_delta
     else:
@@ -42,13 +42,13 @@ def create_token(data: dict, expire_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def _fetch_user(user_id: uuid.UUID, db_session: AsyncSession = Depends(get_db)):
+async def _fetch_user(user_id: uuid.UUID, db_session: AsyncSession = Depends(get_db)) -> User:
     """ Helper function for get_current_user to get the user from the database """
-    stmt = select(User).where(User.email == user_id)
+    stmt = select(User).where(User.id == user_id)
     result_obj = await db_session.execute(stmt)
     return result_obj.scalar_one_or_none()
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
     """ Read the current user from the token """
     error_message: str = "Could not validate credentitals"
 
@@ -76,7 +76,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 
     return {"user_id": user_id, "username": user_obj.name}
 
-async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200):
+async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200) -> JSONResponse:
     """ Set refresh token as HttpOnly cookie (no access_token returned) """
     refresh_token = create_token(data={"sub": str(user_id)}, expire_delta=timedelta(days=7))
 
