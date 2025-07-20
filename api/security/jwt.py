@@ -67,6 +67,7 @@ async def refresh_token(request: Request, response: Response, db_session: AsyncS
     refresh_token = request.cookies.get("refresh_token")
 
     if not refresh_token:
+        logger.warning("Refresh token missing in request to /api/refresh")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token")
     
     try:
@@ -78,9 +79,11 @@ async def refresh_token(request: Request, response: Response, db_session: AsyncS
         result = result_obj.scalar_one_or_none()
 
         if user_id is None or result is None:
+            logger.warning("User not found in database for refresh token", extra={"user_id": user_id})
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User could not be identified.")
 
         access_token = create_token(data={"sub": user_id})
         return JSONResponse(status_code=status.HTTP_200_OK, content={"access_token": access_token, "token_type": "bearer"})
     except PyJWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token.")
+        logger.warning("JWT verification failed for refresh token", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="This token is no longer valid.")
