@@ -42,40 +42,6 @@ def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def _fetch_user(user_id: uuid.UUID, db_session: AsyncSession = Depends(get_db)) -> User:
-    """ Helper function for get_current_user to get the user from the database """
-    stmt = select(User).where(User.id == user_id)
-    result_obj = await db_session.execute(stmt)
-    return result_obj.scalar_one_or_none()
-
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> dict:
-    """ Read the current user from the token """
-    error_message: str = "Could not validate credentitals"
-
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail=error_message,
-        headers={"WWW-Authenticate": "Bearer"}
-    )
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-
-        if user_id is None:
-            raise credentials_exception
-    except InvalidTokenError:
-        logger.exception(error_message, exc_info=True)
-        raise credentials_exception
-    
-    # Check if the user exists
-    user_obj = await _fetch_user(user_id=user_id)
-
-    if user_obj is None:
-        raise credentials_exception
-
-    return {"user_id": user_id, "username": user_obj.name}
-
 async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200) -> JSONResponse:
     """ Set refresh token as HttpOnly cookie (no access_token returned) """
     refresh_token = create_token(data={"sub": str(user_id)}, expire_delta=timedelta(days=7))
