@@ -30,9 +30,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 15
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def create_token(data: dict, expire_delta: timedelta | None = None):
+def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
     """ Creates a access / refresh token """
-    to_encode = data.copy()
+    to_encode: dict = data.copy()
     if expire_delta:
         expire = datetime.now(timezone.utc) + expire_delta
     else:
@@ -42,41 +42,7 @@ def create_token(data: dict, expire_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def _fetch_user(user_id: uuid.UUID, db_session: AsyncSession = Depends(get_db)):
-    """ Helper function for get_current_user to get the user from the database """
-    stmt = select(User).where(User.email == user_id)
-    result_obj = await db_session.execute(stmt)
-    return result_obj.scalar_one_or_none()
-
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
-    """ Read the current user from the token """
-    error_message: str = "Could not validate credentitals"
-
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail=error_message,
-        headers={"WWW-Authenticate": "Bearer"}
-    )
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-
-        if user_id is None:
-            raise credentials_exception
-    except InvalidTokenError:
-        logger.exception(error_message, exc_info=True)
-        raise credentials_exception
-    
-    # Check if the user exists
-    user_obj = await _fetch_user(user_id=user_id)
-
-    if user_obj is None:
-        raise credentials_exception
-
-    return {"user_id": user_id, "username": user_obj.name}
-
-async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200):
+async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200) -> JSONResponse:
     """ Set refresh token as HttpOnly cookie (no access_token returned) """
     refresh_token = create_token(data={"sub": str(user_id)}, expire_delta=timedelta(days=7))
 
@@ -101,6 +67,7 @@ async def refresh_token(request: Request, response: Response, db_session: AsyncS
     refresh_token = request.cookies.get("refresh_token")
 
     if not refresh_token:
+        logger.warning("Refresh token missing in request to /api/refresh")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token")
     
     try:
@@ -112,9 +79,11 @@ async def refresh_token(request: Request, response: Response, db_session: AsyncS
         result = result_obj.scalar_one_or_none()
 
         if user_id is None or result is None:
+            logger.warning("User not found in database for refresh token", extra={"user_id": user_id})
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User could not be identified.")
 
         access_token = create_token(data={"sub": user_id})
         return JSONResponse(status_code=status.HTTP_200_OK, content={"access_token": access_token, "token_type": "bearer"})
     except PyJWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token.")
+        logger.warning("JWT verification failed for refresh token", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="This token is no longer valid.")
