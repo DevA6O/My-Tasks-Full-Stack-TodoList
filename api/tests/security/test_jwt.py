@@ -6,6 +6,8 @@ import pytest_asyncio
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
 from httpx import AsyncClient, ASGITransport
+from http.cookies import SimpleCookie
+from fastapi.responses import JSONResponse
 
 from sqlalchemy import insert, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,22 +18,10 @@ from database.connection import get_db
 from main import api
 from security.jwt import (
     SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, 
-    create_token
+    create_token, set_refresh_token
 )
 
 load_dotenv()
-
-@pytest_asyncio.fixture
-async def fake_user(db_session: AsyncSession) -> Tuple[User, AsyncSession]:
-    stmt = (
-        insert(User)
-        .values(name="fake_user", email="fake@email.com", password="very_secret_pwd")
-        .returning(User)
-    )
-    result_obj = await db_session.execute(stmt)
-    result = result_obj.scalar_one_or_none()
-    assert result is not None
-    return result, db_session
 
 
 def test_create_token() -> None:
@@ -52,6 +42,69 @@ def test_create_token() -> None:
     delta = expire - now
 
     assert 0 < delta.total_seconds() <= ACCESS_TOKEN_EXPIRE_MINUTES * 60 + 5
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "secure_https, expected_secure_flag",
+    [
+        (True, True),   # Success: Only over HTTPS - Secure cookie is set
+        (False, False), # Success: Dev/local mode - no Secure flag in cookie
+        (None, False),  # Fallback: ENV var not set - default is Secure=False
+    ]
+)
+async def test_set_refresh_token(
+    monkeypatch, secure_https: bool, expected_secure_flag: Optional[bool]
+) -> None:
+    fake_user_id = uuid.uuid4()
+
+    # Change the value in the .env file
+    if secure_https is not None:
+        monkeypatch.setenv("SECURE_HTTPS", str(secure_https))
+    else:
+        monkeypatch.delenv("SECURE_HTTPS", raising=False)
+    
+    # Get the response and parse the set-cookie header using http.cookie for correctness
+    response: JSONResponse = await set_refresh_token(fake_user_id)
+    set_cookie = response.headers.get("set-cookie")
+    assert set_cookie is not None
+
+    # Parse the Set-Cookie header to extract the refresh_token value
+    cookie = SimpleCookie()
+    cookie.load(set_cookie)
+    assert "refresh_token" in cookie # Ensure the cookie was set
+    token_value = cookie["refresh_token"].value # Extract the JWT token from the cookie
+
+    # Decode the refresh token
+    payload = jwt.decode(token_value, SECRET_KEY, algorithms=[ALGORITHM])
+    assert payload["sub"] == str(fake_user_id)
+
+    # Validate the refresh token
+    refresh_cookie = cookie["refresh_token"]
+    assert refresh_cookie["httponly"]
+    assert refresh_cookie["samesite"].lower() == "lax"
+    assert refresh_cookie["path"] == "/"
+    assert int(refresh_cookie["max-age"]) == 60 * 60 * 24 * 7
+
+    # Checks whether the secure flag is correct
+    if expected_secure_flag:
+        assert refresh_cookie["secure"]
+    else:
+        assert "secure" not in refresh_cookie or not refresh_cookie["secure"]
+
+
+@pytest_asyncio.fixture
+async def fake_user(db_session: AsyncSession) -> Tuple[User, AsyncSession]:
+    stmt = (
+        insert(User)
+        .values(name="fake_user", email="fake@email.com", password="very_secret_pwd")
+        .returning(User)
+    )
+    result_obj = await db_session.execute(stmt)
+    result = result_obj.scalar_one_or_none()
+    assert result is not None
+    return result, db_session
+
 
 
 def _generate_refresh_token(token_validity: str, user_id: uuid.UUID) -> Optional[str]:
