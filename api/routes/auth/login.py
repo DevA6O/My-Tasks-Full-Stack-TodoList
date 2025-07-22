@@ -1,9 +1,14 @@
 import bcrypt
+from fastapi import HTTPException, status, APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models import User
+from database.connection import get_db
 from validation_models import LoginModel
+
+router = APIRouter()
 
 class Login:
     def __init__(self, db_session: AsyncSession, data: LoginModel):
@@ -36,3 +41,21 @@ class Login:
             return None, "Incorrect password."
 
         return user, "Login successful."
+    
+
+@router.post("/login")
+async def login(data: LoginModel, db_session: AsyncSession = Depends(get_db)):
+    """ Endpoint to log in a user. """
+    login_service = Login(db_session=db_session, data=data)
+    user, message = await login_service.authenticate()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=message
+        )
+    
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"message": message, "user_id": user.id, "username": user.username}
+    )
