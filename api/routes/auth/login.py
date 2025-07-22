@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models import User
 from database.connection import get_db
-from validation_models import LoginModel
+from routes.auth.validation_models import LoginModel
 
 router = APIRouter()
 
