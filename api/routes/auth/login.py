@@ -15,12 +15,18 @@ class Login:
         self.db_session: AsyncSession = db_session
         self.data: LoginModel = data
     
-    def verify_password(self, user_obj: User) -> bool:
+    def verify_password(self, password_in_db: bytes) -> bool:
         """ Verifies the password against the stored hash. """
-        if not user_obj.password:
+        if isinstance(password_in_db, str):
+            password_in_db = password_in_db.encode("utf-8")
+
+        if not isinstance(password_in_db, bytes):
+            raise ValueError("Password in database is not in bytes or string format.")
+
+        if not password_in_db:
             return False
         
-        return bcrypt.checkpw(self.data.password.encode("utf-8"), user_obj.password.encode("utf-8"))
+        return bcrypt.checkpw(self.data.password.encode("utf-8"), password_in_db)
 
     async def get_user(self):
         """ Tries to get the user from the database using the provided credentials. """
@@ -37,7 +43,7 @@ class Login:
         if not user:
             return None, "Email is not registered."
 
-        if not self.verify_password(user_obj=user):
+        if not self.verify_password(password_in_db=user.password):
             return None, "Incorrect password."
 
         return user, "Login successful."
