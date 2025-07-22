@@ -4,7 +4,7 @@ import { useAuth } from "./context/AuthContext";
 import LoadingScreen from "./components/LoadingScreen";
 
 import Home from "./pages/home";
-import Register from "./pages/register/Register";
+import Register from "./pages/auth/Register"
 
 // Suitable to create a private route
 function PrivateRoute({ children }) {
