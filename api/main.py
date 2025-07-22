@@ -7,6 +7,7 @@ from database import models # -> required to load every model
 from database.connection import init_models
 from exception_handler import validation_exception_handler
 from routes.auth.register import router as RegisterRouter
+from routes.auth.login import router as LoginRouter
 from security.jwt import router as JWTRouter
 
 logging.basicConfig(level=logging.INFO, format="[%(name)s | %(levelname)s] - %(asctime)s: %(message)s")
@@ -37,4 +38,5 @@ api.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 # Add routers 
 api.include_router(RegisterRouter)
+api.include_router(LoginRouter)
 api.include_router(JWTRouter)
