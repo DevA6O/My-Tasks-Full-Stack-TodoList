@@ -39,40 +39,46 @@ class Login:
 
         return bcrypt.checkpw(self.data.password.encode("utf-8"), password_in_db_str.encode("utf-8"))
 
-    async def get_user(self):
-        """ Tries to get the user from the database using the provided credentials. """
-        stmt = select(User).where(
-            User.email == self.data.email
-        )
+    async def _get_user(self):
+        """ Helper method: Tries to get the user from the database using the provided credentials. """
+        stmt = select(User).where(User.email == self.data.email)
         result = await self.db_session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def authenticate(self):
         """ Authenticate user with the provided credentials. """
-        user = await self.get_user()
+        user_obj = await self._get_user()
 
-        if not user:
+        if not user_obj:
             return None, "Email is not registered."
 
-        if not self.verify_password(password_in_db=user.password):
+        if not self.verify_password(password_in_db=user_obj.password):
             return None, "Incorrect password."
 
-        return user, "Login successful."
+        return user_obj, "Login successful."
     
 
 @router.post("/login")
 async def login(data: LoginModel, db_session: AsyncSession = Depends(get_db)):
     """ Endpoint to log in a user. """
-    login_service = Login(db_session=db_session, data=data)
-    user, message = await login_service.authenticate()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=message
-        )
-    
-    return JSONResponse(
-        status_code=status.HTTP_200_OK,
-        content={"message": message, "user_id": user.id, "username": user.username}
+    http_exception = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Invalid login credentials."
     )
+
+    try:
+        login_service = Login(db_session=db_session, data=data)
+        user_obj, message = await login_service.authenticate()
+
+        if not user_obj:
+            http_exception.detail = message
+            raise http_exception
+        
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": message, "user_id": user_obj.id, "username": user_obj.username}
+        )
+    except ValueError as e:
+        logging.exception(str(e), exc_info=True)
+        http_exception.detail = str(e)
+        raise http_exception
