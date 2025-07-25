@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import User
 from database.connection import get_db
 from routes.auth.validation_models import LoginModel
+from security.hashing import is_hashed
 
 router = APIRouter()
 
@@ -17,12 +18,6 @@ class Login:
         self.db_session: AsyncSession = db_session
         self.data: LoginModel = data
     
-    def is_hashed(self, password: str) -> bool:
-        """ Checks if the password is in a valid hashed format. """
-        if isinstance(password, str):
-            return re.match(r'^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$', password) is not None
-        return False
-
     def verify_password(self, password_in_db: bytes) -> bool:
         """ Verifies the password against the stored hash. """
         if not isinstance(self.data.password, str):
@@ -39,7 +34,7 @@ class Login:
         else:
             raise ValueError("Password in database must be a string or bytes.")
 
-        if not self.is_hashed(password=password_in_db_str):
+        if not is_hashed(password=password_in_db_str):
             raise ValueError("Password in database is not a valid hash format.")
 
         return bcrypt.checkpw(self.data.password.encode("utf-8"), password_in_db_str.encode("utf-8"))

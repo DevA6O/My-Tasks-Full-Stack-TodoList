@@ -1,4 +1,3 @@
-import bcrypt
 import logging
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
@@ -11,19 +10,15 @@ from database.models import User
 from database.connection import get_db
 from .validation_models import RegisterModel
 from security.jwt import set_refresh_token
+from security.hashing import hash_pwd
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
 
 class Register:
     def __init__(self, db_session: AsyncSession, data: RegisterModel) -> None:
         self.db_session: AsyncSession = db_session
         self.data: RegisterModel = data
-
-    def hash_pwd(self):
-        """ Hashes the password """
-        return bcrypt.hashpw(self.data.password.encode(), bcrypt.gensalt())
 
     async def is_email_registered(self) -> Optional[User]:
         """ Check if the email address is already registered or not """
@@ -38,7 +33,7 @@ class Register:
         if email_check is not None:
             raise ValueError("E-mail address is already registered.")
 
-        hashed_pwd: bytes = self.hash_pwd()
+        hashed_pwd: str = hash_pwd(self.data.password)
         stmt = (
             insert(User).values(name=self.data.username, email=self.data.email, password=hashed_pwd)
             .returning(User)
