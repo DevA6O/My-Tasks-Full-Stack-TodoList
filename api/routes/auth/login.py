@@ -1,4 +1,6 @@
+import re
 import bcrypt
+import logging
 from fastapi import HTTPException, status, APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
@@ -15,18 +17,32 @@ class Login:
         self.db_session: AsyncSession = db_session
         self.data: LoginModel = data
     
+    def is_hashed(self, password: str) -> bool:
+        """ Checks if the password is in a valid hashed format. """
+        if isinstance(password, str):
+            return re.match(r'^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$', password) is not None
+        return False
+
     def verify_password(self, password_in_db: bytes) -> bool:
         """ Verifies the password against the stored hash. """
-        if isinstance(password_in_db, str):
-            password_in_db = password_in_db.encode("utf-8")
-
-        if not isinstance(password_in_db, bytes):
-            raise ValueError("Password in database is not in bytes or string format.")
-
-        if not password_in_db:
-            return False
+        if not isinstance(self.data.password, str):
+            raise ValueError("Password must be a string.")
         
-        return bcrypt.checkpw(self.data.password.encode("utf-8"), password_in_db)
+        if isinstance(password_in_db, bytes):
+            try:
+                password_in_db_str = password_in_db.decode("utf-8")
+            except UnicodeDecodeError:
+                raise ValueError("Password in database is not UTF-8 decodable.")
+
+        elif isinstance(password_in_db, str):
+            password_in_db_str = password_in_db
+        else:
+            raise ValueError("Password in database must be a string or bytes.")
+
+        if not self.is_hashed(password=password_in_db_str):
+            raise ValueError("Password in database is not a valid hash format.")
+
+        return bcrypt.checkpw(self.data.password.encode("utf-8"), password_in_db_str.encode("utf-8"))
 
     async def get_user(self):
         """ Tries to get the user from the database using the provided credentials. """
