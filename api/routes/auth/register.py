@@ -30,16 +30,20 @@ class Register:
         """ Create a new user """
         email_check = await self.is_email_registered()
 
+        # Check if the email is already registered 
         if email_check is not None:
             raise ValueError("E-mail address is already registered.")
 
+        # Hash the password before storing it
         hashed_pwd: str = hash_pwd(self.data.password)
+
+        # SQLAlchemy insert statement to create a new user
         stmt = (
             insert(User).values(name=self.data.username, email=self.data.email, password=hashed_pwd)
             .returning(User)
         )
         
-        try:
+        try: # Try to create a new user
             user_obj = await self.db_session.execute(stmt)
             await self.db_session.commit()
             return user_obj.scalar_one_or_none()
@@ -52,18 +56,21 @@ class Register:
 
 @router.post("/api/register")
 async def register(data: RegisterModel, db_session: AsyncSession = Depends(get_db)):
-    """ Route to register a new user """
+    """ Endpoint to register a new user """
     http_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
     try:
-        register = Register(db_session=db_session, data=data)    
-        user_obj = await register.create_user()
+        # Create an instance of the Register service and attempt to create a new user
+        register_service = Register(db_session=db_session, data=data)    
+        user_obj = await register_service.create_user()
 
+        # Check if the user was created successfully
         if user_obj and user_obj is not None:
             logger.info("Account successfully created", extra={"email": data.email})
             response: JSONResponse = await set_refresh_token(user_id=user_obj.id, status_code=201)
             return response
 
+        # If the user was not created, raise an exception
         msg: str = "An unknown error occurred: Account cannot be created."
         logger.info(msg, extra={"email": data.email})
         http_exception.detail = msg
