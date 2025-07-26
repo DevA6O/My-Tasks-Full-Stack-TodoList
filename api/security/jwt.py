@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 15)
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 15))
 REFRESH_MAX_AGE = int(os.getenv("REFRESH_MAX_AGE", 60 * 60 * 24 * 7))  # Default to 7 days
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
