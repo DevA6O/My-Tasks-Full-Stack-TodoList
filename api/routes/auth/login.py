@@ -1,4 +1,3 @@
-import re
 import bcrypt
 import logging
 from fastapi import HTTPException, status, APIRouter, Depends
@@ -11,6 +10,7 @@ from database.connection import get_db
 from routes.auth.validation_models import LoginModel
 from security.hashing import is_hashed
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 class Login:
@@ -71,7 +71,7 @@ async def login(data: LoginModel, db_session: AsyncSession = Depends(get_db)):
         user_obj, message = await login_service.authenticate()
 
         if not user_obj:
-            http_exception.detail = message
+            logger.warning(f"Login failed: {message}", extra={"email": data.email})
             raise http_exception
         
         return JSONResponse(
@@ -79,6 +79,6 @@ async def login(data: LoginModel, db_session: AsyncSession = Depends(get_db)):
             content={"message": message, "user_id": user_obj.id, "username": user_obj.username}
         )
     except ValueError as e:
-        logging.exception(str(e), exc_info=True)
+        logger.exception(str(e), exc_info=True)
         http_exception.detail = str(e)
         raise http_exception
