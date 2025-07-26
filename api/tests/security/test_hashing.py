@@ -8,16 +8,17 @@ from security.hashing import hash_pwd, is_hashed
         (0, ValueError),
     ]
 )
-def test_hash_pwd(password: str, expected_value: type):
+def test_hash_pwd(password: str, expected_value: type) -> None:
     if expected_value is ValueError:
         with pytest.raises(ValueError):
             hash_pwd(password)
         return
     
-    hashed_password = hash_pwd(password)
+    hashed_password: str = hash_pwd(password)
     assert isinstance(hashed_password, expected_value)
 
 
+# Hash test password for is_hashed test function
 test_hashed_pwd = hash_pwd("TestPassword123")
 
 @pytest.mark.parametrize(
@@ -27,5 +28,5 @@ test_hashed_pwd = hash_pwd("TestPassword123")
         ("NotAHashedPassword", False)
     ]
 )
-def test_is_hashed(password: str, expected_value: bool):
+def test_is_hashed(password: str, expected_value: bool) -> None:
     assert is_hashed(password) == expected_value
