@@ -119,17 +119,6 @@ async def test_set_refresh_token(
 
 
 
-@pytest_asyncio.fixture
-async def fake_user(db_session: AsyncSession) -> Tuple[User, AsyncSession]:
-    stmt = (
-        insert(User)
-        .values(name="fake_user", email="fake@email.com", password="very_secret_pwd")
-        .returning(User)
-    )
-    result_obj = await db_session.execute(stmt)
-    result = result_obj.scalar_one_or_none()
-    assert result is not None
-    return result, db_session
 
 def _generate_refresh_token(token_validity: str, user_id: uuid.UUID) -> Optional[str]:
     """ Helper function for the test function refresh_token """
