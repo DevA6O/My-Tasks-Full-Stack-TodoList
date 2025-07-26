@@ -89,7 +89,7 @@ async def test_create_user(
         (fake_username, fake_email, fake_pwd, 401, ValueError), # Email is already registered
     ]
 )
-async def test_register_route(
+async def test_register_endpoint(
     username: str, email: str, password: str, expected_status_code: int, 
     expected_exception: Optional[Exception], db_session: AsyncSession
 ) -> None:
