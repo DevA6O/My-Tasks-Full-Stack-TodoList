@@ -66,42 +66,51 @@ export default function Login() {
                 )}
 
                 <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
-                <div className="flex flex-col">
-                    <label htmlFor="email" className="mb-1 text-sm font-medium text-gray-700">E-Mail Address</label>
-                    <input
-                    type="email"
-                    id="email"
-                    {...login("email")}
-                    required
-                    className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    />
-                    {errors.email && (
-                        <span className="text-red-500 text-sm mt-1">{errors.email.message}</span>
-                    )}
-                </div>
+                    <div className="flex flex-col">
+                        <label htmlFor="email" className="mb-1 text-sm font-medium text-gray-700">E-Mail Address</label>
+                        <input
+                        type="email"
+                        id="email"
+                        {...login("email")}
+                        required
+                        className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                        />
+                        {errors.email && (
+                            <span className="text-red-500 text-sm mt-1">{errors.email.message}</span>
+                        )}
+                    </div>
 
-                <div className="flex flex-col">
-                    <label htmlFor="password" className="mb-1 text-sm font-medium text-gray-700">Password</label>
-                    <input
-                    type="password"
-                    id="password"
-                    {...login("password")}
-                    required
-                    minLength={8}
-                    maxLength={32}
-                    className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                    />
-                    {errors.password && (
-                        <span className="text-red-500 text-sm mt-1">{errors.password.message}</span>
-                    )}
-                </div>
+                    <div className="flex flex-col">
+                        <label htmlFor="password" className="mb-1 text-sm font-medium text-gray-700">Password</label>
+                        <input
+                        type="password"
+                        id="password"
+                        {...login("password")}
+                        required
+                        minLength={8}
+                        maxLength={32}
+                        className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                        />
+                        {errors.password && (
+                            <span className="text-red-500 text-sm mt-1">{errors.password.message}</span>
+                        )}
+                    </div>
 
-                <button
-                    type="submit"
-                    className="mt-4 bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-all duration-300 cursor-pointer"
-                >
-                    Login
-                </button>
+                    <button
+                        type="submit"
+                        className="mt-4 bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-all duration-300 cursor-pointer"
+                    >
+                        Login
+                    </button>
+                    
+                    <p className="text-center text-gray-500 mt-3 text-sm">
+                        I don't have an account.&nbsp;
+                        <a href="/register" className="text-blue-500 hover:text-blue-700 font-semibold underline">
+                            Register
+                        </a>
+                        .
+                    </p>
+
                 </form>
             </div>
         </div>
