@@ -1,11 +1,11 @@
 import uuid
-from datetime import datetime
-from sqlalchemy import Integer
+from sqlalchemy import Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from database.connection import Base
 
 
 def current_timestamp() -> int:
+    from datetime import datetime
     return round(datetime.now().timestamp())
 
 
@@ -27,3 +27,5 @@ class Todo(Base):
     description: Mapped[str] = mapped_column(nullable=False)
     created_at: Mapped[int] = mapped_column(Integer, default=current_timestamp)
     edited_at: Mapped[int] = mapped_column(Integer, default=current_timestamp, onupdate=current_timestamp)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
