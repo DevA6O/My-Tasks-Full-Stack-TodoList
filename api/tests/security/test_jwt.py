@@ -1,9 +1,9 @@
-import jwt
 import os
+import jwt
+import json
 import uuid
 import pytest
 import pytest_asyncio
-from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
 from httpx import AsyncClient, ASGITransport
 from http.cookies import SimpleCookie
@@ -17,17 +17,29 @@ from database.models import User
 from database.connection import get_db
 from main import api
 from security.jwt import (
-    SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, 
+    SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_MAX_AGE,
     create_token, set_refresh_token
 )
 
-load_dotenv()
-
-
-def test_create_token() -> None:
-    data: dict = {"sub": str(uuid.uuid4())}
+@pytest.mark.parametrize(
+    "data, expire_delta, expected_exception",
+    [
+        ({"sub": str(uuid.uuid4())}, None, None), # Success case with default expiration
+        ({"sub": str(uuid.uuid4())}, timedelta(minutes=10), None), # Success
+        ({}, None, ValueError), # Empty data -> ValueError
+        ("NotADict", None, ValueError), # Non-dict -> ValueError
+        ({"sub": str(uuid.uuid4())}, "NotATimedeltaOrNone", ValueError), # Non-timedelta or None -> ValueError
+    ]
+)
+def test_create_token(data: dict, expire_delta: timedelta, expected_exception: Exception) -> None:
+    # If an exception is expected
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            create_token(data=data, expire_delta=expire_delta)
+        return
+    
+    # If no exception is expected
     token = create_token(data=data)
-
     decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     
     # Test whether the data is correct set
@@ -38,6 +50,7 @@ def test_create_token() -> None:
     expire = datetime.fromtimestamp(decoded_token["exp"], tz=timezone.utc)
     assert expire > datetime.now(timezone.utc)
 
+    # Check that the expiry date is within the expected range
     now = datetime.now(timezone.utc)
     delta = expire - now
 
@@ -46,64 +59,65 @@ def test_create_token() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "secure_https, expected_secure_flag",
+    "user_id, status_code, content, secure_https, expected_secure_flag, expected_exception",
     [
-        (True, True),   # Success: Only over HTTPS - Secure cookie is set
-        (False, False), # Success: Dev/local mode - no Secure flag in cookie
-        (None, False),  # Fallback: ENV var not set - default is Secure=False
+        (uuid.uuid4(), 200, {}, "true", True, None), # Success
+        (uuid.uuid4(), 200, {}, "false", False, None), # Success with secure=False
+        (uuid.uuid4(), 200, None, "true", True, None), # Success with empty content
+        (uuid.uuid4(), 200, {}, None, False, None), # Success with secure=None -> defaults to False (Fallback)
+        (uuid.uuid4(), 200, "NotADict", "true", True, ValueError), # Invalid content -> ValueError
+        (uuid.uuid4(), "NotAnInteger", {}, "true", True, ValueError), # Invalid status_code -> ValueError
+        ("NotAUUID", 200, {}, "true", True, ValueError), # Invalid user_id -> ValueError
     ]
 )
 async def test_set_refresh_token(
-    monkeypatch, secure_https: bool, expected_secure_flag: Optional[bool]
+    monkeypatch, user_id: uuid.UUID, status_code: int, content: dict, 
+    secure_https: str, expected_secure_flag: bool, expected_exception: Optional[Exception]
 ) -> None:
-    fake_user_id = uuid.uuid4()
+    # If an exception is expected
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            await set_refresh_token(user_id=user_id, status_code=status_code, content=content)
+        return
+    
+    # If no exception is expected
 
-    # Change the value in the .env file
+    # Set the env variable for secure HTTPS
     if secure_https is not None:
-        monkeypatch.setenv("SECURE_HTTPS", str(secure_https))
+        monkeypatch.setenv("SECURE_HTTPS", secure_https)
     else:
         monkeypatch.delenv("SECURE_HTTPS", raising=False)
+
+    response: JSONResponse = await set_refresh_token(user_id=user_id, status_code=status_code, content=content)
+
+    # Check response content and status
+    assert response.status_code == status_code
     
-    # Get the response and parse the set-cookie header using http.cookie for correctness
-    response: JSONResponse = await set_refresh_token(fake_user_id)
-    set_cookie = response.headers.get("set-cookie")
-    assert set_cookie is not None
+    parsed_content = json.loads(response.body.decode())
+    assert parsed_content == content
 
-    # Parse the Set-Cookie header to extract the refresh_token value
+    # Check cookie
     cookie = SimpleCookie()
-    cookie.load(set_cookie)
-    assert "refresh_token" in cookie # Ensure the cookie was set
-    token_value = cookie["refresh_token"].value # Extract the JWT token from the cookie
-
-    # Decode the refresh token
-    payload = jwt.decode(token_value, SECRET_KEY, algorithms=[ALGORITHM])
-    assert payload["sub"] == str(fake_user_id)
-
-    # Validate the refresh token
-    refresh_cookie = cookie["refresh_token"]
+    cookie.load(response.headers.get("set-cookie"))
+    refresh_cookie = cookie.get("refresh_token")
+    refresh_token = refresh_cookie.value
+    
+    # Decode the JWT token
+    payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+    assert payload["sub"] == str(user_id)
+    
+    # Cookie attributes
     assert refresh_cookie["httponly"]
     assert refresh_cookie["samesite"].lower() == "lax"
     assert refresh_cookie["path"] == "/"
-    assert int(refresh_cookie["max-age"]) == 60 * 60 * 24 * 7
+    assert int(refresh_cookie["max-age"]) == REFRESH_MAX_AGE
 
-    # Checks whether the secure flag is correct
     if expected_secure_flag:
-        assert refresh_cookie["secure"]
+        assert refresh_cookie["secure"] == True or refresh_cookie["secure"] == "True"
     else:
-        assert "secure" not in refresh_cookie or not refresh_cookie["secure"]
+        assert refresh_cookie["secure"] in (False, "", None, "False")
 
 
-@pytest_asyncio.fixture
-async def fake_user(db_session: AsyncSession) -> Tuple[User, AsyncSession]:
-    stmt = (
-        insert(User)
-        .values(name="fake_user", email="fake@email.com", password="very_secret_pwd")
-        .returning(User)
-    )
-    result_obj = await db_session.execute(stmt)
-    result = result_obj.scalar_one_or_none()
-    assert result is not None
-    return result, db_session
 
 
 
@@ -133,7 +147,6 @@ def _generate_refresh_token(token_validity: str, user_id: uuid.UUID) -> Optional
         return token_generators[token_validity]()
     except KeyError as e:
         raise KeyError(f"Unknown token state: {e}")
-
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(

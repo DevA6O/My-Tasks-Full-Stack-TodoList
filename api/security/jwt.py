@@ -9,8 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, status, APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer
-from jwt.exceptions import InvalidTokenError, PyJWTError
-from typing import Annotated
+from jwt.exceptions import PyJWTError
 from passlib.context import CryptContext
 from database.models import User
 from database.connection import get_db
@@ -25,13 +24,23 @@ logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 15
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 15))
+REFRESH_MAX_AGE = int(os.getenv("REFRESH_MAX_AGE", 60 * 60 * 24 * 7))  # Default to 7 days
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
-    """ Creates a access / refresh token """
+    """ Creates an access or a refresh token """
+    # Validate params
+    if not data:
+        raise ValueError("Data must not be empty.")
+    if not isinstance(data, dict):
+        raise ValueError("Data must be a dictionary.")
+    if not isinstance(expire_delta, (timedelta, type(None))):
+        raise ValueError("Expire delta must be a timedelta or None.")
+    
+    # Create the token with expiration
     to_encode: dict = data.copy()
     if expire_delta:
         expire = datetime.now(timezone.utc) + expire_delta
@@ -42,20 +51,32 @@ def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200) -> JSONResponse:
-    """ Set refresh token as HttpOnly cookie (no access_token returned) """
-    refresh_token = create_token(data={"sub": str(user_id)}, expire_delta=timedelta(days=7))
 
+async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200, content: dict = None) -> JSONResponse:
+    """ Set refresh token as HttpOnly cookie (no access_token returned) """
+    # Validate params
+    if not isinstance(user_id, uuid.UUID):
+        raise ValueError("User ID must be a valid UUID.")
+    if not isinstance(status_code, int):
+        raise ValueError("Status code must be an integer.")
+    if not isinstance(content, dict) and content is not None:
+        raise ValueError("Content must be a dictionary.")
+
+    # Create the refresh token
+    refresh_token = create_token(data={"sub": str(user_id)}, expire_delta=timedelta(seconds=REFRESH_MAX_AGE))
+
+    # Secure HTTPS setting
     SECURE_HTTPS = os.getenv("SECURE_HTTPS", "False").lower() == "true"
 
-    response = JSONResponse(status_code=status_code, content={})
+    # Set the cookie in the response
+    response = JSONResponse(status_code=status_code, content=content)
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
         secure=SECURE_HTTPS,
         samesite="lax",
-        max_age=60 * 60 * 24 * 7,
+        max_age=REFRESH_MAX_AGE,
         path="/"
     )
     return response
@@ -66,24 +87,33 @@ async def refresh_token(request: Request, response: Response, db_session: AsyncS
     """ Checks whether a refresh token is valid and returns an access token if it is valid """
     refresh_token = request.cookies.get("refresh_token")
 
+    # Validate the presence of the refresh token
     if not refresh_token:
         logger.warning("Refresh token missing in request to /api/refresh")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token")
     
     try:
+        # Decode the refresh token
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
 
+        # Check if the user ID is valid
         stmt = select(User).where(User.id == uuid.UUID(user_id))
         result_obj = await db_session.execute(stmt)
         result = result_obj.scalar_one_or_none()
 
+        # If the user is not found, raise an error
         if user_id is None or result is None:
             logger.warning("User not found in database for refresh token", extra={"user_id": user_id})
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User could not be identified.")
 
+        # Create a new access token
         access_token = create_token(data={"sub": user_id})
         return JSONResponse(status_code=status.HTTP_200_OK, content={"access_token": access_token, "token_type": "bearer"})
     except PyJWTError:
-        logger.warning("JWT verification failed for refresh token", exc_info=True)
+        logger.exception("JWT verification failed for refresh token", exc_info=True)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="This token is no longer valid.")
+    
+    except ValueError as e:
+        logger.exception("Error in refresh token processing", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

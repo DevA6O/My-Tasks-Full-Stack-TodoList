@@ -6,4 +6,6 @@ passlib
 bcrypt
 SQLAlchemy
 aiosqlite
+pytest
 pytest-asyncio
+httpx
