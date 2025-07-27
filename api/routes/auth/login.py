@@ -9,6 +9,7 @@ from database.models import User
 from database.connection import get_db
 from routes.auth.validation_models import LoginModel
 from security.hashing import is_hashed
+from security.jwt import set_refresh_token
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -58,7 +59,7 @@ class Login:
         return user_obj, "Login successful."
     
 
-@router.post("/login")
+@router.post("/api/login")
 async def login(data: LoginModel, db_session: AsyncSession = Depends(get_db)):
     """ Endpoint to log in a user. """
     http_exception = HTTPException(
@@ -74,10 +75,9 @@ async def login(data: LoginModel, db_session: AsyncSession = Depends(get_db)):
             logger.warning(f"Login failed: {message}", extra={"email": data.email})
             raise http_exception
         
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"message": message, "user_id": user_obj.id, "username": user_obj.username}
-        )
+        response: JSONResponse = await set_refresh_token(user_id=user_obj.id, status_code=200)
+        logger.info("User logged in successfully", extra={"email": data.email})
+        return response
     except ValueError as e:
         logger.exception(str(e), exc_info=True)
         http_exception.detail = str(e)
