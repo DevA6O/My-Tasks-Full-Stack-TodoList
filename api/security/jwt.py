@@ -59,7 +59,7 @@ async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200, content:
         raise ValueError("User ID must be a valid UUID.")
     if not isinstance(status_code, int):
         raise ValueError("Status code must be an integer.")
-    if not isinstance(content, dict):
+    if not isinstance(content, dict) and content is not None:
         raise ValueError("Content must be a dictionary.")
 
     # Create the refresh token
