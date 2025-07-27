@@ -1,22 +1,24 @@
+import os
+from dotenv import load_dotenv
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple, Optional
+from httpx import AsyncClient, ASGITransport
 
 from routes.auth.login import Login
 from routes.auth.validation_models import LoginModel, RegisterModel
 from database.models import User
+from database.connection import get_db
 from security.hashing import hash_pwd
 from routes.auth.register import Register
-
-fake_email = "fake@email.com"
-fake_password = "fakepassword"
-correct_hash = hash_pwd(fake_password)
+from conftest import fake_email, fake_password, fake_hashed_password
+from main import api
 
 @pytest.mark.parametrize(
     "password_in_db, expected_value",
     [
-        (correct_hash, True), # Success
-        (correct_hash.encode("utf-8"), True), # Success with bytes
+        (fake_hashed_password, True), # Success
+        (fake_hashed_password.encode("utf-8"), True), # Success with bytes
         ("not_a_hash", ValueError), # No bcrypt format
         (b"\x80\x81\x82", ValueError), # no decodeable bytes
         ("", ValueError), # empty string
@@ -72,3 +74,44 @@ async def test_authenticate(
     else:
         assert user_obj is expected_value[0]
     assert isinstance(message, str)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "email, password, expected_status_code",
+    [
+        (fake_email, fake_password, 200), # Successful login
+        (fake_email, "wrongPassword", 400), # Incorrect password
+        (str("notRegistered" + fake_email), fake_password, 400), # Not registered email
+        (fake_email, "", 422), # Empty password
+        (fake_email, "short", 422), # Invalid password (min-length = 8 = too short)
+        (fake_email, str("tooLong." * 4) + ".", 422), # Invalid password (max-length = 32 = too long)
+        ("", fake_password, 422), # Empty email
+        ("notAnEmail", fake_password, 422), # Invalid email format
+        (fake_email, "notAValidHashedPassword", 400), # Invalid hashed password format
+    ]
+)
+async def test_login_endpoint(
+    email: str, password: str, expected_status_code: int,
+    fake_user: Tuple[User, AsyncSession]
+) -> None:
+    user, db_session = fake_user
+    test_email = email if email == fake_email else email
+    test_password = password if password == fake_password else password
+
+    api.dependency_overrides[get_db] = lambda: db_session
+    transport = ASGITransport(app=api)
+
+    async with AsyncClient(transport=transport, base_url=os.getenv("VITE_API_URL")) as ac:
+        payload: dict = {
+            "email": test_email,
+            "password": test_password
+        }
+
+        # Provoking error for invalid hashed password, if test password is not a valid hash
+        if password == "notAValidHashedPassword":
+            user.password = test_password
+            await db_session.commit()
+
+        response = await ac.post("/login", json=payload)
+        assert response.status_code == expected_status_code
