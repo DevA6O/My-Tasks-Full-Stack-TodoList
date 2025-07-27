@@ -125,6 +125,14 @@ export default function Register() {
                     >
                         Confirm
                     </button>
+
+                    <p className="text-center text-gray-500 mt-3 text-sm">
+                        I already have an account.&nbsp;
+                        <a href="/login" className="text-blue-500 hover:text-blue-700 font-semibold underline">
+                            Login
+                        </a>
+                        .
+                    </p>
                 </form>
             </div>
         </div>
