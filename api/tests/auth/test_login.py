@@ -43,9 +43,9 @@ def test_verify_password(password_in_db, expected_value) -> None:
 @pytest.mark.parametrize(
     "email, password, is_registered, is_pwd_correct, expected_value",
     [
-        (fake_email, fake_password, True, True, (User, "")),
-        (fake_email, fake_password, True, False, (None, "")),
-        (fake_email, fake_password, False, False, (None, ""))
+        (fake_email, fake_password, True, True, (User, "")), # Success
+        (fake_email, fake_password, True, False, (None, "")), # Incorrect password
+        (fake_email, fake_password, False, False, (None, "")) # Not registered
     ]
 )
 async def test_authenticate(
