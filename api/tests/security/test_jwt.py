@@ -63,6 +63,7 @@ def test_create_token(data: dict, expire_delta: timedelta, expected_exception: E
     [
         (uuid.uuid4(), 200, {}, "true", True, None), # Success
         (uuid.uuid4(), 200, {}, "false", False, None), # Success with secure=False
+        (uuid.uuid4(), 200, None, "true", True, None), # Success with empty content
         (uuid.uuid4(), 200, {}, None, False, None), # Success with secure=None -> defaults to False (Fallback)
         (uuid.uuid4(), 200, "NotADict", "true", True, ValueError), # Invalid content -> ValueError
         (uuid.uuid4(), "NotAnInteger", {}, "true", True, ValueError), # Invalid status_code -> ValueError
