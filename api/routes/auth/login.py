@@ -78,7 +78,7 @@ async def login(data: LoginModel, db_session: AsyncSession = Depends(get_db)):
         response: JSONResponse = await set_refresh_token(user_id=user_obj.id, status_code=200)
         logger.info("User logged in successfully", extra={"email": data.email})
         return response
-    except ValueError as e:
+    except ValueError as e: # Fallback for any ValueError raised in the service
         logger.exception(str(e), exc_info=True)
         http_exception.detail = str(e)
         raise http_exception
