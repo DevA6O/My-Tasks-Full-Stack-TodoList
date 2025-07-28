@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy import Integer, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database.connection import Base
 
 
@@ -18,6 +18,12 @@ class User(Base):
     password: Mapped[str]
     created_at: Mapped[int] = mapped_column(Integer, default=current_timestamp)
 
+    todos: Mapped[list["Todo"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
+
 
 class Todo(Base):
     __tablename__ = "todos"
@@ -28,4 +34,6 @@ class Todo(Base):
     created_at: Mapped[int] = mapped_column(Integer, default=current_timestamp)
     edited_at: Mapped[int] = mapped_column(Integer, default=current_timestamp, onupdate=current_timestamp)
 
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+
+    user: Mapped["User"] = relationship(back_populates="todos")
