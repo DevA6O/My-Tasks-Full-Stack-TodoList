@@ -30,6 +30,21 @@ REFRESH_MAX_AGE = int(os.getenv("REFRESH_MAX_AGE", 60 * 60 * 24 * 7))  # Default
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+def decode_token(token: str) -> uuid.UUID:
+    """ Function to decode the token """
+    # Decode the token
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    user_id = payload.get("sub")
+
+    # Check if the user could found
+    if user_id is None:
+        raise ValueError("User could not be found.")
+    
+    # Return user id
+    user_id = uuid.UUID(user_id)
+    return user_id
+
+
 def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
     """ Creates an access or a refresh token """
     # Validate params
