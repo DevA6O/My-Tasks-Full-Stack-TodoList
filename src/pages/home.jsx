@@ -98,7 +98,7 @@ export default function Home() {
             {!isLoading && (
                 <div className="flex h-screen">
                     {/* Sidebar */}
-                    <aside className="flex flex-col justify-between p-10 w-64">
+                    <aside className="flex flex-col justify-between p-10 w-64 fixed bottom-0 left-0 h-screen">
                         <h1 className="text-2xl font-bold">Menu</h1>
                         <div className="flex flex-col gap-1">
                             <a href="/settings" className="w-full">Settings</a>
@@ -106,7 +106,7 @@ export default function Home() {
                         </div>
                     </aside>
 
-                    <main className="flex-1">
+                    <main className="flex-1 w-64 pl-50">
                         {/* Welcome message */}
                         <div className="flex flex-col m-20">
                             <h1 className="text-3xl">Welcome back, {username}!</h1>
