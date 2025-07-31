@@ -32,17 +32,21 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def decode_token(token: str) -> uuid.UUID:
     """ Function to decode the token """
-    # Decode the token
-    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    user_id = payload.get("sub")
+    try:
+        # Decode the token
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
 
-    # Check if the user could found
-    if user_id is None:
-        raise ValueError("User could not be found.")
-    
-    # Return user id
-    user_id = uuid.UUID(user_id)
-    return user_id
+        # Check whether the user was found
+        if user_id is None:
+            raise ValueError("User could not be found.")
+        
+        # Return user id
+        user_id = uuid.UUID(user_id)
+        return user_id
+    except PyJWTError as e:
+        logger.exception(f"JWT verification failed: {str(e)}", exc_info=True)
+        return None
 
 
 def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
