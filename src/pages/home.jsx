@@ -1,4 +1,4 @@
-import React, { useActionState, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
@@ -52,7 +52,6 @@ export default function Home() {
                 setError("apiError", {type: "manual", message: data.detail})
             }
         } catch (error) {
-            console.log(error)
             setError(error);
         };
     };
