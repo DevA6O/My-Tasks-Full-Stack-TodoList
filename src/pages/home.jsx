@@ -83,6 +83,7 @@ export default function Home() {
                 setTaskError(error);
             } finally{
                 setLoading(false);
+                setReloadTasks(false);
             }
         }
 
