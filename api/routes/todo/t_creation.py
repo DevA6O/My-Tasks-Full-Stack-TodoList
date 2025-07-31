@@ -27,9 +27,13 @@ class TodoCreation:
             .values(user_id=self.user_id, title=self.data.title, description=self.data.description)
             .returning(Todo)
         )
-        result = await self.db_session.execute(stmt)
+        result_obj = await self.db_session.execute(stmt)
+        todo_instance = result_obj.scalar_one_or_none()
         await self.db_session.commit()
-        return result.scalar_one_or_none()
+
+        if todo_instance:
+            await self.db_session.refresh(todo_instance)
+        return todo_instance
         
     async def is_todo_exist(self) -> bool:
         """ Check whether the task already exists or not. """
