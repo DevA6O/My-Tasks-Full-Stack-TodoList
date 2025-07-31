@@ -2,24 +2,57 @@ import os
 import jwt
 import json
 import uuid
+import time
 import pytest
-import pytest_asyncio
 from datetime import datetime, timezone, timedelta
 from httpx import AsyncClient, ASGITransport
 from http.cookies import SimpleCookie
 from fastapi.responses import JSONResponse
 
-from sqlalchemy import insert, delete
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Tuple, Callable, Optional
+from typing import Tuple, Callable, Optional, Union
 
 from database.models import User
 from database.connection import get_db
 from main import api
 from security.jwt import (
     SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_MAX_AGE,
-    create_token, set_refresh_token
+    decode_token, create_token, set_refresh_token
 )
+
+@pytest.mark.parametrize(
+    "valid_token, user, expected_value",
+    [
+        (True, True, uuid.UUID), # Success -> UUID
+        (True, False, ValueError), # Success but no sub (user) -> ValueError
+        (False, False, None), # Invalid token -> None
+    ]
+)
+def test_decode_token(valid_token: bool, user: bool, expected_value: Union[Exception, uuid.UUID]) -> None:
+    if user:
+        data: dict = {"sub": str(uuid.uuid4())}
+    else:
+        data: dict = {"no_sub": str(uuid.uuid4())}
+
+    if valid_token:
+        fake_token = create_token(data=data)
+    else:
+        fake_token = create_token(data=data, expire_delta=timedelta(seconds=1))
+        time.sleep(1.5) # wait 1.5 seconds to make sure that the token is invalid
+
+    if isinstance(expected_value, type) and issubclass(expected_value, Exception):
+        with pytest.raises(expected_value):
+            decode_token(token=fake_token)
+        return
+
+    result = decode_token(token=fake_token)
+
+    if expected_value is None:
+        assert result is None
+    else:
+        assert isinstance(result, expected_value)
+
 
 @pytest.mark.parametrize(
     "data, expire_delta, expected_exception",
