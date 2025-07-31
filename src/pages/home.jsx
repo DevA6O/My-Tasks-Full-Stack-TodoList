@@ -49,8 +49,7 @@ export default function Home() {
                 setReloadTasks(true);
             } else {
                 const data = await response.json();
-
-                setError("apiError", {type: "manual", message: data.detail.message})
+                setError("apiError", {type: "manual", message: data.detail})
             }
         } catch (error) {
             console.log(error)
@@ -177,7 +176,7 @@ export default function Home() {
                             }
 
                             {!taskErrors && Array.isArray(tasks) && tasks.length > 0 && (
-                                <div className="flex flex-col gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {tasks.map((task) => (
                                     <div
                                         key={task.id}
