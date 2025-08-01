@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends, HTTPException, status, APIRouter, Request, Response
+from fastapi import Depends, HTTPException, status, APIRouter, Request, Response, Header
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import PyJWTError
@@ -29,6 +29,16 @@ REFRESH_MAX_AGE = int(os.getenv("REFRESH_MAX_AGE", 60 * 60 * 24 * 7))  # Default
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def get_bearer_token(authorization: str = Header(None)) -> str:
+    """ Function to get the bearer token """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid authorization header."
+        )
+    return authorization[len("Bearer "):]
+
 
 def decode_token(token: str) -> uuid.UUID:
     """ Function to decode the token """
