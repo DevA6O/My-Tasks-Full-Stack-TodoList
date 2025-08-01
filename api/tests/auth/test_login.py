@@ -115,3 +115,5 @@ async def test_login_endpoint(
 
         response = await ac.post("/login", json=payload)
         assert response.status_code == expected_status_code
+
+    api.dependency_overrides.clear()
