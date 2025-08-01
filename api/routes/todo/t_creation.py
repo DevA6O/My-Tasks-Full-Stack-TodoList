@@ -75,21 +75,24 @@ async def create_todo_endpoint(
     db_session: AsyncSession = Depends(get_db)
 ) -> None:
     """ Endpoint to create a new todo """
+    # Define standard exception
     http_exception = HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
     try:
+        # Fetch the user_id from token
         user_id: UUID = decode_token(token=token)
 
-        creation_service = TodoCreation(db_session=db_session, data=data, user_id=user_id)
-        todo, message = await creation_service.create()
+        # Create the todo
+        todo_creation_service = TodoCreation(db_session=db_session, data=data, user_id=user_id)
+        todo, message = await todo_creation_service.create()
         
+        # Check whether the todo was created successfully.
         if todo is None:
             http_exception.detail = message
             raise http_exception
         
-        return JSONResponse(
-            status_code=status.HTTP_200_OK, content={"message": message}
-        )
+        # Return success response
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"message": message})
     except ValueError as e:
         logger.exception(str(e), exc_info=True)
         http_exception.detail = str(e)
