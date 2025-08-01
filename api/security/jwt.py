@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends, HTTPException, status, APIRouter, Request, Response
+from fastapi import Depends, HTTPException, status, APIRouter, Request, Response, Header
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import PyJWTError
@@ -29,6 +29,35 @@ REFRESH_MAX_AGE = int(os.getenv("REFRESH_MAX_AGE", 60 * 60 * 24 * 7))  # Default
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def get_bearer_token(authorization: str = Header(None)) -> str:
+    """ Function to get the bearer token """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid authorization header."
+        )
+    return authorization[len("Bearer "):]
+
+
+def decode_token(token: str) -> uuid.UUID:
+    """ Function to decode the token """
+    try:
+        # Decode the token
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+
+        # Check whether the user was found
+        if user_id is None:
+            raise ValueError("User could not be found.")
+        
+        # Return user id
+        user_id = uuid.UUID(user_id)
+        return user_id
+    except PyJWTError as e:
+        logger.exception(f"JWT verification failed: {str(e)}", exc_info=True)
+        return None
+
 
 def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
     """ Creates an access or a refresh token """

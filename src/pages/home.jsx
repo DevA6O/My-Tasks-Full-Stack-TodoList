@@ -1,43 +1,254 @@
-import React, { useState, useEffect, use } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import * as yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
+
+import LoadingScreen from "../components/LoadingScreen";
+
+const schema = yup.object().shape({
+    title: yup
+        .string()
+        .min(2, "Title must have at least 2 characters.")
+        .max(140, "Title cannot have more than 140 characters.")
+        .required("Title is required."),
+    description: yup
+        .string()
+        .max(320, "Description cannot have more than 320 characters.")
+});
+
 
 export default function Home() {
-    const { isAuth, accessToken } = useAuth();
-    const navigate = useNavigate();
+    const { accessToken, loading: authLoading } = useAuth();
+    const [tasks, setTasks] = useState([]);
+    const [username, setUsername] = useState("User");
+    const [taskErrors, setTaskError] = useState(null);
+    const [isLoading, setLoading] = useState(true);
+    const [reloadTasks, setReloadTasks] = useState(false);
 
-    if (!isAuth) {
-        return (
-            <div className="h-screen flex flex-col justify-center items-center bg-gray-100 px-4 text-center">
-                <h1 className="text-4xl sm:text-5xl font-bold text-gray-800 mb-4">
-                    MyTasks - The Best Todo List
-                </h1>
-                <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-xl">
-                    Organize your day, manage your tasks, and boost your productivity with ease.
-                    No distractions. Just simplicity.
-                </p>
+    const {
+        register: registerHome,
+        handleSubmit,
+        setError,
+        reset,
+        formState: { errors },
+    } = useForm({
+        resolver: yupResolver(schema),
+        mode: "onTouched"
+    });
 
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <button
-                        onClick={() => navigate("/tasks")}
-                        className="px-6 py-3 bg-gray-800 text-white rounded-lg shadow hover:bg-gray-700 transition cursor-pointer"
-                    >
-                        Continue as Guest
-                    </button>
-                    <button
-                        onClick={() => navigate("/login")}
-                        className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-500 transition cursor-pointer"
-                    >
-                        Login
-                    </button>
-                </div>
-            </div>
-        )
-    }
+    const onSubmit = async (formData) => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/todo/create`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${accessToken}`
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                setReloadTasks(true); // Reload loadTasks
+                reset(); // Reset input fields
+            } else {
+                const data = await response.json();
+                setError("apiError", {type: "manual", message: data.detail}); // Add api error message
+            };
+        } catch (error) {
+            setError("apiError", {type: "manual", message: error.toString()}); // Add api error message
+        };
+    };
+
+    useEffect(() => {
+        // Wait for the access token
+        if (authLoading) return;
+        
+        // If the user isn't logged in
+        if (!accessToken && !authLoading) {
+            window.location.href = "/login";
+            return;
+        };
+
+        const loadTasks = async () => {
+            try {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/todo/get_all`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${accessToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    setTasks(Array.isArray(data.todos) ? data.todos : []);
+                    setUsername(data.username || "User");
+                } else {
+                    setTaskError("Server error: Tasks could not be loaded.");
+                };
+            } catch (error) {
+                setTaskError(error);
+            } finally{
+                setLoading(false);
+                setReloadTasks(false);
+            };
+        };
+
+        loadTasks();
+    }, [accessToken, authLoading, reloadTasks]);
+
 
     return (
-        <div className="max-w-2xl mx-auto mt-10">
-            <h1 className="text-3xl font-bold mb-4">Welcome!</h1>
-        </div>
-    );
+        <>
+            {isLoading && <LoadingScreen />}
+
+            {!isLoading && (
+                <div>
+                    {/* Desktop sidebar */}
+                    <aside className="hidden lg:flex flex-col justify-between fixed top-0 left-0 h-screen items-center w-64 p-16 bg-gray-500/20 border-r-4 border-gray-300">
+                        <h1 className="font-bold text-2xl">MyTasks</h1>
+
+                        <div className="flex flex-col font-sans">
+                            <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
+                            <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Sign out</button>
+                        </div>
+                    </aside>
+
+                    {/* iPad and iPhone navbar */}
+                    <nav className="lg:hidden fixed top-0 left-0 right-0 flex flex-col sm:flex-row justify-between p-6 sm:p-10 bg-gray-200 border-b-2">
+                        <h1 className="font-bold text-2xl">MyTasks</h1>
+
+                        <div className="flex gap-4 mt-4 sm:mt-0">
+                            <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
+                            <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Sign out</button>
+                        </div>
+                    </nav>
+
+                    {/* Main content */}
+                    <main className="flex-1 pt-40 pl-5 sm:pl-10 md:pl-10 lg:pt-30 lg:ml-80">
+                        {/* Welcome message */}
+                        <div>
+                            <h1 className="font-semibold text-2xl md:text-3xl">Welcome back, {username}!</h1>
+                            <p className="md:text-lg">Ready to do a task or add a new one?</p>
+
+                            {/* Line */}
+                            <div className="w-11/12 p-1 bg-black/20 rounded"></div>
+                        </div>
+
+                        {/* Add new Task */}
+                        <div className="flex-1 mt-10 max-w-100">
+                            <h1 className="font-semibold text-xl">Add a New Task</h1>
+                            <p className="text-lg">Here you can add a new task.</p>
+
+                            <form className="flex flex-col" onSubmit={handleSubmit(onSubmit)}>
+                                {/* Display api error */}
+                                {errors.apiError && (
+                                    <div className="flex justify-center w-full p-5 border border-red-600 bg-red-200 rounded">
+                                        <p className="font-sans text-red-900 break-words text-center">{errors.apiError.message}</p>
+                                    </div>
+                                    
+                                )}
+
+                                {/* Title input field */}
+                                <div className="flex flex-col mt-5">
+                                    <label htmlFor="title" className="text-lg">
+                                        <span className="text-red-500">*</span> Title <span className="text-sm">(Required)</span>
+                                    </label>
+
+                                    <input 
+                                        id="title"
+                                        type="text" 
+                                        {...registerHome("title")}
+                                        className="p-2 w-3xs md:w-100 border-2 border-gray-400 rounded"
+                                    />
+
+                                    {/* Display error message */}
+                                    {errors.title && (
+                                        <p className="font-sans text-red-500 max-w-[90vw] break-words">{errors.title.message}</p>
+                                    )}
+                                </div>
+                                
+                                {/* Description input field */}
+                                <div className="flex flex-col mt-5">
+                                    <label htmlFor="description" className="text-lg">Description</label>
+
+                                    <input 
+                                        id="description"
+                                        type="text" 
+                                        {...registerHome("description")}
+                                        className="p-2 w-3xs md:w-100 border-2 border-gray-400 rounded"
+                                    />
+
+                                    {/* Display error message */}
+                                    {errors.description && (
+                                        <p className="font-sans text-red-500 max-w-[90vw] break-words">{errors.description.message}</p>
+                                    )}
+                                </div>
+
+                                {/* Add task button */}
+                                <div className="mt-5 text-center flex md:justify-center">
+                                    <button 
+                                        type="submit"
+                                        className="px-5 py-2 text-lg text-white bg-blue-600 rounded cursor-pointer hover:bg-blue-500 transition-all ease-in-out duration-400"
+                                    >
+                                        Add Task
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* Line */}
+                        <div className="mt-5 w-11/12 p-1 bg-black/20 rounded"></div>
+                        
+                        {/* Show every task the user have */}
+                        <div className="mt-10">
+                            <h1 className="font-semibold text-xl">Your current Tasks</h1>
+                            <p className="text-lg">Here you can see all the open tasks you have.</p>
+                            
+                            {/* Display task errors */}
+                            <div className="mt-5">
+                                {taskErrors && (<p className="text-red-500 font-sans">{taskErrors.toString()}</p>)}
+                                {!isLoading && !taskErrors && tasks.length === 0 && (
+                                    <p className="text-blue-800 font-sans font-semibold text-xl">
+                                        Nice work! Currently you have no tasks to solve!
+                                    </p>
+                                )}
+                            </div>
+                            
+                            {/* Display all tasks if there are no errors */}
+                            {!isLoading && !taskErrors && tasks.length > 0 && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 max-w-[85%]">
+                                    {tasks.map((task) => (
+                                        <div 
+                                            key={task.id}
+                                            className="w-full max-w-2xl flex justify-between items-center p-5 border border-gray-400 rounded"
+                                        >
+                                            <div className="flex flex-col max-w-[85%] overflow-hidden">
+                                                {/* Task title */}
+                                                <h1 className="font-semibold text-lg text-gray-800 leading-snug break-words">
+                                                    {task.title}
+                                                </h1>
+
+                                                {/* Task description */}
+                                                <p className="font-sans text-lg leading-snug break-words">
+                                                    {task.description}
+                                                </p>
+                                            </div>
+
+                                            {/* Delete button */}
+                                            <button className="px-3 py-1 border border-gray-400/80 rounded-md text-red-500 font-semibold cursor-pointer hover:bg-red-500 hover:text-white transition-all ease-in-out duration-500">
+                                                Delete
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                </div>
+            )}
+        </>
+    )
 }
