@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select, insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Tuple
 
 from database.models import Todo
 from security.jwt import decode_token
@@ -22,7 +23,7 @@ class TodoCreation:
         self.description: str = self.data.description.strip()
         self.user_id: UUID = user_id
 
-    async def insert_new_todo(self):
+    async def insert_new_todo(self) -> Todo | None:
         """ Write the todo to the database """
         stmt = (
             insert(Todo)
@@ -43,7 +44,7 @@ class TodoCreation:
         result = await self.db_session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def create(self):
+    async def create(self) -> Tuple[Tuple | None, str]:
         """ Creates a new todo """
         if await self.is_todo_exist():
             return None, f"Todo ({self.title}) already exist."
@@ -64,13 +65,13 @@ class TodoCreation:
 async def create_todo_endpoint(
     data: TodoCreationValidation, authorization: str = Header(None), 
     db_session: AsyncSession = Depends(get_db)
-):
+) -> None:
     """ Endpoint to create a new todo """
     http_exception = HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
     try:
-        access_token = authorization[len("Bearer "):]
-        user_id = decode_token(token=access_token)
+        access_token: str = authorization[len("Bearer "):]
+        user_id: UUID = decode_token(token=access_token)
 
         creation_service = TodoCreation(db_session=db_session, data=data, user_id=user_id)
         todo, message = await creation_service.create()

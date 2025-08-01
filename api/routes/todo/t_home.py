@@ -35,15 +35,13 @@ class TodoHome():
         todos: list = user.todos
         return username, todos
 
+
 class TodoSchema(BaseModel):
     id: UUID
     title: str
     description: str
 
     model_config = ConfigDict(from_attributes=True)
-
-
-
 
 @router.post("/api/todo/get_all")
 async def get_all_todos(
