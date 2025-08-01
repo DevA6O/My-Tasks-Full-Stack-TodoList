@@ -143,6 +143,14 @@ export default function Home() {
                             <p className="text-lg">Here you can add a new task.</p>
 
                             <form className="flex flex-col" onSubmit={handleSubmit(onSubmit)}>
+                                {/* Display api error */}
+                                {errors.apiError && (
+                                    <div className="flex justify-center w-full p-5 border border-red-600 bg-red-200 rounded">
+                                        <p className="font-sans text-red-900 break-words text-center">{errors.apiError.message}</p>
+                                    </div>
+                                    
+                                )}
+
                                 {/* Title input field */}
                                 <div className="flex flex-col mt-5">
                                     <label htmlFor="title" className="text-lg">
