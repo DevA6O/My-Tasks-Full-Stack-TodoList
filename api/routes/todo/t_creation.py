@@ -42,7 +42,7 @@ class TodoCreation:
         
         return todo_instance
 
-    async def _is_todo_exist(self) -> bool:
+    async def _is_todo_exist(self) -> Todo | None:
         """ Check whether the task already exists or not. """
         stmt = select(Todo).where(Todo.user_id == self.user_id, Todo.title == self.title)
         result = await self.db_session.execute(stmt)
