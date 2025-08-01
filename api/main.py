@@ -11,7 +11,7 @@ from routes.auth.login import router as LoginRouter
 from routes.todo import TodoRouter
 from security.jwt import router as JWTRouter
 
-logging.basicConfig(level=logging.INFO, format="[%(name)s | %(levelname)s] - %(asctime)s: %(message)s")
+logging.basicConfig(level=logging.INFO, format="[%(name)s.py:%(lineno)d | %(levelname)s] - %(asctime)s: %(message)s")
 
 @asynccontextmanager
 async def lifespan(api: FastAPI):
