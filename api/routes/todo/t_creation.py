@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 
 from database.models import Todo
-from security.jwt import decode_token
+from security.jwt import decode_token, get_bearer_token
 from database.connection import get_db
 from routes.todo.t_validation_model import TodoCreation as TodoCreationValidation
 
@@ -63,15 +63,14 @@ class TodoCreation:
 
 @router.post("/api/todo/create")
 async def create_todo_endpoint(
-    data: TodoCreationValidation, authorization: str = Header(None), 
+    data: TodoCreationValidation, token: str = Depends(get_bearer_token), 
     db_session: AsyncSession = Depends(get_db)
 ) -> None:
     """ Endpoint to create a new todo """
     http_exception = HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
     try:
-        access_token: str = authorization[len("Bearer "):]
-        user_id: UUID = decode_token(token=access_token)
+        user_id: UUID = decode_token(token=token)
 
         creation_service = TodoCreation(db_session=db_session, data=data, user_id=user_id)
         todo, message = await creation_service.create()

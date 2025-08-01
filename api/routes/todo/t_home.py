@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 from database.connection import get_db
 from database.models import User
-from security.jwt import decode_token
+from security.jwt import decode_token, get_bearer_token
 
 router = APIRouter()
 
@@ -45,11 +45,10 @@ class TodoSchema(BaseModel):
 
 @router.post("/api/todo/get_all")
 async def get_all_todos(
-    authorization: str = Header(None), db_session: AsyncSession = Depends(get_db)
+    token: str = Depends(get_bearer_token), db_session: AsyncSession = Depends(get_db)
 ) -> None:
     """ Endpoint to get all todos """
-    access_token: str = authorization[len("Bearer "):]
-    user_id: UUID = decode_token(token=access_token)
+    user_id: UUID = decode_token(token=token)
 
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The user could not be identified.")
