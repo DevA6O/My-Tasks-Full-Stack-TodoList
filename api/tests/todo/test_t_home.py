@@ -1,7 +1,6 @@
 import pytest
 import uuid
 import os
-import json
 import pytest_asyncio
 from dotenv import load_dotenv
 from unittest.mock import AsyncMock

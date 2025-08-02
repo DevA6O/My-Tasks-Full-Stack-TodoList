@@ -9,10 +9,11 @@ from routes.auth.login import Login
 from routes.auth.validation_models import LoginModel, RegisterModel
 from database.models import User
 from database.connection import get_db
-from security.hashing import hash_pwd
 from routes.auth.register import Register
 from conftest import fake_email, fake_password, fake_hashed_password
 from main import api
+
+load_dotenv()
 
 @pytest.mark.parametrize(
     "password_in_db, expected_value",
