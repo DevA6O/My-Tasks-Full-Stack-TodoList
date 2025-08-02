@@ -95,7 +95,7 @@ async def get_all_todos_endpoint(
 
         # If some error occurred
         if not error_msg is None:
-            if not username.lower() == "Unknown User".lower():
+            if not error_msg.lower() == "Unknown User".lower():
                 http_exception.detail = error_msg
             raise http_exception
 
