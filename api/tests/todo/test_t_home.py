@@ -169,3 +169,5 @@ async def test_get_all_todos_endpoint(
 
         # Check the response
         assert status_code == expected_status_code
+
+    api.dependency_overrides.clear()
