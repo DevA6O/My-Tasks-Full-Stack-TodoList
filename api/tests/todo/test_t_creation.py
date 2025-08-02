@@ -59,8 +59,8 @@ async def test_insert_new_todo(
 @pytest.mark.parametrize(
     "is_todo_exist, expected_value",
     [
-        (False, None),
-        (True, Todo),
+        (False, False), # Todo exist
+        (True, True), # Todo does not exist
     ]
 )
 async def test_is_todo_exist(
@@ -81,10 +81,7 @@ async def test_is_todo_exist(
     result = await todo_creation_service._is_todo_exist()
 
     # Test the result
-    if expected_value is None:
-        assert result is expected_value
-    else:
-        assert isinstance(result, expected_value)
+    assert result == expected_value
 
 
 @pytest.mark.asyncio
