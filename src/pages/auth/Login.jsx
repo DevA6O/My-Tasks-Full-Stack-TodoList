@@ -41,17 +41,19 @@ export default function Login() {
                 body: JSON.stringify(formData)
             });
             const data = await response.json();
-
+            
             if (response.ok && response.status === 200) {
                 window.location.href = "/"; // Reload html and the memory
             } else {
+                // Display failed message
                 setGeneralError(
                     data.detail || "An unexpected error occurred. Please try again."
                 )
             };
         } catch (error) {
-            console.error("Network error: ", error);
-        }
+            // Display error message
+            setGeneralError(error);
+        };
     };
 
     return (
