@@ -1,9 +1,9 @@
 from uuid import UUID
 from logging import getLogger
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import select, insert
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select, insert, exists
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 
@@ -16,15 +16,32 @@ router = APIRouter()
 logger = getLogger(__name__)
 
 class TodoCreation:
+    """ Class to create a new Todo """
+
     def __init__(self, db_session: AsyncSession, data: TodoCreationValidation, user_id: UUID) -> None:
+        # Validate the class params
+        if not isinstance(db_session, AsyncSession):
+            raise ValueError("db_session is not an AsyncSession")
+
+        if not isinstance(user_id, UUID):
+            raise ValueError("user_id is not a UUID")
+        
+        # Define the params for the class global
         self.db_session: AsyncSession = db_session
         self.data: TodoCreationValidation = data
-        self.title: str = self.data.title.strip()
-        self.description: str = self.data.description.strip()
         self.user_id: UUID = user_id
 
+        self.title: str = self.data.title.strip()
+        self.description: str = self.data.description.strip()
+        
+
     async def _insert_new_todo(self) -> Todo | None:
-        """ Write the todo into the database. """
+        """ Helper-Method to save the todo in the user database.
+
+        Returns:
+        ---------
+            - The created todo instance: Could be the instance of the Todo or None.
+        """
         stmt = (
             insert(Todo)
             .values(user_id=self.user_id, title=self.title, description=self.description)
@@ -42,29 +59,45 @@ class TodoCreation:
         
         return todo_instance
 
-    async def _is_todo_exist(self) -> Todo | None:
-        """ Check whether the task already exists or not. """
-        stmt = select(Todo).where(Todo.user_id == self.user_id, Todo.title == self.title)
+    async def _is_todo_exist(self) -> bool:
+        """ Helper-Method to check whether the task already exists or not. 
+        
+        Returns:
+        ---------
+            - A boolean
+        """
+        stmt = select(
+            exists().where(Todo.user_id == self.user_id, Todo.title == self.title)
+        )
         result = await self.db_session.execute(stmt)
-        return result.scalar_one_or_none()
+        return result.scalar()
 
-    async def create(self) -> Tuple[Tuple | None, str]:
-        """ Creates a new todo. """
-        # Check whether the todo (title) is already exist
-        if await self._is_todo_exist():
-            return None, f"Todo ({self.title}) already exist."
-
+    async def create(self) -> Tuple[Todo | None, str]:
+        """ Method to create the todo for the user
+         
+        Returns:
+        ---------
+            - The instance of the created todo or None
+            - A string
+        """
         try:
+            # Check whether the todo (title) is already exist
+            if await self._is_todo_exist():
+                return None, f"Todo ({self.title}) already exist."
+            
             # Insert the todo if the todo is not exist
             todo = await self._insert_new_todo()
 
             if todo: # If the todo successfully got inserted
                 return todo, f"Todo ({self.title}) successfully added."
             
-        # Fallback if insertion failed due to foreign keys or other reasons
-        except IntegrityError as e:
-            logger.exception(str(e), exc_info=True, extra={"user_id": self.user_id})
-            return None, "Server error: Please try it later again."
+        except IntegrityError as e: # Fallback if the insertion failed
+            logger.exception(f"Insertion failed: {str(e)}", exc_info=True, extra={"user_id": self.user_id})
+            return None, "Server error: Todo could not be created. Please try it later again."
+        
+        except SQLAlchemyError as e: # Fallback if the connection is closed or something else
+            logger.exception(f"Database error: {str(e)}", exc_info=True, extra={"user_id": self.user_id})
+            return None, "Server error: An unexpected server error occurred. Please try it later again."
 
         return None, "Unknown error occurred: Todo could not be added."
 
