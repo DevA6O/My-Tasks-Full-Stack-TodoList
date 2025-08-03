@@ -48,30 +48,35 @@ export default function Register() {
             });
 
             const data = await response.json();
-
+            
+            // If the user has successfully registered
             if (response.ok && response.status === 201) {
                 window.location.href = "/"; // Reload html and the memory
-            } else { 
-                // Display error message 
+            } 
+            // If the email address is already registered
+            else if (response.status === 409) {
+                setError("email", {type: "server", message: data.detail});
+            }
+            // If a answer is incorrect (Validation error)
+            else { 
                 const field = data.detail.field;
                 
-                if (field !== null) {
+                // Fallback solution, if the field (in which the problem occurs) is not specified
+                if (field === undefined) {
+                    window.alert("This page is currently unavailable. Please try again later.");
+                    window.location.href = "/";
+                    return;
+                } else {
                     setError(field, {
                         type: "server",
                         message: data.detail.message
                     });
-                } else {
-                    // Fallback solution if something goes wrong
-                    setGeneralError("An unexpected error occurred: Page will reload in 5 seconds.");
-
-                    setTimeout(function () {
-                        window.location.reload();
-                    }, 5000); 
                 };
             };
         } catch (error) {
-            setGeneralError(error);
-        }
+            setGeneralError("An unknown error has occurred: Please try again later.");
+            console.log(error);
+        };
     };
 
     return (
