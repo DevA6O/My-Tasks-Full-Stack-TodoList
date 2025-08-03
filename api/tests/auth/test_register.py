@@ -5,7 +5,8 @@ from httpx import AsyncClient, ASGITransport
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
+from typing import Optional, Tuple
+
 from database.models import User
 from database.connection import get_db
 from routes.auth.register import Register, RegisterModel
@@ -22,7 +23,7 @@ load_dotenv()
     "username, email, password, expected_value", 
     [
         (fake_username, fake_email, fake_pwd, True), # Success
-        (fake_username, fake_email, fake_pwd, None), # No user
+        (fake_username, fake_email, fake_pwd, False), # No user
     ]
 )
 async def test_is_email_registered(
@@ -33,28 +34,27 @@ async def test_is_email_registered(
 
     if expected_value:
         await register.create_user()
-        is_registered = await register.is_email_registered()
-        assert is_registered
-    else:
-        is_registered = await register.is_email_registered()
-        assert is_registered is None
+
+    is_registered = await register.is_email_registered()
+    assert is_registered == expected_value
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "username, email, password, expected_exception",
+    "username, email, password, expected_value, expected_exception",
     [
-        (fake_username, fake_email, fake_pwd, None), # Success
-        ("", fake_email, fake_pwd, ValidationError), # Min-Length Error for username
-        (fake_username * 30, fake_email, fake_pwd, ValidationError), # Max-Length Error for username
-        (fake_username, "test", fake_pwd, ValidationError), # No Email
-        (fake_username, fake_email, "123456", ValidationError), # Min-Length Error for password
-        (fake_username, fake_email, fake_pwd * 30, ValidationError), # Max-Length Error for password
-        (fake_username, fake_email, fake_pwd, ValueError), # Duplicated account -> email address already registered
+        (fake_username, fake_email, fake_pwd, [User, str], None), # Success
+        (fake_username, fake_email, fake_pwd, [None, str], None), # Duplicated account -> email address already registered
+        ("", fake_email, fake_pwd, None, ValidationError), # Min-Length Error for username
+        (fake_username * 30, fake_email, fake_pwd, None, ValidationError), # Max-Length Error for username
+        (fake_username, "test", fake_pwd, None, ValidationError), # No Email
+        (fake_username, fake_email, "123456", None, ValidationError), # Min-Length Error for password
+        (fake_username, fake_email, fake_pwd * 30, None, ValidationError), # Max-Length Error for password
     ]
 )
 async def test_create_user(
-    username: str, email: str, password: str, expected_exception: Optional[Exception], db_session: AsyncSession
+    username: str, email: str, password: str, expected_value: Tuple[User | None, str] | None, 
+    expected_exception: Optional[Exception], db_session: AsyncSession
 ) -> None:
     # If the we expect a ValidationError
     if expected_exception is ValidationError:
@@ -66,19 +66,22 @@ async def test_create_user(
     data = RegisterModel(username=username, email=email, password=password)
     register = Register(db_session=db_session, data=data)
 
-    result = await register.create_user()
-    assert result
+    # Checks whether the creation has the expected value
+    user_obj, msg = await register.create_user()
+    assert isinstance(user_obj, User)
+    assert isinstance(msg, str)
 
-    # Check whether the user exists in the database now
+    # Checks whether the user now exists in the database
     stmt = select(User).where(User.email == email)
-    result_obj = await db_session.execute(stmt)
-    result = result_obj.scalar_one_or_none()
-    assert result is not None
+    result = await db_session.execute(stmt)
+    result_obj = result.scalar_one_or_none()
+    assert result_obj is not None
 
-    # Check if the expected error is a ValueError
-    if expected_exception is ValueError:
-        with pytest.raises(ValueError):
-            await register.create_user()
+    # Test to create the same user if the test requires it
+    if expected_value[0] is None:
+        user_obj, msg = await register.create_user()
+        assert user_obj is expected_value[0]
+        assert isinstance(msg, expected_value[1])
 
 
 @pytest.mark.asyncio
@@ -86,7 +89,7 @@ async def test_create_user(
     "username, email, password, expected_status_code, expected_exception",
     [
         (fake_username, fake_email, fake_pwd, 201, None), # Success
-        (fake_username, fake_email, fake_pwd, 401, ValueError), # Email is already registered
+        (fake_username, fake_email, fake_pwd, 400, ValueError), # Email is already registered
     ]
 )
 async def test_register_endpoint(

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -24,6 +24,8 @@ const schema = yup.object().shape({
 })
 
 export default function Register() {
+    const [generalError, setGeneralError] = useState("");
+
     const {
         register,
         handleSubmit,
@@ -44,26 +46,31 @@ export default function Register() {
                 },
                 body: JSON.stringify(formData)
             });
+
             const data = await response.json();
 
             if (response.ok && response.status === 201) {
                 window.location.href = "/"; // Reload html and the memory
-            } else { // Display error message 
+            } else { 
+                // Display error message 
                 const field = data.detail.field;
                 
                 if (field !== null) {
                     setError(field, {
                         type: "server",
-                        "message": data.detail.message
+                        message: data.detail.message
                     });
                 } else {
-                    window.alert("Server error: Please try again later.");
-                    window.location.reload();
+                    // Fallback solution if something goes wrong
+                    setGeneralError("An unexpected error occurred: Page will reload in 5 seconds.");
+
+                    setTimeout(function () {
+                        window.location.reload();
+                    }, 5000); 
                 };
             };
-
         } catch (error) {
-            console.error("Network error: ", error);
+            setGeneralError(error);
         }
     };
 
@@ -71,6 +78,12 @@ export default function Register() {
         <div className="flex justify-center items-center h-screen bg-gray-100">
             <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
                 <h1 className="text-center text-2xl font-bold mb-6 text-gray-800">Create an Account</h1>
+
+                {generalError && (
+                    <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm text-center">
+                        {generalError}
+                    </div>
+                )}
 
                 <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
                     <div className="flex flex-col">
