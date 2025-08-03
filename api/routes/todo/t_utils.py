@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from routes.todo.t_validation_model import TodoExistCheckModel
 from database.models import Todo
 
-async def _is_todo_exist(data: TodoExistCheckModel, db_session: AsyncSession) -> bool:
+async def todo_exists(data: TodoExistCheckModel, db_session: AsyncSession) -> bool:
     """ Helper-Function to check whether the task already exists or not. 
     
     Returns:
