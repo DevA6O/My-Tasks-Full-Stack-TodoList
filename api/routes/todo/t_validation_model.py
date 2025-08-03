@@ -8,3 +8,7 @@ class TodoCreation(BaseModel):
 class TodoDeletion(BaseModel):
     id: UUID
     user_id: UUID
+
+class TodoExistCheckModel(BaseModel):
+    user_id: UUID
+    title: str
