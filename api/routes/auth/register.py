@@ -17,6 +17,12 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_ERROR_MSG: str = "An unknown error occurred: Account could not be created. Please try again later."
 
+class EmailAlreadyRegisteredException(Exception):
+    def __init__(self, message: str) -> None:
+        self.message = message
+        super().__init__(message)
+
+
 class Register:
     def __init__(self, db_session: AsyncSession, data: RegisterModel) -> None:
         # Validate the db session
@@ -51,11 +57,10 @@ class Register:
         try:
             # Checks whether the email is registered
             if await self.is_email_registered():
-                logger.warning(
-                    "Try to open an account with this email address, even though one already exists.",
+                logger.warning("Try to open an account with this email address, even though one already exists.",
                     extra={"email": self.data.email}
                 )
-                return None, "This email address is already registered."
+                raise EmailAlreadyRegisteredException(message="The email address is already registered.")
             
             # Hashes the password
             hashed_pwd: str = hash_pwd(self.data.password)
@@ -110,6 +115,10 @@ async def register(data: RegisterModel, db_session: AsyncSession = Depends(get_d
         
         logger.info(msg, extra={"email": data.email})
         http_exception.detail = msg
+    except EmailAlreadyRegisteredException as e:
+        http_exception.status_code = status.HTTP_409_CONFLICT
+        http_exception.detail = str(e)
+    
     except ValueError as e:
         logger.exception(f"An unknown ValueError occurred: {str(e)}", exc_info=True, extra={"email": data.email})
 
