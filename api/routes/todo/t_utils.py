@@ -1,9 +1,5 @@
-from uuid import UUID
-from pydantic import BaseModel
 from sqlalchemy import select, exists
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
-
 
 from routes.todo.t_validation_model import TodoExistCheckModel
 from database.models import Todo
