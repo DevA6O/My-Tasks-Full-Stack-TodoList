@@ -6,7 +6,7 @@ class TodoCreation(BaseModel):
     description: str = Field(min_length=0, max_length=320)
 
 class TodoDeletion(BaseModel):
-    id: UUID
+    todo_id: UUID
     user_id: UUID
 
 class TodoExistCheckModel(BaseModel):
