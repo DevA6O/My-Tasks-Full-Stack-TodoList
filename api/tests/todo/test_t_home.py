@@ -132,7 +132,7 @@ async def test_get_all_todos_endpoint(
     else:
         api.dependency_overrides[get_db] = lambda: AsyncSession # Invalid
 
-    # Override the token with the created user token
+    # Overwrites the token with the created user token
     api.dependency_overrides[get_bearer_token] = lambda: user_token
     transport = ASGITransport(app=api)
 
