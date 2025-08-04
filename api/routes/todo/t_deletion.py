@@ -47,7 +47,7 @@ class TodoDeletion:
             # Checks whether the todo does not exists
             data = TodoExistCheckModel(user_id=self.user_id, todo_id=self.data.todo_id)
 
-            if await todo_exists(data=data, db_session=self.db_session):
+            if not await todo_exists(data=data, db_session=self.db_session):
                 return False, "Deletion failed: Todo could not be found."
             
             # Deletes the todo
