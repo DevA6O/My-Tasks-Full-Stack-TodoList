@@ -1,4 +1,3 @@
-from uuid import UUID
 from sqlalchemy import select, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,13 +14,13 @@ async def todo_exists(data: TodoExistCheckModel, db_session: AsyncSession) -> bo
     # Validate the db session
     if not isinstance(db_session, AsyncSession):
         raise ValueError("db_session must be an AsyncSession.")
-
+    
     # Check what information is provided
-    if data.title is not None:
-        stmt = select(exists().where(Todo.user_id == data.user_id, Todo.id == data.todo_id))
-
-    if data.todo_id is not None:
+    if data.title:
         stmt = select(exists().where(Todo.user_id == data.user_id, Todo.title == data.title))
+        
+    if data.todo_id:
+        stmt = select(exists().where(Todo.user_id == data.user_id, Todo.id == data.todo_id))
     
     # Start db request
     result = await db_session.execute(stmt)
