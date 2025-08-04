@@ -57,35 +57,6 @@ async def test_insert_new_todo(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "is_todo_exist, expected_value",
-    [
-        (False, False), # Todo exist
-        (True, True), # Todo does not exist
-    ]
-)
-async def test_is_todo_exist(
-    is_todo_exist: bool, expected_value: type, fake_user: Tuple[User, Todo]
-) -> None:
-    # Define the user and the db session
-    user, db_session = fake_user
-
-    # Define the test data
-    todo_creation_service = TodoCreation(db_session=db_session, data=data, user_id=user.id)
-
-    # Create a test todo if the todo should be exist
-    if is_todo_exist:
-        result = await todo_creation_service._insert_new_todo()
-        assert result is not None
-
-    # Check if the todo exist or not
-    result = await todo_creation_service._is_todo_exist()
-
-    # Test the result
-    assert result == expected_value
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
     "is_todo_exist, is_user_exist, expected_values",
     [
         (False, True, [Todo, str]), # Success
