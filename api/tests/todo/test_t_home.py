@@ -1,7 +1,6 @@
 import pytest
 import uuid
 import os
-import pytest_asyncio
 from dotenv import load_dotenv
 from unittest.mock import AsyncMock
 from httpx import AsyncClient, ASGITransport
@@ -18,30 +17,6 @@ from security.jwt import get_bearer_token, create_token
 from main import api
 
 load_dotenv()
-
-@pytest_asyncio.fixture
-async def fake_todo(fake_user: Tuple[User, AsyncSession]) -> Tuple[Todo, User, AsyncSession]:
-    # Define the fake user and the fake db session
-    user, db_session = fake_user
-
-    stmt = (
-        insert(Todo).values(
-            title="Valid title",
-            description="Valid description",
-            user_id=user.id
-        )
-        .returning(Todo)
-    )
-    result = await db_session.execute(stmt)
-    await db_session.commit()
-
-    # Check whether the todo is successfully created or not
-    todo_obj = result.scalar_one_or_none()
-
-    if todo_obj is None:
-        raise ValueError("Fake todo could not be created.")
-    return (todo_obj, user, db_session)
-
 
 @pytest.mark.parametrize(
     "valid_db_session, valid_user_id",
@@ -157,7 +132,7 @@ async def test_get_all_todos_endpoint(
     else:
         api.dependency_overrides[get_db] = lambda: AsyncSession # Invalid
 
-    # Override the token with the created user token
+    # Overwrites the token with the created user token
     api.dependency_overrides[get_bearer_token] = lambda: user_token
     transport = ASGITransport(app=api)
 
