@@ -60,6 +60,31 @@ export default function Home() {
         };
     };
 
+    const deleteTodo = async (todoID) => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/todo/delete`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({
+                    todo_id: todoID
+                })
+            });
+
+            if (response.ok && response.status === 200) {
+                setReloadTasks(true);
+            } else {
+                data = await response.json()
+                console.error(data);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+
     useEffect(() => {
         // Wait for the access token
         if (authLoading) return;
@@ -98,6 +123,7 @@ export default function Home() {
 
         loadTasks();
     }, [accessToken, authLoading, reloadTasks]);
+
 
 
     return (
@@ -238,7 +264,9 @@ export default function Home() {
                                             </div>
 
                                             {/* Delete button */}
-                                            <button className="px-3 py-1 border border-gray-400/80 rounded-md text-red-500 font-semibold cursor-pointer hover:bg-red-500 hover:text-white transition-all ease-in-out duration-500">
+                                            <button 
+                                                onClick={() => deleteTodo(task.id)}
+                                                className="px-3 py-1 border border-gray-400/80 rounded-md text-red-500 font-semibold cursor-pointer hover:bg-red-500 hover:text-white transition-all ease-in-out duration-500">
                                                 Delete
                                             </button>
                                         </div>
