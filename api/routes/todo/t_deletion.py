@@ -31,6 +31,7 @@ class TodoDeletion:
             raise ValueError("user_id must be not None.")
 
         self.data: TodoDeletionModel = data
+        self.user_id: UUID = user_id
         self.db_session: AsyncSession = db_session
 
     async def delete(self) -> Tuple[bool, str]:
@@ -44,15 +45,15 @@ class TodoDeletion:
 
         try:
             # Checks whether the todo does not exists
-            data = TodoExistCheckModel(user_id=self.data.user_id, todo_id=self.data.todo_id)
+            data = TodoExistCheckModel(user_id=self.user_id, todo_id=self.data.todo_id)
 
-            if not todo_exists(data=data, db_session=self.db_session):
+            if await todo_exists(data=data, db_session=self.db_session):
                 return False, "Deletion failed: Todo could not be found."
             
             # Deletes the todo
             stmt = (
                 delete(Todo).where(
-                    Todo.user_id == self.data.user_id, Todo.id == self.data.todo_id
+                    Todo.user_id == self.user_id, Todo.id == self.data.todo_id
                 ).returning(Todo)
             )
             result = await self.db_session.execute(stmt)
@@ -62,7 +63,7 @@ class TodoDeletion:
 
             if deleted_todo_obj is None:
                 logger.warning("Deletion failed: Unknown error occurred.", extra={
-                    "user_id": self.data.user_id, "todo_id": self.data.todo_id
+                    "user_id": self.user_id, "todo_id": self.data.todo_id
                 })
                 return False, DEFAULT_DELETION_ERROR_MSG
             
@@ -73,16 +74,16 @@ class TodoDeletion:
         # Fallback solution (for the database)
         except SQLAlchemyError as e:
             logger.exception(f"Database error: {str(e)}", exc_info=True, extra={
-                "user_id": self.data.user_id, "todo_id": self.data.todo_id
+                "user_id": self.user_id, "todo_id": self.data.todo_id
             })
             return False, DEFAULT_DELETION_ERROR_MSG
         
 
 @router.post("/api/todo/delete")
 async def todo_deletion_endpoint(
-    data: TodoDeletion, db_session: AsyncSession = Depends(get_db), 
+    data: TodoDeletionModel, db_session: AsyncSession = Depends(get_db), 
     token: str = Depends(get_bearer_token)
-) -> None:
+) -> JSONResponse:
     """ Endpoint to delete a todo """
     try:
         # Default http exception
