@@ -3,7 +3,7 @@ from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 
-from database.models import User
+from database.models import User, Todo
 from database.connection import engine, async_session
 
 
@@ -50,3 +50,29 @@ async def fake_user(db_session: AsyncSession) -> Tuple[User, AsyncSession]:
     if created_user is None:
         raise ValueError("Failed to create a fake user in the fake database.")
     return created_user, db_session
+
+
+@pytest_asyncio.fixture
+async def fake_todo(fake_user: Tuple[User, AsyncSession]) -> Tuple[Todo, User, AsyncSession]:
+    # Define the fake user and the fake db session
+    user, db_session = fake_user
+
+    stmt = (
+        insert(Todo).values(
+            title="Valid title",
+            description="Valid description",
+            user_id=user.id
+        )
+        .returning(Todo)
+    )
+    result = await db_session.execute(stmt)
+    await db_session.commit()
+
+    # Check whether the todo is successfully created or not
+    todo_obj = result.scalar_one_or_none()
+
+    if todo_obj is None:
+        raise ValueError("Fake todo could not be created.")
+    
+    await db_session.refresh(todo_obj)
+    return (todo_obj, user, db_session)
