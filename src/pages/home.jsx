@@ -249,7 +249,7 @@ export default function Home() {
                                     {tasks.map((task) => (
                                         <div 
                                             key={task.id}
-                                            className="w-full max-w-2xl flex justify-between items-center p-5 border border-gray-400 rounded"
+                                            className="w-full max-w-2xl flex flex-col justify-between p-5 border border-gray-400/40 rounded shadow-lg"
                                         >
                                             <div className="flex flex-col max-w-[85%] overflow-hidden">
                                                 {/* Task title */}
@@ -263,12 +263,27 @@ export default function Home() {
                                                 </p>
                                             </div>
 
-                                            {/* Delete button */}
-                                            <button 
-                                                onClick={() => deleteTodo(task.id)}
-                                                className="px-3 py-1 border border-gray-400/80 rounded-md text-red-500 font-semibold cursor-pointer hover:bg-red-500 hover:text-white transition-all ease-in-out duration-500">
-                                                Delete
-                                            </button>
+                                            {/* Action button */}
+                                            <div className="flex justify-end gap-2 mt-5">
+                                                {/* Complete button */}
+                                                <button
+                                                    className="px-3 py-1 border border-gray-400/40 rounded-md text-green-400 font-semibold cursor-pointer hover:bg-green-400 hover:text-white transition-all ease-in-out duration-300">
+                                                    Completed
+                                                </button>
+
+                                                {/* Edit button */}
+                                                <button
+                                                    className="px-3 py-1 border border-gray-400/40 rounded-md text-blue-500 font-semibold cursor-pointer hover:bg-blue-500 hover:text-white transition-all ease-in-out duration-300">
+                                                    Edit
+                                                </button>
+
+                                                {/* Delete button */}
+                                                <button 
+                                                    onClick={() => deleteTodo(task.id)}
+                                                    className="px-3 py-1 border border-gray-400/40 rounded-md text-red-500 font-semibold cursor-pointer hover:bg-red-500 hover:text-white transition-all ease-in-out duration-500">
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
