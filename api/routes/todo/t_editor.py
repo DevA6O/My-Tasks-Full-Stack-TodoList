@@ -33,11 +33,11 @@ class TodoEditor:
     async def update(self):
         """ Method to update a todo for the user """
         try:
-            # Checks whether the does not todo exists
+            # Checks whether the todo does not exist
             check_data = TodoExistCheckModel(user_id=self.user_id, todo_id=self.data.todo_id)
 
             if not await todo_exists(data=check_data, db_session=self.db_session):
-                raise ValueError("Update failed: Todo could not be found.")
+                return False, "Update failed: Todo could not be found."
             
             # Update the todo
             stmt = (
