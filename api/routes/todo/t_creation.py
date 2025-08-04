@@ -2,7 +2,7 @@ from uuid import UUID
 from logging import getLogger
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import select, insert, exists
+from sqlalchemy import insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
@@ -10,6 +10,7 @@ from typing import Tuple
 from database.models import Todo
 from security.jwt import decode_token, get_bearer_token
 from database.connection import get_db
+from routes.todo.t_utils import todo_exists, TodoExistCheckModel
 from routes.todo.t_validation_model import TodoCreation as TodoCreationValidation
 
 router = APIRouter()
@@ -59,19 +60,6 @@ class TodoCreation:
         
         return todo_instance
 
-    async def _is_todo_exist(self) -> bool:
-        """ Helper-Method to check whether the task already exists or not. 
-        
-        Returns:
-        ---------
-            - A boolean
-        """
-        stmt = select(
-            exists().where(Todo.user_id == self.user_id, Todo.title == self.title)
-        )
-        result = await self.db_session.execute(stmt)
-        return result.scalar()
-
     async def create(self) -> Tuple[Todo | None, str]:
         """ Method to create the todo for the user
          
@@ -82,7 +70,9 @@ class TodoCreation:
         """
         try:
             # Check whether the todo (title) is already exist
-            if await self._is_todo_exist():
+            check_data = TodoExistCheckModel(user_id=self.user_id, title=self.title)
+
+            if await todo_exists(data=check_data, db_session=self.db_session):
                 return None, f"Todo ({self.title}) already exist."
             
             # Insert the todo if the todo is not exist
