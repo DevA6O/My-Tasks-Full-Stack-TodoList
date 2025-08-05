@@ -17,6 +17,15 @@ from main import api
 
 load_dotenv()
 
+async def check_update(user_id: uuid.UUID, todo_id: uuid.UUID, db_session: AsyncSession) -> Todo:
+    """ Global function which is returning the todo object 
+    to check whether the update was successful or not """
+    from sqlalchemy import select
+
+    stmt = select(Todo).where(Todo.user_id == user_id, Todo.id == todo_id)
+    result = await db_session.execute(stmt)
+    return result.scalar_one_or_none()
+
 
 class TestTodoEditorUpdateMethod:
     """ Test class for different update scenarios """
@@ -26,8 +35,12 @@ class TestTodoEditorUpdateMethod:
         """ Set up common test data once for all test methods """
         self.todo, self.user, self.db_session = fake_todo
 
+        # Define standard values to use
+        self.title: str = "New title"
+        self.description: str = "New description"
+
         # Create the services instance for the test
-        self.data = TodoEditorModel(title="New title", description="New description", todo_id=self.todo.id)
+        self.data = TodoEditorModel(title=self.title, description=self.description, todo_id=self.todo.id)
         self.service = TodoEditor(data=self.data, db_session=self.db_session, user_id=self.user.id)
 
     @pytest.mark.asyncio
@@ -35,6 +48,11 @@ class TestTodoEditorUpdateMethod:
         """ Tests the success case """
         success, msg = await self.service.update()
         assert success
+
+        # Checks whether the update was actually successful
+        todo_obj = await check_update(user_id=self.user.id, todo_id=self.todo.id, db_session=self.db_session)
+        assert todo_obj.title == self.title
+        assert todo_obj.description == self.description
     
     @pytest.mark.asyncio
     async def test_update_failed_because_todo_does_not_exist(self) -> None:
@@ -104,6 +122,11 @@ class TestTodoEditorUpdateEndpoint:
         async with AsyncClient(transport=self.transport, base_url=self.base_url) as ac:
             response = await ac.post(self.path_url, json=self.payload)
             assert response.status_code == 200
+
+            # Checks whether the update was actually successful
+            todo_obj = await check_update(user_id=self.user.id, todo_id=self.todo.id, db_session=self.db_session)
+            assert todo_obj.title == self.payload["title"]
+            assert todo_obj.description == self.payload["description"]
 
     @pytest.mark.asyncio
     async def test_update_failed_because_todo_does_not_exist(self) -> None:
