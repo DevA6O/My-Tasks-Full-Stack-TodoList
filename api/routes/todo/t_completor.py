@@ -3,13 +3,18 @@ from uuid import UUID
 from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.responses import JSONResponse
 from typing import Tuple
 
 from database.models import Todo
+from database.connection import get_db
+from security.jwt import get_bearer_token, decode_token
 from routes.todo.t_utils import todo_exists, TodoExistCheckModel
 from routes.todo.t_validation_model import TodoCompletorModel
 
 logger = logging.getLogger(__name__)
+router = APIRouter()
 
 DEFAULT_COMPLETION_ERROR_MSG: str = "Completion failed: Todo could not be deleted for technical reasons. " \
 "Please try again later."
@@ -66,3 +71,31 @@ class TodoCompletor:
         except SQLAlchemyError as e:
             logger.exception(f"Database error: {str(e)}", exc_info=True)
             return False, DEFAULT_COMPLETION_ERROR_MSG
+        
+
+@router.post("/api/todo/complete")
+async def completor_endpoint(
+    data: TodoCompletorModel, token: str = Depends(get_bearer_token), 
+    db_session: AsyncSession = Depends(get_db)
+) -> JSONResponse:
+    """ Endpoint to mark a todo as completed """
+    try:
+        # Default http exception
+        http_exception = HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=DEFAULT_COMPLETION_ERROR_MSG)
+
+        # Fetch user_id from token
+        user_id: UUID = decode_token(token=token)
+
+        # Start calling method
+        service_completor = TodoCompletor(data=data, db_session=db_session, user_id=user_id)
+        success, msg = await service_completor.mark_as_completed()
+
+        # Check whether the todo could not be marked successfully
+        if not success:
+            http_exception.detail = msg
+            raise http_exception
+        
+        raise JSONResponse(status_code=status.HTTP_200_OK, content={"message": msg})
+    except ValueError as e:
+        logger.exception(str(e), exc_info=True)
+        raise http_exception
