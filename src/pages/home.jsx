@@ -5,6 +5,11 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 
 import LoadingScreen from "../components/LoadingScreen";
+import deleteTodoAPI from "./todo/t_deletion";
+import createTodoAPI from "./todo/t_creation";
+
+import EditorModal from "./todo/t_editor";
+import { EditTaskForm } from "./todo/t_editor";
 
 const schema = yup.object().shape({
     title: yup
@@ -25,6 +30,7 @@ export default function Home() {
     const [taskErrors, setTaskError] = useState(null);
     const [isLoading, setLoading] = useState(true);
     const [reloadTasks, setReloadTasks] = useState(false);
+    const [editTask, setEditTask] = useState(null);
 
     const {
         register: registerHome,
@@ -39,51 +45,22 @@ export default function Home() {
 
     const onSubmit = async (formData) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/todo/create`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${accessToken}`
-                },
-                body: JSON.stringify(formData)
-            });
-
-            if (response.ok) {
-                setReloadTasks(true); // Reload loadTasks
-                reset(); // Reset input fields
-            } else {
-                const data = await response.json();
-                setError("apiError", {type: "manual", message: data.detail}); // Add api error message
-            };
-        } catch (error) {
-            setError("apiError", {type: "manual", message: error.toString()}); // Add api error message
+            await createTodoAPI(formData, accessToken); 
+            setReloadTasks(true); // Reload the current displayed tasks
+            reset(); // Reset form 
+        } catch (error) { // Display an api error message
+            setError("apiError", {type: "manual", message: error.toString()}); 
         };
     };
 
     const deleteTodo = async (todoID) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/todo/delete`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${accessToken}`
-                },
-                body: JSON.stringify({
-                    todo_id: todoID
-                })
-            });
-
-            if (response.ok && response.status === 200) {
-                setReloadTasks(true);
-            } else {
-                data = await response.json()
-                console.error(data);
-            }
+            await deleteTodoAPI(todoID, accessToken);
+            setReloadTasks(true); // Reload the current displayed tasks
         } catch (error) {
-            console.error(error);
-        }
-    }
-
+            alert(`Deletion failed: ${error}`)
+        };
+    };
 
     useEffect(() => {
         // Wait for the access token
@@ -237,7 +214,7 @@ export default function Home() {
                             <div className="mt-5">
                                 {taskErrors && (<p className="text-red-500 font-sans">{taskErrors.toString()}</p>)}
                                 {!isLoading && !taskErrors && tasks.length === 0 && (
-                                    <p className="text-blue-800 font-sans font-semibold text-xl">
+                                    <p className="text-blue-800 font-sans font-semibold text-xl max-w-11/12">
                                         Nice work! Currently you have no tasks to solve!
                                     </p>
                                 )}
@@ -249,7 +226,7 @@ export default function Home() {
                                     {tasks.map((task) => (
                                         <div 
                                             key={task.id}
-                                            className="w-full max-w-2xl flex justify-between items-center p-5 border border-gray-400 rounded"
+                                            className="w-full max-w-2xl flex flex-col justify-between p-5 border border-gray-400/40 rounded shadow-lg"
                                         >
                                             <div className="flex flex-col max-w-[85%] overflow-hidden">
                                                 {/* Task title */}
@@ -263,18 +240,50 @@ export default function Home() {
                                                 </p>
                                             </div>
 
-                                            {/* Delete button */}
-                                            <button 
-                                                onClick={() => deleteTodo(task.id)}
-                                                className="px-3 py-1 border border-gray-400/80 rounded-md text-red-500 font-semibold cursor-pointer hover:bg-red-500 hover:text-white transition-all ease-in-out duration-500">
-                                                Delete
-                                            </button>
+                                            {/* Action button */}
+                                            <div className="flex justify-end gap-2 mt-5">
+                                                {/* Complete button */}
+                                                <button
+                                                    className="px-3 py-1 border border-gray-400/40 rounded-md text-green-400 font-semibold cursor-pointer hover:bg-green-400 hover:text-white transition-all ease-in-out duration-300">
+                                                    Completed
+                                                </button>
+
+                                                {/* Edit button */}
+                                                <button
+                                                    onClick={() => setEditTask(task)}
+                                                    className="px-3 py-1 border border-gray-400/40 rounded-md text-blue-500 font-semibold cursor-pointer hover:bg-blue-500 hover:text-white transition-all ease-in-out duration-300">
+                                                    Edit
+                                                </button>
+
+                                                {/* Delete button */}
+                                                <button 
+                                                    onClick={() => deleteTodo(task.id)}
+                                                    className="px-3 py-1 border border-gray-400/40 rounded-md text-red-500 font-semibold cursor-pointer hover:bg-red-500 hover:text-white transition-all ease-in-out duration-500">
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
                             )}
                         </div>
                     </main>
+                    
+                    {/* Editor overlay */}
+                    <EditorModal
+                        isOpen={!!editTask}
+                        onClose={() => setEditTask(null)}>
+                        <EditTaskForm
+                            task={editTask}
+                            validationSchema={schema}
+                            accessToken={accessToken}
+                            onSuccess={() => {
+                                setEditTask(null);
+                                setReloadTasks(true);
+                            }}>
+                            
+                        </EditTaskForm>
+                    </EditorModal>
                 </div>
             )}
         </>

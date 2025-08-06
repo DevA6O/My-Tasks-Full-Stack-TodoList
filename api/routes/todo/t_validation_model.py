@@ -9,6 +9,9 @@ class TodoCreation(BaseModel):
 class TodoDeletionModel(BaseModel):
     todo_id: UUID
 
+class TodoEditorModel(TodoCreation):
+    todo_id: UUID
+
 class TodoExistCheckModel(BaseModel):
     user_id: UUID
     title: Optional[str] = None
