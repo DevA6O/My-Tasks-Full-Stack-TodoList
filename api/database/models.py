@@ -31,6 +31,7 @@ class Todo(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, unique=True, default=uuid.uuid4)
     title: Mapped[str] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column(nullable=False)
+    completed: Mapped[bool] = mapped_column(nullable=False, default=False)
     created_at: Mapped[int] = mapped_column(Integer, default=current_timestamp)
     edited_at: Mapped[int] = mapped_column(Integer, default=current_timestamp, onupdate=current_timestamp)
 
