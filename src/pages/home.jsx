@@ -5,6 +5,8 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 
 import LoadingScreen from "../components/LoadingScreen";
+import deleteTodoAPI from "./todo/t_deletion";
+import createTodoAPI from "./todo/t_creation";
 
 const schema = yup.object().shape({
     title: yup
@@ -39,51 +41,22 @@ export default function Home() {
 
     const onSubmit = async (formData) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/todo/create`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${accessToken}`
-                },
-                body: JSON.stringify(formData)
-            });
-
-            if (response.ok) {
-                setReloadTasks(true); // Reload loadTasks
-                reset(); // Reset input fields
-            } else {
-                const data = await response.json();
-                setError("apiError", {type: "manual", message: data.detail}); // Add api error message
-            };
-        } catch (error) {
-            setError("apiError", {type: "manual", message: error.toString()}); // Add api error message
+            await createTodoAPI(formData, accessToken); 
+            setReloadTasks(true); // Reload the current displayed tasks
+            reset(); // Reset form 
+        } catch (error) { // Display an api error message
+            setError("apiError", {type: "manual", message: error.toString()}); 
         };
     };
 
     const deleteTodo = async (todoID) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/todo/delete`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${accessToken}`
-                },
-                body: JSON.stringify({
-                    todo_id: todoID
-                })
-            });
-
-            if (response.ok && response.status === 200) {
-                setReloadTasks(true);
-            } else {
-                data = await response.json()
-                console.error(data);
-            }
+            await deleteTodoAPI(todoID, accessToken);
+            setReloadTasks(true); // Reload the current displayed tasks
         } catch (error) {
-            console.error(error);
-        }
-    }
-
+            alert(`Deletion failed: ${error}`)
+        };
+    };
 
     useEffect(() => {
         // Wait for the access token
@@ -237,7 +210,7 @@ export default function Home() {
                             <div className="mt-5">
                                 {taskErrors && (<p className="text-red-500 font-sans">{taskErrors.toString()}</p>)}
                                 {!isLoading && !taskErrors && tasks.length === 0 && (
-                                    <p className="text-blue-800 font-sans font-semibold text-xl">
+                                    <p className="text-blue-800 font-sans font-semibold text-xl max-w-11/12">
                                         Nice work! Currently you have no tasks to solve!
                                     </p>
                                 )}
