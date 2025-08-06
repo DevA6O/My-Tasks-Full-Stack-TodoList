@@ -8,6 +8,9 @@ import LoadingScreen from "../components/LoadingScreen";
 import deleteTodoAPI from "./todo/t_deletion";
 import createTodoAPI from "./todo/t_creation";
 
+import EditorModal from "./todo/t_editor";
+import { EditTaskForm } from "./todo/t_editor";
+
 const schema = yup.object().shape({
     title: yup
         .string()
@@ -27,6 +30,7 @@ export default function Home() {
     const [taskErrors, setTaskError] = useState(null);
     const [isLoading, setLoading] = useState(true);
     const [reloadTasks, setReloadTasks] = useState(false);
+    const [editTask, setEditTask] = useState(null);
 
     const {
         register: registerHome,
@@ -246,6 +250,7 @@ export default function Home() {
 
                                                 {/* Edit button */}
                                                 <button
+                                                    onClick={() => setEditTask(task)}
                                                     className="px-3 py-1 border border-gray-400/40 rounded-md text-blue-500 font-semibold cursor-pointer hover:bg-blue-500 hover:text-white transition-all ease-in-out duration-300">
                                                     Edit
                                                 </button>
@@ -263,6 +268,22 @@ export default function Home() {
                             )}
                         </div>
                     </main>
+                    
+                    {/* Editor overlay */}
+                    <EditorModal
+                        isOpen={!!editTask}
+                        onClose={() => setEditTask(null)}>
+                        <EditTaskForm
+                            task={editTask}
+                            validationSchema={schema}
+                            accessToken={accessToken}
+                            onSuccess={() => {
+                                setEditTask(null);
+                                setReloadTasks(true);
+                            }}>
+                            
+                        </EditTaskForm>
+                    </EditorModal>
                 </div>
             )}
         </>
