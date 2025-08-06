@@ -5,9 +5,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 
-from routes.todo.t_utils import todo_exists, TodoExistCheckModel
 from database.models import Todo
-from t_validation_model import TodoCompletorModel
+from routes.todo.t_utils import todo_exists, TodoExistCheckModel
+from routes.todo.t_validation_model import TodoCompletorModel
 
 logger = logging.getLogger(__name__)
 
