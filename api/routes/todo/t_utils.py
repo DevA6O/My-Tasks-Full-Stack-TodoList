@@ -10,7 +10,7 @@ from routes.todo.t_validation_model import TodoExistCheckModel
 from database.models import Todo
 
 if TYPE_CHECKING:
-    from routes.todo.t_validation_model import RunTodoDbStatementModel
+    from routes.todo.t_validation_model import TodoExistCheckModel
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class RunTodoDbStatementContext:
         Context container for executing the todo database statement
 
         Args:
-            data (RunTodoDbStatementModel): Validated data input containing the
+            data (TodoExistCheckModel): Validated data input containing the
                 user_id, title and the todo_id
 
             db_statement (Executable): An executable database statement 
@@ -64,7 +64,7 @@ class RunTodoDbStatementContext:
                 Default is False.
     """
 
-    data: "RunTodoDbStatementModel"
+    data: "TodoExistCheckModel"
     db_statement: Executable
     db_session: AsyncSession
     success_msg: str

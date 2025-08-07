@@ -23,5 +23,3 @@ class TodoExistCheckModel(BaseModel):
         if not data.get("title") and not data.get("todo_id"):
             raise ValueError("Either title or todo_id must be provided.")
         return data
-    
-RunTodoDbStatementModel = TodoExistCheckModel
