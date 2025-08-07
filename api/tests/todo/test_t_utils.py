@@ -1,10 +1,16 @@
+import uuid
 import pytest
 import pytest_asyncio
+from sqlalchemy import insert, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 
 from database.models import Todo, User
-from routes.todo.t_utils import TodoExistCheckModel, todo_exists
+from routes.todo.t_validation_model import TodoExistCheckModel
+from routes.todo.t_utils import (
+    todo_exists, TodoExistCheckModel,
+    run_todo_db_statement, RunTodoDbStatementContext
+)
 
 
 class TestTodoExists:
@@ -34,8 +40,6 @@ class TestTodoExists:
     @pytest.mark.parametrize("data_type", [("title"), ("todo_id")])
     async def test_todo_exists_failed_because_todo_does_not_exist(self, data_type: str) -> None:
         """ Tests the failed case if the todo does not exist """
-        import uuid
-
         if data_type == "title":
             self.data_for_title.todo_id = uuid.uuid4()
             exists = await todo_exists(data=self.data_for_title, db_session=self.db_session)
@@ -50,3 +54,157 @@ class TestTodoExists:
         """ Tests the failed case if the database session is invalid """
         with pytest.raises(ValueError):
             await todo_exists(data=self.data_for_title, db_session="Broken Database Session")
+
+
+class TestRunTodoDbStatement:
+    """ Test class for different scenarios for the run_todo_db_statement function """
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, fake_todo: Tuple[Todo, User, AsyncSession]) -> None:
+        """ Set up common test data """
+        self.todo, self.user, self.db_session = fake_todo
+
+        # Default test data
+        self.title: str = "Fake Todo"
+        self.description: str = "A fake description"
+        self.db_insert_statement = (
+            insert(Todo)
+            .values(user_id=self.user.id, title=self.title, description=self.description)
+            .returning(Todo)
+        )
+        self.success_msg: str = "Todo successful created."
+        self.default_error_msg: str = "Server error occurred."
+        self.execution_type: str = "Insertion"
+
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("should_todo_exist", [(True), (False)])
+    async def test_run_todo_db_statement_success(self, should_todo_exist: bool) -> None:
+        """ Tests the success case with creating a new todo """
+        success, msg = await run_todo_db_statement(
+            ctx=RunTodoDbStatementContext(
+                data=TodoExistCheckModel(
+                    user_id=self.user.id,
+                    title=self.title # Todo with this title does not exist, right now
+                ),
+                db_statement=self.db_insert_statement,
+                db_session=self.db_session,
+                success_msg=self.success_msg,
+                default_error_msg=self.default_error_msg,
+                execution_type=self.execution_type,
+                should_todo_exist=should_todo_exist
+            )
+        )
+        
+        # Reminder:
+        # We're simulating an INSERT operation, so the todo should *not* exist.
+
+        # Case 1: should_todo_exist = True
+        # -> Fails, because the todo is NOT in the DB -> success = False
+
+        # Case 2: should_todo_exist = False
+        # -> Proceeds, todo is inserted -> success = True
+
+        # So: success is always the opposite of should_todo_exist
+        assert success != should_todo_exist
+
+
+    @pytest.mark.asyncio
+    async def test_run_todo_db_statement_failed_because_todo_does_not_exist(self) -> None:
+        """ Tests the failed case if the todo does not exist """
+        success, msg = await run_todo_db_statement(
+            ctx=RunTodoDbStatementContext(
+                data=TodoExistCheckModel(
+                    user_id=self.user.id,
+                    todo_id=uuid.uuid4() # Invalid todo id
+                ),
+                db_statement=self.db_insert_statement,
+                db_session=self.db_session,
+                success_msg=self.success_msg,
+                default_error_msg=self.default_error_msg,
+                execution_type=self.execution_type,
+                should_todo_exist=True
+            )
+        )
+
+        # Since the todo with the specified todo id does not exist, False is expected.
+        # Important: Although we are using the insert db statement here, 
+        # this is irrelevant for this test, as it does not add anything because the Todo 
+        # does not exist and is aborted beforehand.
+        assert not success
+
+
+    @pytest.mark.asyncio
+    async def test_run_todo_db_statement_failed_because_unknown_error(self) -> None:
+        """ Tests the failed case if the execution is failed for an unknown reason """
+        # For simplicity, it is tested with an update statement.
+        db_update_statement = (
+            update(Todo)
+            .where(Todo.user_id == self.user.id, Todo.id == uuid.uuid4())
+            .values(title=self.title, description=self.description)
+            .returning(Todo)
+        )
+        
+        success, msg = await run_todo_db_statement(
+            ctx=RunTodoDbStatementContext(
+                data=TodoExistCheckModel(
+                    user_id=self.user.id,
+                    todo_id=self.todo.id
+                ),
+                db_statement=db_update_statement,
+                db_session=self.db_session,
+                success_msg=self.success_msg,
+                default_error_msg=self.default_error_msg,
+                execution_type="Update",
+                should_todo_exist=False # Deliberately set False to provoke the error that the 
+                # todo cannot be updated because it does not exist.
+            )
+        )
+
+        assert not success
+
+    
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("invalid_user, invalid_db_session", [(True, False), (False, True)])
+    async def test_run_todo_db_statement_failed_because_database_error(
+        self, invalid_user: bool, invalid_db_session: bool
+    ) -> None:
+        """ Tests the failed case if the database has problems and a database error occurred """
+        db_statement = self.db_insert_statement
+        db_session = self.db_session
+
+        if invalid_user:
+            # Indicates an unregistered user
+            db_statement = (
+                insert(Todo)
+                .values(
+                    user_id=uuid.uuid4(), # <- invalid user id (FOREIGN KEY constraint failed)
+                    title=self.title, description=self.description)
+                .returning(Todo)
+            )
+        elif invalid_db_session:
+            # Invalidates the database session
+            from unittest.mock import AsyncMock
+            from sqlalchemy.exc import SQLAlchemyError
+
+            broken_session = AsyncMock(wraps=db_session)
+            broken_session.__class__ = AsyncSession
+            broken_session.execute.side_effect = SQLAlchemyError("Broken Database Session")
+            db_session = broken_session
+
+        success, msg = await run_todo_db_statement(
+            ctx=RunTodoDbStatementContext(
+                data=TodoExistCheckModel(
+                    user_id=self.user.id,
+                    todo_id=self.todo.id # Irrelevant (but must be set, otherwise a validation error will occur)
+                ),
+                db_statement=db_statement,
+                db_session=db_session,
+                success_msg=self.success_msg,
+                default_error_msg=self.default_error_msg,
+                execution_type=self.execution_type,
+                should_todo_exist=False
+            )
+        )
+
+        assert not success
