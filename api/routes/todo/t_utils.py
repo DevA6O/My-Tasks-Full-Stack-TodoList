@@ -58,7 +58,10 @@ class RunTodoDbStatementContext:
             default_error_msg (str): A default error message which should be returned
                 if the execution failed
             
-            execution_type: Describes the tyoe of execution (e.g. Creation, Update, Deletion, ...)
+            execution_type (str): Describes the tyoe of execution (e.g. Creation, Update, Deletion, ...)
+
+            should_todo_exist (bool): If it is set to True, a todo with the title or id must exist. 
+                Default is False.
     """
 
     data: "RunTodoDbStatementModel"
@@ -83,29 +86,28 @@ async def run_todo_db_statement(ctx: RunTodoDbStatementContext) -> Tuple[bool, s
     """
 
     try:
-        # Checks whether the todo does not exist
-        if not await todo_exists(data=ctx.data, db_session=ctx.db_session) == ctx.should_todo_exist:
-            return (False, f"{ctx.execution_type} failed: Todo could not be found.")
+        # Checks whether the todo does not exist but only if it is required
+        if ctx.should_todo_exist:
+            if not await todo_exists(data=ctx.data, db_session=ctx.db_session):
+                return (False, f"{ctx.execution_type} failed: Todo could not be found.")
 
         # Execute the statement
         result = await ctx.db_session.execute(ctx.db_statement)
         todo_obj = result.scalar_one_or_none()
 
-        # Check whether the execution wasn't successfully
-        if todo_obj is None:
-            logger.warning(f"{ctx.execution_type} failed: Unknown error occurred.", extra={
-                "user_id": ctx.data.user_id, "todo_id": ctx.data.todo_id
-            })
-            return (False, ctx.default_error_msg)
+        # Check whether the execution was successfully
+        if todo_obj is not None:
+            await ctx.db_session.commit()
+            return (True, ctx.success_msg)
         
-        # If the execution was successful
-        await ctx.db_session.commit()
-        return (True, ctx.success_msg)
+        # If the execution wasn't successfully
+        logger.warning(f"{ctx.execution_type} failed: Unknown error occurred.", extra={
+            "user_id": ctx.data.user_id, "todo_id": ctx.data.todo_id
+        })
     # Fallback exception handler if the database has problems
     except IntegrityError as e:
         logger.exception(f"Insertion failed: {str(e)}", exc_info=True)
-        return (False, ctx.default_error_msg)
-    
     except SQLAlchemyError as e:
         logger.exception(f"Database error: {str(e)}", exc_info=True)
-        return (False, ctx.default_error_msg)
+    
+    return (False, ctx.default_error_msg)
