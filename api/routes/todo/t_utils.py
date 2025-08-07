@@ -1,8 +1,18 @@
+import logging
 from sqlalchemy import select, exists
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from dataclasses import dataclass
+from typing import Tuple, TYPE_CHECKING
+from sqlalchemy.sql import Executable
 
 from routes.todo.t_validation_model import TodoExistCheckModel
 from database.models import Todo
+
+if TYPE_CHECKING:
+    from routes.todo.t_validation_model import RunTodoDbStatementModel
+
+logger = logging.getLogger(__name__)
 
 async def todo_exists(data: TodoExistCheckModel, db_session: AsyncSession) -> bool:
     """ Helper-Function to check whether the task already exists or not. 
@@ -16,12 +26,86 @@ async def todo_exists(data: TodoExistCheckModel, db_session: AsyncSession) -> bo
         raise ValueError("db_session must be an AsyncSession.")
     
     # Check what information is provided
-    if data.title:
-        stmt = select(exists().where(Todo.user_id == data.user_id, Todo.title == data.title))
-        
     if data.todo_id:
         stmt = select(exists().where(Todo.user_id == data.user_id, Todo.id == data.todo_id))
     
+    elif data.title:
+        stmt = select(exists().where(Todo.user_id == data.user_id, Todo.title == data.title))
+        
     # Start db request
     result = await db_session.execute(stmt)
     return result.scalar()
+
+
+
+@dataclass
+class RunTodoDbStatementContext:
+    """ 
+        Context container for executing the todo database statement
+
+        Args:
+            data (RunTodoDbStatementModel): Validated data input containing the
+                user_id, title and the todo_id
+
+            db_statement (Executable): An executable database statement 
+                (Update, Delete or Insert)
+
+            db_session (AsyncSession): An open and valid database session
+
+            success_msg (str): The success message which should be returned
+                if the execution was successful
+            
+            default_error_msg (str): A default error message which should be returned
+                if the execution failed
+            
+            execution_type: Describes the tyoe of execution (e.g. Creation, Update, Deletion, ...)
+    """
+
+    data: "RunTodoDbStatementModel"
+    db_statement: Executable
+    db_session: AsyncSession
+    success_msg: str
+    default_error_msg: str
+    execution_type: str
+    should_todo_exist: bool = True
+
+async def run_todo_db_statement(ctx: RunTodoDbStatementContext) -> Tuple[bool, str]:
+    """
+    Helper-Function to run a database statement for the todo
+
+    Args:
+        ctx (UpdateTodoContext): Context data for database operation
+
+    Returns:
+        tuple:
+            - bool: Whether the operation was successful
+            - str: A message describing the outcome
+    """
+
+    try:
+        # Checks whether the todo does not exist
+        if not await todo_exists(data=ctx.data, db_session=ctx.db_session) == ctx.should_todo_exist:
+            return (False, f"{ctx.execution_type} failed: Todo could not be found.")
+
+        # Execute the statement
+        result = await ctx.db_session.execute(ctx.db_statement)
+        todo_obj = result.scalar_one_or_none()
+
+        # Check whether the execution wasn't successfully
+        if todo_obj is None:
+            logger.warning(f"{ctx.execution_type} failed: Unknown error occurred.", extra={
+                "user_id": ctx.data.user_id, "todo_id": ctx.data.todo_id
+            })
+            return (False, ctx.default_error_msg)
+        
+        # If the execution was successful
+        await ctx.db_session.commit()
+        return (True, ctx.success_msg)
+    # Fallback exception handler if the database has problems
+    except IntegrityError as e:
+        logger.exception(f"Insertion failed: {str(e)}", exc_info=True)
+        return (False, ctx.default_error_msg)
+    
+    except SQLAlchemyError as e:
+        logger.exception(f"Database error: {str(e)}", exc_info=True)
+        return (False, ctx.default_error_msg)
