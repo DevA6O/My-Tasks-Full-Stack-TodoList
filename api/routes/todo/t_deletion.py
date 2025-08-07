@@ -2,15 +2,12 @@ import logging
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
-
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import SQLAlchemyError
-
 from typing import Tuple
 
-from routes.todo.t_validation_model import TodoDeletionModel
-from routes.todo.t_utils import TodoExistCheckModel, todo_exists
+from routes.todo.t_validation_model import TodoDeletionModel, TodoExistCheckModel
+from routes.todo.t_utils import run_todo_db_statement, RunTodoDbStatementContext
 from security.jwt import get_bearer_token, decode_token
 from database.models import Todo
 from database.connection import get_db
@@ -42,42 +39,25 @@ class TodoDeletion:
             - A boolean: To check whether the deletion was successful or not
             - A string containing the deletion information
         """
-
-        try:
-            # Checks whether the todo does not exists
-            data = TodoExistCheckModel(user_id=self.user_id, todo_id=self.data.todo_id)
-
-            if not await todo_exists(data=data, db_session=self.db_session):
-                return False, "Deletion failed: Todo could not be found."
-            
-            # Deletes the todo
-            stmt = (
-                delete(Todo).where(
-                    Todo.user_id == self.user_id, Todo.id == self.data.todo_id
-                ).returning(Todo)
+        return await run_todo_db_statement(
+            ctx=RunTodoDbStatementContext(
+                data=TodoExistCheckModel(
+                    user_id=self.user_id,
+                    todo_id=self.data.todo_id
+                ),
+                db_statement=(
+                    delete(Todo)
+                    .where(Todo.user_id == self.user_id, Todo.id == self.data.todo_id)
+                    .returning(Todo)
+                ),
+                db_session=self.db_session,
+                success_msg="Deletion successful: Todo successfully deleted!",
+                default_error_msg=DEFAULT_DELETION_ERROR_MSG,
+                execution_type="Deletion"
             )
-            result = await self.db_session.execute(stmt)
+        )
 
-            # Checks whether the todo is successfully deleted
-            deleted_todo_obj = result.scalar_one_or_none()
 
-            if deleted_todo_obj is None:
-                logger.warning("Deletion failed: Unknown error occurred.", extra={
-                    "user_id": self.user_id, "todo_id": self.data.todo_id
-                })
-                return False, DEFAULT_DELETION_ERROR_MSG
-            
-            # If the deletion was successfully
-            await self.db_session.commit()
-            return True, "Deletion successful: Todo successfully deleted!"
-        
-        # Fallback solution (for the database)
-        except SQLAlchemyError as e:
-            logger.exception(f"Database error: {str(e)}", exc_info=True, extra={
-                "user_id": self.user_id, "todo_id": self.data.todo_id
-            })
-            return False, DEFAULT_DELETION_ERROR_MSG
-        
 
 @router.post("/api/todo/delete")
 async def todo_deletion_endpoint(

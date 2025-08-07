@@ -3,23 +3,28 @@ from logging import getLogger
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import insert
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 
 from database.models import Todo
 from security.jwt import decode_token, get_bearer_token
 from database.connection import get_db
-from routes.todo.t_utils import todo_exists, TodoExistCheckModel
-from routes.todo.t_validation_model import TodoCreation as TodoCreationValidation
+from routes.todo.t_utils import run_todo_db_statement, RunTodoDbStatementContext
+from routes.todo.t_validation_model import (
+    TodoCreationModel, 
+    TodoExistCheckModel
+)
 
 router = APIRouter()
 logger = getLogger(__name__)
 
+DEFAULT_UPDATE_FAILED_MSG: str = "Creation failed: Todo could not be created for technical reasons. " \
+"Please try again later."
+
 class TodoCreation:
     """ Class to create a new Todo """
 
-    def __init__(self, db_session: AsyncSession, data: TodoCreationValidation, user_id: UUID) -> None:
+    def __init__(self, db_session: AsyncSession, data: TodoCreationModel, user_id: UUID) -> None:
         # Validate the class params
         if not isinstance(db_session, AsyncSession):
             raise ValueError("db_session is not an AsyncSession")
@@ -29,74 +34,46 @@ class TodoCreation:
         
         # Define the params for the class global
         self.db_session: AsyncSession = db_session
-        self.data: TodoCreationValidation = data
+        self.data: TodoCreationModel = data
         self.user_id: UUID = user_id
 
         self.title: str = self.data.title.strip()
         self.description: str = self.data.description.strip()
         
-
-    async def _insert_new_todo(self) -> Todo | None:
-        """ Helper-Method to save the todo in the user database.
-
-        Returns:
-        ---------
-            - The created todo instance: Could be the instance of the Todo or None.
-        """
-        stmt = (
-            insert(Todo)
-            .values(user_id=self.user_id, title=self.title, description=self.description)
-            .returning(Todo)
-        )
-
-        # Insert the data
-        result_obj = await self.db_session.execute(stmt)
-        todo_instance = result_obj.scalar_one_or_none()
-        await self.db_session.commit()
-
-        # Check whether the insert was successful
-        if todo_instance:
-            await self.db_session.refresh(todo_instance)
         
-        return todo_instance
-
-    async def create(self) -> Tuple[Todo | None, str]:
+    async def create(self) -> Tuple[bool, str]:
         """ Method to create the todo for the user
          
         Returns:
         ---------
-            - The instance of the created todo or None
-            - A string
+            - A boolean: To check whether the deletion was successful or not
+            - A string containing the deletion information
         """
-        try:
-            # Check whether the todo (title) is already exist
-            check_data = TodoExistCheckModel(user_id=self.user_id, title=self.title)
-
-            if await todo_exists(data=check_data, db_session=self.db_session):
-                return None, f"Todo ({self.title}) already exist."
-            
-            # Insert the todo if the todo is not exist
-            todo = await self._insert_new_todo()
-
-            if todo: # If the todo successfully got inserted
-                return todo, f"Todo ({self.title}) successfully added."
-            
-        except IntegrityError as e: # Fallback if the insertion failed
-            logger.exception(f"Insertion failed: {str(e)}", exc_info=True, extra={"user_id": self.user_id})
-            return None, "Server error: Todo could not be created. Please try it later again."
-        
-        except SQLAlchemyError as e: # Fallback if the connection is closed or something else
-            logger.exception(f"Database error: {str(e)}", exc_info=True, extra={"user_id": self.user_id})
-            return None, "Server error: An unexpected server error occurred. Please try it later again."
-
-        return None, "Unknown error occurred: Todo could not be added."
+        return await run_todo_db_statement(
+            ctx=RunTodoDbStatementContext(
+                data=TodoExistCheckModel(
+                    user_id=self.user_id,
+                    title=self.data.title,
+                ),
+                db_statement=(
+                    insert(Todo)
+                    .values(user_id=self.user_id, title=self.title, description=self.description)
+                    .returning(Todo)
+                ),
+                db_session=self.db_session,
+                should_todo_exist=False,
+                success_msg="Creation successful: Todo successfully created.",
+                default_error_msg=DEFAULT_UPDATE_FAILED_MSG,
+                execution_type="Creation"
+            )
+        )
 
 
 @router.post("/api/todo/create")
 async def create_todo_endpoint(
-    data: TodoCreationValidation, token: str = Depends(get_bearer_token), 
+    data: TodoCreationModel, token: str = Depends(get_bearer_token), 
     db_session: AsyncSession = Depends(get_db)
-) -> None:
+) -> JSONResponse:
     """ Endpoint to create a new todo """
     # Define standard exception
     http_exception = HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
@@ -107,10 +84,10 @@ async def create_todo_endpoint(
 
         # Create the todo
         todo_creation_service = TodoCreation(db_session=db_session, data=data, user_id=user_id)
-        todo, message = await todo_creation_service.create()
-        
+        success, message = await todo_creation_service.create()
+
         # Check whether the todo was created successfully.
-        if todo is None:
+        if not success:
             http_exception.detail = message
             raise http_exception
         

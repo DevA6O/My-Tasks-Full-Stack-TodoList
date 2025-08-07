@@ -7,11 +7,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from typing import Tuple
 
-from routes.todo.t_utils import TodoExistCheckModel, todo_exists
-from routes.todo.t_validation_model import TodoEditorModel
+
+from routes.todo.t_validation_model import TodoEditorModel, TodoExistCheckModel
 from database.connection import get_db
 from database.models import Todo
 from security.jwt import get_bearer_token, decode_token
+from routes.todo.t_utils import run_todo_db_statement, RunTodoDbStatementContext
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -41,42 +42,24 @@ class TodoEditor:
             - A boolean to check whether the update was successful or not
             - A detailed string
         """
-        try:
-            # Checks whether the todo does not exist
-            check_data = TodoExistCheckModel(user_id=self.user_id, todo_id=self.data.todo_id)
-
-            if not await todo_exists(data=check_data, db_session=self.db_session):
-                return False, "Update failed: Todo could not be found."
-            
-            # Update the todo
-            stmt = (
-                update(Todo)
-                .where(Todo.user_id == self.user_id, Todo.id == self.data.todo_id)
-                .values(title=self.data.title, description=self.data.description)
-                .returning(Todo)
+        return await run_todo_db_statement(
+            ctx=RunTodoDbStatementContext(
+                data=TodoExistCheckModel(
+                    user_id=self.user_id,
+                    todo_id=self.data.todo_id
+                ),
+                db_statement=(
+                    update(Todo)
+                    .where(Todo.user_id == self.user_id, Todo.id == self.data.todo_id)
+                    .values(title=self.data.title, description=self.data.description)
+                    .returning(Todo)
+                ),
+                db_session=self.db_session,
+                success_msg="Update successful: Todo successfully updated!",
+                default_error_msg=DEFAULT_UPDATE_FAILED_MSG,
+                execution_type="Update"
             )
-            result = await self.db_session.execute(stmt)
-
-            # Checks whether the update wasn't successfully
-            updated_todo_obj = result.scalar_one_or_none()
-
-            if not updated_todo_obj:
-                logger.warning("Update failed: Unknown error occurred.", extra={
-                    "user_id": self.user_id, "todo_id": self.data.todo_id
-                })
-                return False, DEFAULT_UPDATE_FAILED_MSG
-
-            # If the update was successful
-            await self.db_session.commit()
-            return True, "Update successful: Todo successfully updated!"
-        
-        # Fallback if the database is broken or something else
-        except SQLAlchemyError as e:
-            logger.exception(f"Database error: {str(e)}", exc_info=True, extra={
-                "user_id": self.user_id, "todo_id": self.data.todo_id
-            })
-            return False, DEFAULT_UPDATE_FAILED_MSG
-        
+        )
 
 
 @router.post("/api/todo/update")
