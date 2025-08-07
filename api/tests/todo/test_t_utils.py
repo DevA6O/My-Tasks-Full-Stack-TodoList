@@ -1,48 +1,52 @@
 import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 
 from database.models import Todo, User
 from routes.todo.t_utils import TodoExistCheckModel, todo_exists
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "exists, title_or_id, expected_exception",
-    [
-        (True, "title", None), # Todo exists (checking with title)
-        (True, "id", None), # Todo exists (checking with id)
-        (False, "title", None), # Todo does not exists (checking with title)
-        (False, "id", None), # Todo does not exists (checking with id)
-        (False, "title", ValueError), # db_session is broken
-    ]
-)
-async def test_todo_exists(
-    exists: bool, title_or_id: str, expected_exception: Exception | None,
-    fake_todo: Tuple[Todo, User, AsyncSession]
-) -> None:
-    # Defines the test values
-    todo, user, db_session = fake_todo
 
-    # Defines the data
-    if title_or_id == "title":
-        data = TodoExistCheckModel(user_id=user.id, title=todo.title)
-    
-    if title_or_id == "id":
-        data = TodoExistCheckModel(user_id=user.id, todo_id=todo.id)
+class TestTodoExists:
+    """ Test class for different scenarios for the todo_exists function """
 
-    # If we expect an error
-    if expected_exception:
-        with pytest.raises(expected_exception):
-            await todo_exists(data=data, db_session="NO_VALID_DB_SESSION")
-        return
-    
-    # If the todo should not exists -> delete it for the test
-    if not exists:
-        from sqlalchemy import delete
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, fake_todo: Tuple[Todo, User, AsyncSession]) -> None:
+        """ Set up common test data """
+        self.todo, self.user, self.db_session = fake_todo
 
-        stmt = delete(Todo).where(Todo.id == todo.id)
-        await db_session.execute(stmt)
+        # Define differnt data models
+        self.data_for_title = TodoExistCheckModel(user_id=self.user.id, title=self.todo.title)
+        self.data_for_todoID = TodoExistCheckModel(user_id=self.user.id, todo_id=self.todo.id)
     
-    # Start checking the result
-    result = await todo_exists(data=data, db_session=db_session)
-    assert result == exists
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("data_type", [("title"), ("todo_id")])
+    async def test_todo_exists_success(self, data_type: str) -> None:
+        """ Tests the search for the todo with the title or todo id """
+        if data_type == "title":
+            exists = await todo_exists(data=self.data_for_title, db_session=self.db_session)
+        elif data_type == "todo_id":
+            exists = await todo_exists(data=self.data_for_todoID, db_session=self.db_session)
+
+        assert exists
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("data_type", [("title"), ("todo_id")])
+    async def test_todo_exists_failed_because_todo_does_not_exist(self, data_type: str) -> None:
+        """ Tests the failed case if the todo does not exist """
+        import uuid
+
+        if data_type == "title":
+            self.data_for_title.todo_id = uuid.uuid4()
+            exists = await todo_exists(data=self.data_for_title, db_session=self.db_session)
+        elif data_type == "todo_id":
+            self.data_for_todoID.todo_id = uuid.uuid4()
+            exists = await todo_exists(data=self.data_for_todoID, db_session=self.db_session)
+
+        assert not exists
+
+    @pytest.mark.asyncio
+    async def test_todo_exists_failed_because_db_session_is_invalid(self) -> None:
+        """ Tests the failed case if the database session is invalid """
+        with pytest.raises(ValueError):
+            await todo_exists(data=self.data_for_title, db_session="Broken Database Session")
