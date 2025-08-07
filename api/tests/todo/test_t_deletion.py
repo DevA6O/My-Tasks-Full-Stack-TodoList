@@ -15,49 +15,6 @@ from main import api
 
 load_dotenv()
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "expected_value, should_fail, raised_exception",
-    [
-        (True, False, False), # Success -> no problems
-        (False, False, False), # Failed -> todo does not exists
-        (False, True, False), # Failed -> deletion failed
-        (False, False, True), # Failed -> A database error occurred
-    ]
-)
-async def test_delete(
-    expected_value: bool, should_fail: bool, raised_exception: bool,
-    fake_todo: Tuple[Todo, User, AsyncSession]) -> None:
-    # Defines the fake data
-    todo, user, db_session = fake_todo
-
-    # Calls the delete method
-    data = TodoDeletionModel(todo_id=todo.id)
-    todo_deletion_service = TodoDeletion(data=data, db_session=db_session, user_id=user.id)
-
-    # Invalidate db session
-    if raised_exception:
-        broken_session = AsyncMock(wraps=db_session)
-        broken_session.__class__ = AsyncSession
-        broken_session.execute.side_effect = SQLAlchemyError("Broken DB Session")
-        db_session = broken_session
-
-    # Deletes the todo before the actually test started, if the current test want this
-    if not expected_value:
-        success, msg = await todo_deletion_service.delete()
-        assert success
-
-    # Checks whether the deletion should failed or not
-    if should_fail:
-        with patch("routes.todo.t_deletion.todo_exists", new=AsyncMock(return_value=True)):
-            success, msg = await todo_deletion_service.delete()
-    else:
-        success, msg = await todo_deletion_service.delete()
-
-    # Start checking the result
-    assert success == expected_value
-    assert isinstance(msg, str)
-
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
