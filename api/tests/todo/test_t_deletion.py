@@ -73,6 +73,12 @@ class TestDeleteAPIEndpoint:
         async with AsyncClient(transport=self.transport, base_url=self.api_url) as ac:
             response = await ac.post(url=self.path_url, json={"todo_id": str(self.todo.id)})
             assert response.status_code == 200
+
+        # Checks whether the todo is actually deleted successfully
+        assert not await todo_exists(
+            data=TodoExistCheckModel(user_id=self.user.id, todo_id=self.todo.id), 
+            db_session=self.db_session
+        )
         
     @pytest.mark.asyncio
     async def test_todo_deletion_endpoint_failed_because_validation_error(self) -> None:
