@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from typing import Any, Tuple, TYPE_CHECKING
 from sqlalchemy.sql import Executable
 
-from routes.todo.t_validation_model import TodoExistCheckModel
+from routes.todo.t_validation_model import TodoExistCheckModel, HandleTodoRequestModel
 from database.models import Todo
 from security.jwt import decode_token
 
@@ -120,50 +120,49 @@ async def run_todo_db_statement(ctx: RunTodoDbStatementContext) -> Tuple[bool, s
 
 
 async def handle_todo_request(
-    token: str, data_model: Any, db_session: AsyncSession, 
-    service_class: Any, service_method: str,
-    default_error_message: str, 
-    http_status_success: int = status.HTTP_200_OK,
-    http_status_exception: int = status.HTTP_400_BAD_REQUEST
+    data_model: Any, db_session: AsyncSession, params: HandleTodoRequestModel
 ) -> JSONResponse:
     """
         Helper-Function for todo api endpoints
 
         Args:
-            token (str): Bearer token
             data_model (Any): The Pydantic model passed to the endpoint
             db_session (AsyncSession): A open and valid database session
-            service_class (Any): The service class to instantiate (e.g., TodoEditor)
-            service_method (str): The method name to call (e.g. "update", "delete", ...)
-            default_error_message (str): The default error message which should be returned if an error occurred
-            http_status_success (int): The success status_code. Default is 200 (OK).
-            http_status_exception (int): The exception status_code. Default is 400 (BAD REQUEST).
+            params (HandleTodoRequestModel): A Pydantic model for the todo request 
+                (see more information on the docs of this Pydantic model) 
 
         Returns:
             JSONResponse: A FastAPI response
     """
     # Default http exception
-    http_exception = HTTPException(status_code=http_status_exception, detail=default_error_message)
+    http_exception = HTTPException(
+        status_code=params.http_status_exception, 
+        detail=params.default_error_message
+    )
 
     try:
+        # Validates the database session
+        if not isinstance(db_session, AsyncSession):
+            raise ValueError("db_session must be an AsyncSession.")
+
         # Extract the user id from token
-        user_id: UUID = decode_token(token=token)
+        user_id: UUID = decode_token(token=params.token)
 
         # Define service instance and method
-        service = service_class(data=data_model, db_session=db_session, user_id=user_id)
-        method = getattr(service, service_method)
+        service = params.service_class(data=data_model, db_session=db_session, user_id=user_id)
+        method = getattr(service, params.service_method)
 
         # Calls the method
         success, msg = await method()
 
         # Checks whether the call was successful
         if success:
-            return JSONResponse(status_code=http_status_success, content={"message": msg})
+            return JSONResponse(status_code=params.http_status_success, content={"message": msg})
 
         # If it wasn't successfully
         http_exception.detail = msg
     except ValueError as e:
         logger.exception(str(e), exc_info=True)
-        http_exception.detail = default_error_message
+        http_exception.detail = params.default_error_message
 
     raise http_exception
