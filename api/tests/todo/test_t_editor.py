@@ -12,6 +12,7 @@ from httpx import ASGITransport, AsyncClient
 from database.models import Todo, User
 from database.connection import get_db
 from routes.todo.t_editor import TodoEditor, TodoEditorModel
+from routes.todo.t_utils import todo_exists, TodoExistCheckModel
 from security.jwt import create_token, get_bearer_token
 from main import api
 
@@ -27,6 +28,32 @@ async def check_update(user_id: uuid.UUID, todo_id: uuid.UUID, db_session: Async
     return result.scalar_one_or_none()
 
 
+class TestTodoEditorUpdateMethod:
+    """ Test class for the update method """
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, fake_todo: Tuple[Todo, User, AsyncSession]) -> None:
+        """ Set up test data """
+        self.todo, self.user, self.db_session = fake_todo
+
+        # Define test values
+        self.title: str = "An updated title"
+        self.description: str = "An updated description"
+
+        # Define service instance
+        self.data = TodoEditorModel(title=self.title, description=self.description, todo_id=self.todo.id)
+        self.service = TodoEditor(data=self.data, db_session=self.db_session, user_id=self.user.id)
+
+    @pytest.mark.asyncio
+    async def test_update_success(self) -> None:
+        """ Tests the success case for update method """
+        success, msg = await self.service.update()
+        assert success
+
+        # Checks whether the update was successfully
+        todo_obj = await check_update(user_id=self.user.id, todo_id=self.todo.id, db_session=self.db_session)
+        assert todo_obj.title == self.title
+        assert todo_obj.description == self.description
 
 
 class TestTodoEditorUpdateEndpoint:
