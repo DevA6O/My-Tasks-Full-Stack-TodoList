@@ -14,7 +14,8 @@ from routes.todo.t_utils import (
     handle_todo_request
 )
 from routes.todo.t_validation_model import (
-    TodoCreationModel, TodoExistCheckModel
+    TodoCreationModel, TodoExistCheckModel,
+    HandleTodoRequestModel
 )
 
 router = APIRouter()
@@ -78,7 +79,9 @@ async def create_todo_endpoint(
 ) -> JSONResponse:
     """ Endpoint to create a new todo """
     return await handle_todo_request(
-        token=token, data_model=data, db_session=db_session,
-        service_class=TodoCreation, service_method="create",
-        default_error_message=DEFAULT_UPDATE_FAILED_MSG
+        data_model=data, db_session=db_session,
+        params=HandleTodoRequestModel(
+            token=token, service_class=TodoCreation, service_method="create",
+            default_error_message=DEFAULT_UPDATE_FAILED_MSG
+        )
     )
