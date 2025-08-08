@@ -45,50 +45,38 @@ class TestDeleteMethod:
             db_session=self.db_session
         )
 
+class TestDeleteAPIEndpoint:
+    """ Tests the deletion api endpoint """
 
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, fake_todo: Tuple[Todo, User, AsyncSession]) -> None:
+        """ Set up test data """
+        self.todo, self.user, self.db_session = fake_todo
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize(
-#     "should_fail, expected_status_code, raised_exception",
-#     [
-#         (False, 200, False), # Success -> deletion worked
-#         (True, 400, False), # Failed -> todo could not be found
-#         (True, 400, True) # Failed -> wrong type
-#     ]
-# )
-# async def test_todo_deletion_endpoint(
-#     should_fail: bool, expected_status_code: int, raised_exception: bool,
-#     fake_todo: Tuple[Todo, User, AsyncSession]
-# ) -> None:
-#     # Defines the fake data
-#     todo, user, db_session = fake_todo
+        # Define default test values
+        self.api_url: str = os.getenv("VITE_API_URL")
+        self.path_url: str = "/todo/delete"
+        self.token: str = create_token(data={"sub": str(self.user.id)})
 
-#     # Create a user test token
-#     user_token = create_token(data={"sub": str(user.id)})
+        # Set dependencies
+        api.dependency_overrides[get_db] = lambda: self.db_session
+        api.dependency_overrides[get_bearer_token] = lambda: self.token
 
-#     # Overwrites dependencies
-#     if raised_exception:
-#         api.dependency_overrides[get_db] = lambda: AsyncSession
-#     else:
-#         api.dependency_overrides[get_db] = lambda: db_session
+        self.transport = ASGITransport(app=api)
+
+    def teardown_method(self):
+        api.dependency_overrides.clear()
     
-#     api.dependency_overrides[get_bearer_token] = lambda: user_token
-
-#     # Start the request
-#     transport = ASGITransport(app=api)
-
-#     async with AsyncClient(transport=transport, base_url=os.getenv("VITE_API_URL")) as ac:
-#         payload: dict = {
-#             "todo_id": str(todo.id)
-#         }
-
-#         # Before starting the call, checking whether the request should failed
-#         if should_fail:
-#             data = TodoDeletionModel(todo_id=todo.id)
-#             todo_deletion_service = TodoDeletion(data=data, db_session=db_session, user_id=user.id)
-#             success, msg = await todo_deletion_service.delete()
-#             assert success
-
-#         # Starting final request and check the status_code
-#         response = await ac.post("/todo/delete", json=payload)
-#         assert response.status_code == expected_status_code
+    @pytest.mark.asyncio
+    async def test_todo_deletion_endpoint_success(self) -> None:
+        """ Tests the success case when someone deletes a todo """
+        async with AsyncClient(transport=self.transport, base_url=self.api_url) as ac:
+            response = await ac.post(url=self.path_url, json={"todo_id": str(self.todo.id)})
+            assert response.status_code == 200
+        
+    @pytest.mark.asyncio
+    async def test_todo_deletion_endpoint_failed_because_validation_error(self) -> None:
+        """ Tests the failed case if a validation error occurrs """
+        async with AsyncClient(transport=self.transport, base_url=self.api_url) as ac:
+            response = await ac.post(url=self.path_url, json={"todo_id": "No UUID"})
+            assert response.status_code == 422
