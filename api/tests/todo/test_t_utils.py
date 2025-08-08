@@ -3,14 +3,19 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import insert, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Tuple
+from fastapi.responses import JSONResponse
+from fastapi import HTTPException
+from typing import Tuple, Any
 
 from database.models import Todo, User
-from routes.todo.t_validation_model import TodoExistCheckModel
+from routes.todo.t_creation import TodoCreation
+from routes.todo.t_validation_model import TodoCreationModel, TodoExistCheckModel, HandleTodoRequestModel
 from routes.todo.t_utils import (
     todo_exists, TodoExistCheckModel,
-    run_todo_db_statement, RunTodoDbStatementContext
+    run_todo_db_statement, RunTodoDbStatementContext,
+    handle_todo_request
 )
+from security.jwt import create_token
 
 
 class TestTodoExists:
@@ -208,3 +213,106 @@ class TestRunTodoDbStatement:
         )
 
         assert not success
+
+
+class TestHandleTodoRequest:
+    """ Test class for different scenarios for the handle_todo_request method """
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+        """ Set up common test data """
+        self.user, self.db_session = fake_user
+
+        # Define test values
+        self.token: str = create_token(data={"sub": str(self.user.id)})
+        self.data_model = TodoCreationModel(title="A test title", description="A test description")
+        self.service_class = TodoCreation
+        self.service_method: str = "create"
+        self.default_error_message: str = "An unexpected server error occurred."
+
+    @pytest.mark.asyncio
+    async def test_handle_todo_request_success(self) -> None:
+        """ Tests the success case of this method """
+        response: JSONResponse = await handle_todo_request(
+            data_model=self.data_model, db_session=self.db_session, 
+            params=HandleTodoRequestModel(
+                token=self.token, service_class=self.service_class,
+                service_method=self.service_method,
+                default_error_message=self.default_error_message,
+            )
+        )
+
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_handle_todo_request_failed_because_not_success(self) -> None:
+        """ Tests the failed case if the success state is False """
+        failed_msg: str = "Creation failed: An unexpected error occurred."
+
+        class TestFailedClass:
+            def __init__(self, data: Any, db_session: AsyncSession, user_id: uuid.UUID): 
+                pass
+
+            async def create(self):
+                return (False, failed_msg)
+
+        # Expect an exception
+        with pytest.raises(HTTPException) as exc_info:
+            await handle_todo_request(
+                data_model=self.data_model, db_session=self.db_session, 
+                params=HandleTodoRequestModel(
+                    token=self.token, service_class=TestFailedClass,
+                    service_method=self.service_method,
+                    default_error_message=failed_msg,
+                )
+            )
+        
+        # Tests the output
+        exception = exc_info.value
+        assert exception.status_code == 400
+        assert exception.detail == failed_msg
+
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("invalid_db_session, invalid_token", [(True, False), (False, True)])
+    async def test_handle_todo_request_failed_because_value_error(
+        self, invalid_db_session: bool, invalid_token: bool
+    ) -> None:
+        """ Tests the failed case if a ValueError occurrs """
+        db_session = self.db_session
+        token = self.token
+
+        if invalid_db_session:
+            db_session = "Invalid db session" # <- triggers a ValueError (no open and valid db session)
+        elif invalid_token:
+            token = create_token({"no_sub": str(self.user.id)}) # <- triggers a ValueError (no sub exists) 
+
+        with pytest.raises(HTTPException) as exc_info:
+            await handle_todo_request(
+                data_model=self.data_model, db_session=db_session, 
+                params=HandleTodoRequestModel(
+                    token=token,
+                    service_class=self.service_class,
+                    service_method=self.service_method,
+                    default_error_message=self.default_error_message,
+                )
+            )
+
+        assert exc_info.value.status_code == 400
+
+    
+    @pytest.mark.asyncio
+    async def test_handle_todo_request_failed_because_validation_error(self) -> None:
+        """ Tests the failed case if a validation error occurrs """
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            await handle_todo_request(
+                data_model=self.data_model, db_session=self.db_session, 
+                params=HandleTodoRequestModel(
+                    token=int(0), # <- triggers a ValidationError
+                    service_class=self.service_class,
+                    service_method=self.service_method,
+                    default_error_message=self.default_error_message,
+                )
+            )
