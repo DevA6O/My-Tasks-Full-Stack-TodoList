@@ -9,10 +9,12 @@ from typing import Tuple
 from database.models import Todo
 from security.jwt import decode_token, get_bearer_token
 from database.connection import get_db
-from routes.todo.t_utils import run_todo_db_statement, RunTodoDbStatementContext
+from routes.todo.t_utils import (
+    run_todo_db_statement, RunTodoDbStatementContext,
+    handle_todo_request
+)
 from routes.todo.t_validation_model import (
-    TodoCreationModel, 
-    TodoExistCheckModel
+    TodoCreationModel, TodoExistCheckModel
 )
 
 router = APIRouter()
@@ -40,7 +42,7 @@ class TodoCreation:
         self.title: str = self.data.title.strip()
         self.description: str = self.data.description.strip()
         
-        
+
     async def create(self) -> Tuple[bool, str]:
         """ Method to create the todo for the user
          
@@ -75,25 +77,8 @@ async def create_todo_endpoint(
     db_session: AsyncSession = Depends(get_db)
 ) -> JSONResponse:
     """ Endpoint to create a new todo """
-    # Define standard exception
-    http_exception = HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        # Fetch the user_id from token
-        user_id: UUID = decode_token(token=token)
-
-        # Create the todo
-        todo_creation_service = TodoCreation(db_session=db_session, data=data, user_id=user_id)
-        success, message = await todo_creation_service.create()
-
-        # Check whether the todo was created successfully.
-        if not success:
-            http_exception.detail = message
-            raise http_exception
-        
-        # Return success response
-        return JSONResponse(status_code=status.HTTP_200_OK, content={"message": message})
-    except ValueError as e:
-        logger.exception(str(e), exc_info=True)
-        http_exception.detail = str(e)
-        raise http_exception
+    return await handle_todo_request(
+        token=token, data_model=data, db_session=db_session,
+        service_class=TodoCreation, service_method="create",
+        default_error_message=DEFAULT_UPDATE_FAILED_MSG
+    )
