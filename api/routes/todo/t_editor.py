@@ -7,12 +7,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from typing import Tuple
 
-
-from routes.todo.t_validation_model import TodoEditorModel, TodoExistCheckModel
-from database.connection import get_db
 from database.models import Todo
+from database.connection import get_db
 from security.jwt import get_bearer_token, decode_token
-from routes.todo.t_utils import run_todo_db_statement, RunTodoDbStatementContext
+from routes.todo.t_validation_model import TodoEditorModel, TodoExistCheckModel
+from routes.todo.t_utils import (
+    run_todo_db_statement, RunTodoDbStatementContext,
+    handle_todo_request, HandleTodoRequestModel
+)
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -67,24 +69,13 @@ async def todo_update_endpoint(
     data: TodoEditorModel,
     db_session: AsyncSession = Depends(get_db), token: str = Depends(get_bearer_token),
 ) -> JSONResponse:
-    """ Endpoint to update the todo for an user """
-    try:
-        # Default http exception
-        http_exception = HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
-
-        # Fetch the user from the token and define service instance
-        user_id: UUID = decode_token(token=token)
-        todo_editor_service = TodoEditor(data=data, db_session=db_session, user_id=user_id)
-
-        # Start calling the update method and return response / expection
-        success, msg = await todo_editor_service.update()
-
-        if not success:
-            http_exception.detail = str(msg)
-            raise http_exception
-
-        return JSONResponse(status_code=status.HTTP_200_OK, content={"message": msg})
-    except ValueError as e: # Fallback -> if decode_token failed or validation error in TodoEditor
-        logger.exception(str(e), exc_info=True)
-        http_exception.detail = DEFAULT_UPDATE_FAILED_MSG
-        raise http_exception
+    """ Endpoint to update a todo for an user """
+    return await handle_todo_request(
+        data_model=data, db_session=db_session,
+        params=HandleTodoRequestModel(
+            token=token,
+            service_class=TodoEditor,
+            service_method="update",
+            default_error_message=DEFAULT_UPDATE_FAILED_MSG
+        )
+    )

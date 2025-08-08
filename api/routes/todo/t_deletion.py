@@ -6,11 +6,14 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 
-from routes.todo.t_validation_model import TodoDeletionModel, TodoExistCheckModel
-from routes.todo.t_utils import run_todo_db_statement, RunTodoDbStatementContext
-from security.jwt import get_bearer_token, decode_token
 from database.models import Todo
 from database.connection import get_db
+from security.jwt import get_bearer_token, decode_token
+from routes.todo.t_validation_model import TodoDeletionModel, TodoExistCheckModel
+from routes.todo.t_utils import (
+    run_todo_db_statement, RunTodoDbStatementContext,
+    handle_todo_request, HandleTodoRequestModel
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -64,25 +67,13 @@ async def todo_deletion_endpoint(
     data: TodoDeletionModel, db_session: AsyncSession = Depends(get_db), 
     token: str = Depends(get_bearer_token)
 ) -> JSONResponse:
-    """ Endpoint to delete a todo """
-    try:
-        # Default http exception
-        http_exception = HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
-
-        # Fetches the user from the token
-        user_id: UUID = decode_token(token=token)
-
-        # Calls the delete method
-        todo_deletion_service = TodoDeletion(data=data, db_session=db_session, user_id=user_id)
-        success, msg = await todo_deletion_service.delete()
-
-        # Checks whether the todo could not be deleted
-        if not success:
-            http_exception.detail = msg
-            raise http_exception
-
-        return JSONResponse(status_code=status.HTTP_200_OK, content={"message": msg})
-    except ValueError as e:
-        logger.exception(str(e), exc_info=True)
-        http_exception.detail = DEFAULT_DELETION_ERROR_MSG
-        raise http_exception
+    """ Endpoint to delete a todo for an user """
+    return await handle_todo_request(
+        data_model=data, db_session=db_session,
+        params=HandleTodoRequestModel(
+            token=token, 
+            service_class=TodoDeletion,
+            service_method="delete",
+            default_error_message=DEFAULT_DELETION_ERROR_MSG
+        )
+    )
