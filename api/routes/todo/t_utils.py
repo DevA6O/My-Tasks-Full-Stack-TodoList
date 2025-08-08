@@ -98,6 +98,8 @@ async def run_todo_db_statement(ctx: RunTodoDbStatementContext) -> Tuple[bool, s
         # Check whether the execution was successfully
         if todo_obj is not None:
             await ctx.db_session.commit()
+
+            logger.info(ctx.success_msg, extra={"user_id": ctx.data.user_id, "todo_id": todo_obj.id})
             return (True, ctx.success_msg)
         
         # If the execution wasn't successfully
