@@ -3,12 +3,16 @@ import os
 import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 
 from database.models import User
+from database.connection import get_db
+from security.jwt import create_token, get_bearer_token
 from routes.todo.t_creation import TodoCreation, TodoCreationModel
 from routes.todo.t_utils import todo_exists, TodoExistCheckModel
+from main import api
 
 # Load env
 load_dotenv()
@@ -46,54 +50,56 @@ class TestCreateMethod:
 
 
 
+class TestCreateAPIEndpoint:
+    """ Tests the creation api endpoint """
 
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+        """ Set up test data """
+        self.user, self.db_session = fake_user
 
+        # Define default test values
+        self.api_url: str = os.getenv("VITE_API_URL")
+        self.path_url: str = "/todo/create"
+        self.token: str = create_token(data={"sub": str(self.user.id)})
 
+        # Set dependencies
+        api.dependency_overrides[get_db] = lambda: self.db_session
+        api.dependency_overrides[get_bearer_token] = lambda: self.token
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize(
-#     "title, description, valid_token, can_created, expected_status_code",
-#     [
-#         (fake_title, fake_description, True, True, 200), # Success
-#         ("x", fake_description, True, False, 422), # Title is not valid (too short)
-#         (fake_title*50, fake_description, True, False, 422), # Title is not valid (too long)
-#         (fake_title, fake_description*50, True, False, 422), # Description is not valid (too long)
-#         (fake_title, fake_description, False, False, 400), # user token has no user 
-#         (fake_title, fake_description, True, False, 400), # todo cannot be created (todo already exist, for example)
-#     ]
-# )
-# async def test_create_todo_endpoint(
-#     title: str, description: str, valid_token: bool, expected_status_code: int,
-#     can_created: bool, fake_user: Tuple[User, AsyncSession]
-# ) -> None:
-#     user, db_session = fake_user
+        self.transport = ASGITransport(app=api)
 
-#     # Creates a user token
-#     if valid_token:
-#         user_token = create_token(data={"sub": str(user.id)})
-#     else:
-#         user_token = create_token(data={"no_sub": str(user.id)})
+    def teardown_method(self):
+        api.dependency_overrides.clear()
     
-#     # Mock the db_session and the user_token for the test
-#     api.dependency_overrides[get_db] = lambda: db_session
-#     api.dependency_overrides[get_bearer_token] = lambda: user_token
-#     transport = ASGITransport(app=api)
+    @pytest.mark.asyncio
+    async def test_create_todo_endpoint_success(self) -> None:
+        """ Tests the success case when someone creates a todo """
+        async with AsyncClient(transport=self.transport, base_url=self.api_url) as ac:
+            payload: dict = {
+                "title": "Test title",
+                "description": "Test description"
+            }
 
-#     async with AsyncClient(transport=transport, base_url=os.getenv("VITE_API_URL")) as ac:
-#         payload: dict = {
-#             "title": title,
-#             "description": description
-#         }
+            response = await ac.post(url=self.path_url, json=payload)
+            assert response.status_code == 200
 
-#         # Create a fake todo
-#         if not can_created:
-#             todo_creation_service = TodoCreation(db_session=db_session, data=data, user_id=user.id)
-#             result = await todo_creation_service._insert_new_todo()
-#             assert result is not None
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "title, description",
+        [
+            ("", ""), # Title too short
+            ("X" * 141, ""), # Title too long
+            ("A valid title", "X" * 321), # Description too long
+        ]
+    )
+    async def test_create_todo_endpoint_failed_because_validation_error(self, title: str, description: str) -> None:
+        """ Tests the failed case when a ValidationError occurrs """
+        async with AsyncClient(transport=self.transport, base_url=self.api_url) as ac:
+            payload: dict = {
+                "title": title,
+                "description": description
+            }
 
-#         # Start api request and test
-#         response = await ac.post("/todo/create", json=payload)
-#         assert response.status_code == expected_status_code
-
-#     # Clear the mocks
-#     api.dependency_overrides.clear()
+            response = await ac.post(url=self.path_url, json=payload)
+            assert response.status_code == 422
