@@ -237,11 +237,13 @@ export default function Home() {
                                     {tasks.map((task) => (
                                         <div 
                                             key={task.id}
-                                            className="w-full max-w-2xl flex flex-col justify-between p-5 border border-gray-400/40 rounded shadow-lg"
+                                            className={`w-full max-w-2xl flex flex-col justify-between p-5 borderrounded shadow-lg
+                                                ${task.completed ? 'bg-gray-100 text-gray-400 border-gray-300' : 'border-gray-400/40'}`}
                                         >
                                             <div className="flex flex-col max-w-[85%] overflow-hidden">
                                                 {/* Task title */}
-                                                <h1 className="font-semibold text-lg text-gray-800 leading-snug break-words">
+                                                <h1 className={`font-semibold text-lg leading-snug break-words
+                                                    ${task.completed ? 'text-gray-800/50' : 'text-gray-800'}`}>
                                                     {task.title}
                                                 </h1>
 
@@ -256,21 +258,39 @@ export default function Home() {
                                                 {/* Complete button */}
                                                 <button
                                                     onClick={() => completeTodo(task.id)}
-                                                    className="px-3 py-1 border border-gray-400/40 rounded-md text-green-400 font-semibold cursor-pointer hover:bg-green-400 hover:text-white transition-all ease-in-out duration-300">
+                                                    disabled={task.completed}
+                                                    className={`px-3 py-1 border border-gray-400/40 rounded-md font-semibold 
+                                                        transition-all ease-in-out duration-300
+                                                        ${task.completed 
+                                                            ? 'cursor-not-allowed text-green-400/70 bg-gray-200' 
+                                                            : 'cursor-pointer hover:bg-green-400 hover:text-white text-green-400'
+                                                        }`}>
                                                     Completed
                                                 </button>
 
                                                 {/* Edit button */}
                                                 <button
                                                     onClick={() => setEditTask(task)}
-                                                    className="px-3 py-1 border border-gray-400/40 rounded-md text-blue-500 font-semibold cursor-pointer hover:bg-blue-500 hover:text-white transition-all ease-in-out duration-300">
+                                                    disabled={task.completed}
+                                                    className={`px-3 py-1 border border-gray-400/40 rounded-md font-semibold 
+                                                        transition-all ease-in-out duration-300
+                                                        ${task.completed 
+                                                            ? 'cursor-not-allowed text-blue-500/70 bg-gray-200'
+                                                            : 'cursor-pointer text-blue-500 hover:bg-blue-500 hover:text-white'
+                                                        }`}>
                                                     Edit
                                                 </button>
 
                                                 {/* Delete button */}
                                                 <button 
                                                     onClick={() => deleteTodo(task.id)}
-                                                    className="px-3 py-1 border border-gray-400/40 rounded-md text-red-500 font-semibold cursor-pointer hover:bg-red-500 hover:text-white transition-all ease-in-out duration-500">
+                                                    disabled={task.completed}
+                                                    className={`px-3 py-1 border border-gray-400/40 rounded-md font-semibold 
+                                                        transition-all ease-in-out duration-500
+                                                        ${task.completed
+                                                            ? 'cursor-not-allowed text-red-500/70 bg-gray-200'
+                                                            : 'cursor-pointer hover:bg-red-500 hover:text-white text-red-500'
+                                                        }`}>
                                                     Delete
                                                 </button>
                                             </div>
