@@ -92,7 +92,7 @@ class Login:
     
 
 @router.post("/api/login")
-async def login(data: LoginModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
+async def login_endpoint(data: LoginModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
     """ Endpoint to log in a user """
     try:
         # Default http exception
