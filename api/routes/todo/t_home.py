@@ -65,6 +65,7 @@ class TodoSchema(BaseModel):
     id: UUID
     title: str
     description: str
+    completed: bool
 
     model_config = ConfigDict(from_attributes=True)
 
