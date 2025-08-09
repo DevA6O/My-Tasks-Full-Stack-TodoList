@@ -284,13 +284,8 @@ export default function Home() {
                                                 {/* Delete button */}
                                                 <button 
                                                     onClick={() => deleteTodo(task.id)}
-                                                    disabled={task.completed}
                                                     className={`px-3 py-1 border border-gray-400/40 rounded-md font-semibold 
-                                                        transition-all ease-in-out duration-500
-                                                        ${task.completed
-                                                            ? 'cursor-not-allowed text-red-500/70 bg-gray-200'
-                                                            : 'cursor-pointer hover:bg-red-500 hover:text-white text-red-500'
-                                                        }`}>
+                                                        cursor-pointer hover:bg-red-500 hover:text-white text-red-500 transition-all ease-in-out duration-500`}>
                                                     Delete
                                                 </button>
                                             </div>
