@@ -13,6 +13,8 @@ class TodoDeletionModel(BaseModel):
 class TodoEditorModel(TodoCreationModel):
     todo_id: UUID
 
+TodoCompletorModel = TodoDeletionModel
+
 class TodoExistCheckModel(BaseModel):
     user_id: UUID
     title: Optional[str] = None

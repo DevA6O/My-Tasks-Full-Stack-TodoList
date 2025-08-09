@@ -4,7 +4,7 @@ from sqlalchemy import select, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from dataclasses import dataclass
-from fastapi import status, HTTPException
+from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 from typing import Any, Tuple, TYPE_CHECKING
 from sqlalchemy.sql import Executable

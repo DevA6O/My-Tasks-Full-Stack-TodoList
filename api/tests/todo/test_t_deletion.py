@@ -2,9 +2,7 @@ import os
 import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
-from unittest.mock import AsyncMock, patch
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import SQLAlchemyError
 from httpx import AsyncClient, ASGITransport
 from typing import Tuple
 
