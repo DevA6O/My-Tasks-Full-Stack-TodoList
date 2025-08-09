@@ -5,8 +5,9 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 
 import LoadingScreen from "../components/LoadingScreen";
-import deleteTodoAPI from "./todo/t_deletion";
 import createTodoAPI from "./todo/t_creation";
+import deleteTodoAPI from "./todo/t_deletion";
+import completeTodoAPI from "./todo/t_completor";
 
 import EditorModal from "./todo/t_editor";
 import { EditTaskForm } from "./todo/t_editor";
@@ -61,6 +62,16 @@ export default function Home() {
             alert(`Deletion failed: ${error}`)
         };
     };
+
+    const completeTodo = async (todoID) => {
+        try {
+            await completeTodoAPI(todoID, accessToken);
+            setReloadTasks(true);
+        } catch (error) {
+            alert(error.toString());
+        }
+    }
+
 
     useEffect(() => {
         // Wait for the access token
@@ -244,6 +255,7 @@ export default function Home() {
                                             <div className="flex justify-end gap-2 mt-5">
                                                 {/* Complete button */}
                                                 <button
+                                                    onClick={() => completeTodo(task.id)}
                                                     className="px-3 py-1 border border-gray-400/40 rounded-md text-green-400 font-semibold cursor-pointer hover:bg-green-400 hover:text-white transition-all ease-in-out duration-300">
                                                     Completed
                                                 </button>
