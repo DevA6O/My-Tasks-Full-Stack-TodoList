@@ -1,18 +1,17 @@
 import logging
 from uuid import UUID
 from sqlalchemy import update
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from typing import Tuple
 
 from database.models import Todo
 from database.connection import get_db
-from security.jwt import get_bearer_token, decode_token
+from security.jwt import get_bearer_token
 from routes.todo.t_validation_model import TodoCompletorModel
 from routes.todo.t_utils import (
-    todo_exists, TodoExistCheckModel,
+    TodoExistCheckModel,
     run_todo_db_statement, RunTodoDbStatementContext,
     handle_todo_request, HandleTodoRequestModel
 )
