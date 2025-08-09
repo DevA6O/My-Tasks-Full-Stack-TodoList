@@ -70,7 +70,7 @@ async def completor_endpoint(
     db_session: AsyncSession = Depends(get_db)
 ) -> JSONResponse:
     """ Endpoint to mark a todo as completed """
-    return handle_todo_request(
+    return await handle_todo_request(
         data_model=data, db_session=db_session,
         params=HandleTodoRequestModel(
             token=token,
