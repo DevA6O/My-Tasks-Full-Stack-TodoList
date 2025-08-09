@@ -18,7 +18,7 @@ load_dotenv()
 
 
 class TestVerifyPasswordMethod:
-    """ Test class for different scenarios for the _verify_password method """
+    """ Test class for different test scenarios for the _verify_password method """
 
     @pytest_asyncio.fixture(autouse=True)
     async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
@@ -73,7 +73,7 @@ class TestVerifyPasswordMethod:
 
 
 class TestGetUserMethod:
-    """ Test class for different scenarios for the _get_user method """
+    """ Test class for different test scenarios for the _get_user method """
 
     @pytest_asyncio.fixture(autouse=True)
     async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
@@ -157,48 +157,58 @@ class TestAuthenticateMethod:
         assert isinstance(message, str)
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize(
-#     "email, password, expected_status_code",
-#     [
-#         (fake_email, fake_password, 200), # Successful login
-#         (fake_email, "wrongPassword", 400), # Incorrect password
-#         (str("notRegistered" + fake_email), fake_password, 400), # Not registered email
-#         (fake_email, "", 422), # Empty password
-#         (fake_email, "short", 422), # Invalid password (min-length = 8 = too short)
-#         (fake_email, str("tooLong." * 4) + ".", 422), # Invalid password (max-length = 32 = too long)
-#         ("", fake_password, 422), # Empty email
-#         ("notAnEmail", fake_password, 422), # Invalid email format
-#         (fake_email, "notAValidHashedPassword", 400), # Invalid hashed password format
-#     ]
-# )
-# async def test_login_endpoint(
-#     email: str, password: str, expected_status_code: int,
-#     fake_user: Tuple[User, AsyncSession]
-# ) -> None:
-#     # Defines the test values   
-#     user, db_session = fake_user
-#     test_email = email if email == fake_email else email
-#     test_password = password if password == fake_password else password
+class TestLoginAPIEndpoint:
+    """ Test class for different test scenarios for the api endpoint """
 
-#     # Overrides the current dependencies
-#     api.dependency_overrides[get_db] = lambda: db_session
-#     transport = ASGITransport(app=api)
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+        """ Set up common test data """
+        self.user, self.db_session = fake_user
 
-#     # Starting the request
-#     async with AsyncClient(transport=transport, base_url=os.getenv("VITE_API_URL")) as ac:
-#         payload: dict = {
-#             "email": test_email,
-#             "password": test_password
-#         }
+        # Define service instance
+        self.data = LoginModel(email=fake_email, password=fake_password)
+        self.service = Login(db_session=self.db_session, data=self.data)
 
-#         # Provoking error for invalid hashed password, if test password is not a valid hash
-#         if password == "notAValidHashedPassword":
-#             user.password = test_password
-#             await db_session.commit()
+        # Set dependency
+        api.dependency_overrides[get_db] = lambda: self.db_session
 
-#         response = await ac.post("/login", json=payload)
-#         assert response.status_code == expected_status_code
+        self.transport = ASGITransport(app=api)
+        self.base_url = os.getenv("VITE_API_URL")
+        self.path_url = "/login"
+        self.payload: dict = {
+            "email": fake_email,
+            "password": fake_password
+        }
 
-#     # Clears the overrided dependencies
-#     api.dependency_overrides.clear()
+    def teardown_method(self) -> None:
+        api.dependency_overrides.clear()
+
+    @pytest.mark.asyncio
+    async def test_login_endpoint_success(self) -> None:
+        """ Tests the success case """
+        async with AsyncClient(transport=self.transport, base_url=self.base_url) as ac:
+            response = await ac.post(self.path_url, json=self.payload)
+            assert response.status_code == 200
+
+            # Checks whether the refresh cookie is correct set
+            assert "set-cookie" in response.headers
+            assert "refresh_token" in response.headers["set-cookie"]
+
+    @pytest.mark.asyncio
+    async def test_login_endpoint_failed_because_user_could_not_found(self) -> None:
+        """ Tests the failed case when a user could not found """
+        async with AsyncClient(transport=self.transport, base_url=self.base_url) as ac:
+            payload = self.payload
+            payload["email"] = "wrong@email.com"
+
+            response = await ac.post(self.path_url, json=payload)
+            assert response.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_login_endpoint_failed_because_value_error(self) -> None:
+        """ Tests the failed case when a ValueError occurrs """
+        async with AsyncClient(transport=self.transport, base_url=self.base_url) as ac:
+            api.dependency_overrides[get_db] = lambda: "Not a database session.."
+
+            response = await ac.post(self.path_url, json=self.payload)
+            assert response.status_code == 400
