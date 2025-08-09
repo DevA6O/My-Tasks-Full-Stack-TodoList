@@ -17,7 +17,7 @@ from main import api
 load_dotenv()
 
 
-class TestVerifyPassword:
+class TestVerifyPasswordMethod:
     """ Test class for different scenarios for _verify_password method """
 
     @pytest_asyncio.fixture(autouse=True)
@@ -72,38 +72,32 @@ class TestVerifyPassword:
             self.service._verify_password(password_in_db="This password is not hashed.")
 
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize(
-#     "email, password, is_user_exist, expected_value",
-#     [
-#         (fake_email, fake_password, True, User), # Success
-#         (fake_email, fake_password, False, None), # User could not be found (is not registered)
-#     ]
-# )
-# async def test_get_user(
-#     email: str, password: str, is_user_exist: bool, expected_value: User | None,
-#     fake_user: Tuple[User, AsyncSession]
-# ) -> None:
-#     # Defines the user and the db session
-#     user, db_session = fake_user
+class TestGetUserMethod:
+    """ Test class for different scenarios for _get_user method """
 
-#     # Removes the user if necessary
-#     if not is_user_exist:
-#         stmt = delete(User).where(User.id == user.id)
-#         await db_session.execute(stmt)
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+        """ Set up common test data """
+        self.user, self.db_session = fake_user
 
-#     # Defines the login service and start calling the method
-#     login_service = Login(
-#         db_session=db_session,
-#         data=LoginModel(email=email, password=password)
-#     )
-#     result = await login_service._get_user()
+        # Define service instance
+        self.data = LoginModel(email=fake_email, password=fake_password)
+        self.service = Login(db_session=self.db_session, data=self.data)
 
-#     # Start checking the result
-#     if expected_value is None:
-#         assert result is expected_value
-#     else:
-#         assert isinstance(result, expected_value)
+    @pytest.mark.asyncio
+    async def test_get_user_success(self) -> None:
+        """ Tests the success case when a user could found """
+        user_obj = await self.service._get_user()
+        assert isinstance(user_obj, User)
+
+    @pytest.mark.asyncio
+    async def test_get_user_success_but_user_could_not_found(self) -> None:
+        """ Tests the success case when a user could not found """
+        service = self.service
+        service.data.email = "wrong_email@email.com"
+
+        user_obj = await service._get_user()
+        assert user_obj is None
 
 
 
