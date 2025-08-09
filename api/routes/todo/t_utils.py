@@ -162,10 +162,6 @@ async def handle_todo_request(
     )
 
     try:
-        # Validates the database session
-        if not isinstance(db_session, AsyncSession):
-            raise ValueError("db_session must be an instance of AsyncSession.")
-
         # Extract the user id from token
         user_id: UUID = decode_token(token=params.token)
 
