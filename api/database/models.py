@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Integer, ForeignKey
+from sqlalchemy import Integer, ForeignKey, desc
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database.connection import Base
 
@@ -21,7 +21,8 @@ class User(Base):
     todos: Mapped[list["Todo"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
-        passive_deletes=True
+        passive_deletes=True,
+        order_by=lambda: (Todo.completed.asc(), desc(Todo.edited_at), desc(Todo.created_at))
     )
 
 
