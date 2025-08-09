@@ -5,7 +5,6 @@ import pytest_asyncio
 from dotenv import load_dotenv
 from unittest.mock import AsyncMock
 from httpx import AsyncClient, ASGITransport
-from sqlalchemy import delete, insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
@@ -13,7 +12,6 @@ from typing import Tuple
 from database.models import User, Todo
 from database.connection import get_db
 from routes.todo.t_home import TodoHome
-from conftest import fake_username
 from security.jwt import get_bearer_token, create_token
 from main import api
 

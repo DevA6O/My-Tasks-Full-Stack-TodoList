@@ -4,15 +4,12 @@ import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
 from typing import Tuple
-from unittest.mock import patch, AsyncMock
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import SQLAlchemyError
 from httpx import ASGITransport, AsyncClient
 
 from database.models import Todo, User
 from database.connection import get_db
 from routes.todo.t_editor import TodoEditor, TodoEditorModel
-from routes.todo.t_utils import todo_exists, TodoExistCheckModel
 from security.jwt import create_token, get_bearer_token
 from main import api
 
