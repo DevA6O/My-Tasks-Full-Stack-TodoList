@@ -18,7 +18,7 @@ load_dotenv()
 
 
 class TestVerifyPasswordMethod:
-    """ Test class for different scenarios for _verify_password method """
+    """ Test class for different scenarios for the _verify_password method """
 
     @pytest_asyncio.fixture(autouse=True)
     async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
@@ -46,7 +46,7 @@ class TestVerifyPasswordMethod:
         """ Tests the success case of the verify method
         but the password which the user has entered is wrong """
         service = self.service
-        service.data.password = "Wrong Password"
+        service.data.password = "WrongPassword123"
 
         success = self.service._verify_password(password_in_db=fake_hashed_password)
         assert not success
@@ -73,7 +73,7 @@ class TestVerifyPasswordMethod:
 
 
 class TestGetUserMethod:
-    """ Test class for different scenarios for _get_user method """
+    """ Test class for different scenarios for the _get_user method """
 
     @pytest_asyncio.fixture(autouse=True)
     async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
@@ -94,49 +94,67 @@ class TestGetUserMethod:
     async def test_get_user_success_but_user_could_not_found(self) -> None:
         """ Tests the success case when a user could not found """
         service = self.service
-        service.data.email = "wrong_email@email.com"
+        service.data.email = "wrong@email.com"
 
         user_obj = await service._get_user()
         assert user_obj is None
 
 
+class TestAuthenticateMethod:
+    """ Test class for different test scenarios for the authenticate method """
 
-# @pytest.mark.asyncio
-# @pytest.mark.parametrize(
-#     "email, password, is_registered, is_pwd_correct, expected_value",
-#     [
-#         (fake_email, fake_password, True, True, (User, "")), # Success
-#         (fake_email, fake_password, True, False, (None, "")), # Incorrect password
-#         (fake_email, fake_password, False, False, (None, "")) # Not registered
-#     ]
-# )
-# async def test_authenticate(
-#     email: str, password: str, is_registered: bool, is_pwd_correct: bool,
-#     expected_value: Tuple[Optional[User], str], fake_user: Tuple[User, AsyncSession]
-# ) -> None:
-#     # Defines the test values
-#     user, db_session = fake_user
-#     password: str = fake_password if is_pwd_correct else "WrongPassword"
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+        """ Set up common test data """
+        self.user, self.db_session = fake_user
 
-#     # Deletes the fake user if the test wants it 
-#     if not is_registered:
-#         stmt = delete(User).where(User.id == user.id)
-#         await db_session.execute(stmt)
+        # Define service instance
+        self.data = LoginModel(email=fake_email, password=fake_password)
+        self.service = Login(db_session=self.db_session, data=self.data)
 
-#     # Defines the login service and calls the authenticate methods
-#     login_service = Login(
-#         db_session=db_session,
-#         data=LoginModel(email=email, password=password)
-#     )
-#     user_obj, message = await login_service.authenticate()
+    @pytest.mark.asyncio
+    async def test_authenticate_success(self) -> None:
+        """ Tests the success case """
+        user_obj, message = await self.service.authenticate()
+        assert isinstance(user_obj, User)
+        assert isinstance(message, str)
 
-#     # Starts the test
-#     if isinstance(expected_value[0], type) and expected_value[0] is User:
-#         assert isinstance(user_obj, User)
-#     else:
-#         assert user_obj is expected_value[0]
+    @pytest.mark.asyncio
+    async def test_authenticate_failed_because_user_could_not_found(self) -> None:
+        """ Tests the failed case when the user could not found """
+        service = self.service
+        service.data.email = "wrong@email.com"
 
-#     assert isinstance(message, str)
+        user_obj, message = await self.service.authenticate()
+        assert user_obj is None
+        assert isinstance(message, str)
+
+    @pytest.mark.asyncio
+    async def test_authenticate_failed_because_pwd_is_incorrect(self) -> None:
+        """ Tests the failed case when the password is incorrect """
+        service = self.service
+        service.data.password = "WrongPassword123"
+
+        user_obj, message = await self.service.authenticate()
+        assert user_obj is None
+        assert isinstance(message, str)
+
+    @pytest.mark.asyncio
+    async def test_authenticate_failed_because_invalid_db_session(self) -> None:
+        """ Tests the failed case when a database session is invalid """
+        from unittest.mock import AsyncMock
+        from sqlalchemy.exc import SQLAlchemyError
+
+        broken_session = AsyncMock(wraps=self.db_session)
+        broken_session.__class__ = AsyncSession
+        broken_session.execute.side_effect = SQLAlchemyError("Invalid database session")
+
+        service = self.service
+        service.db_session = broken_session
+
+        user_obj, message = await self.service.authenticate()
+        assert user_obj is None
+        assert isinstance(message, str)
 
 
 # @pytest.mark.asyncio
