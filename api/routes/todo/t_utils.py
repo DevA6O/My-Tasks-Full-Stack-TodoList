@@ -18,6 +18,19 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
+def validate_constructor(method):
+    """ Validator to validate db_session and user_id """
+    def wrapper(self, db_session: AsyncSession, user_id: UUID, *args, **kwargs):
+        if not isinstance(db_session, AsyncSession):
+            raise ValueError("db_session must be an instance of AsyncSession.")
+        if not isinstance(user_id, UUID):
+            raise ValueError("user_id must be an instance of UUID.")
+        
+        return method(self, db_session, user_id, *args, **kwargs)
+    return wrapper
+
+
 async def todo_exists(data: TodoExistCheckModel, db_session: AsyncSession) -> bool:
     """ Helper-Function to check whether the task already exists or not. 
     
@@ -143,7 +156,7 @@ async def handle_todo_request(
     try:
         # Validates the database session
         if not isinstance(db_session, AsyncSession):
-            raise ValueError("db_session must be an AsyncSession.")
+            raise ValueError("db_session must be an instance of AsyncSession.")
 
         # Extract the user id from token
         user_id: UUID = decode_token(token=params.token)
