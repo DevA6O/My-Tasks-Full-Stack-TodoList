@@ -17,6 +17,8 @@ from routes.todo.t_utils import validate_constructor
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+DEFAULT_UNKNOWN_ERROR_MSG: str = "Unknown user: User could not be indentified."
+
 class TodoHome():
     @validate_constructor
     def __init__(self, db_session: AsyncSession, user_id: UUID) -> None:
@@ -46,7 +48,7 @@ class TodoHome():
 
             # Checks whether the user could not be found
             if not user_obj:
-                return None, [], "Unknown User"
+                return None, [], DEFAULT_UNKNOWN_ERROR_MSG
             
             # Return the requested informations
             username: str = user_obj.name
@@ -69,13 +71,13 @@ class TodoSchema(BaseModel):
 @router.post("/api/todo/get_all")
 async def get_all_todos_endpoint(
     token: str = Depends(get_bearer_token), db_session: AsyncSession = Depends(get_db)
-) -> None:
+) -> JSONResponse:
     """ Endpoint to get all todos """
     try:
         # Define standard http exception
         http_exception = HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Unknown user: User could not be indentified."
+            detail=DEFAULT_UNKNOWN_ERROR_MSG
         )
 
         # Gets the user id from the token
@@ -89,10 +91,9 @@ async def get_all_todos_endpoint(
         todo_service = TodoHome(db_session=db_session, user_id=user_id)
         username, todos, error_msg = await todo_service.get_username_with_todos()
 
-        # If an error occurred
-        if not error_msg is None:
-            if not error_msg.lower() == "Unknown User".lower():
-                http_exception.detail = error_msg
+        # If an error is occurred
+        if error_msg is not None:
+            http_exception.detail = error_msg
             raise http_exception
 
         # Return response if no error is occurred
