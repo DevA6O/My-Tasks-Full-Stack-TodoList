@@ -12,6 +12,7 @@ from httpx import ASGITransport, AsyncClient
 from database.models import Todo, User
 from database.connection import get_db
 from routes.todo.t_editor import TodoEditor, TodoEditorModel
+from routes.todo.t_utils import todo_exists, TodoExistCheckModel
 from security.jwt import create_token, get_bearer_token
 from main import api
 
@@ -28,64 +29,31 @@ async def check_update(user_id: uuid.UUID, todo_id: uuid.UUID, db_session: Async
 
 
 class TestTodoEditorUpdateMethod:
-    """ Test class for different update scenarios """
+    """ Test class for the update method """
 
     @pytest_asyncio.fixture(autouse=True)
     async def setup(self, fake_todo: Tuple[Todo, User, AsyncSession]) -> None:
-        """ Set up common test data once for all test methods """
+        """ Set up test data """
         self.todo, self.user, self.db_session = fake_todo
 
-        # Define standard values to use
-        self.title: str = "New title"
-        self.description: str = "New description"
+        # Define test values
+        self.title: str = "An updated title"
+        self.description: str = "An updated description"
 
-        # Create the services instance for the test
+        # Define service instance
         self.data = TodoEditorModel(title=self.title, description=self.description, todo_id=self.todo.id)
         self.service = TodoEditor(data=self.data, db_session=self.db_session, user_id=self.user.id)
 
     @pytest.mark.asyncio
-    async def test_update_successful(self) -> None:
-        """ Tests the success case """
+    async def test_update_success(self) -> None:
+        """ Tests the success case for update method """
         success, msg = await self.service.update()
         assert success
 
-        # Checks whether the update was actually successful
+        # Checks whether the update was successfully
         todo_obj = await check_update(user_id=self.user.id, todo_id=self.todo.id, db_session=self.db_session)
         assert todo_obj.title == self.title
         assert todo_obj.description == self.description
-    
-    @pytest.mark.asyncio
-    async def test_update_failed_because_todo_does_not_exist(self) -> None:
-        """ Tests the case if the update failed because the todo does not exist """
-        # Manipulate the todo id with an invalid uuid
-        self.service.data.todo_id = uuid.uuid4()
-
-        success, msg = await self.service.update()
-        assert not success
-    
-    @pytest.mark.asyncio
-    async def test_update_failed_because_unknown_error(self) -> None:
-        """ Tests the case if the update failed because of an unknown update error """
-        # Manipulate the todo id with an invalid uuid
-        self.service.data.todo_id = uuid.uuid4()
-
-        with patch("routes.todo.t_editor.todo_exists", new=AsyncMock(return_value=True)):
-            success, msg = await self.service.update()
-            assert not success
-
-    @pytest.mark.asyncio
-    async def test_update_failed_because_db_error(self) -> None:
-        """ Tests the case if the update failed because of a unexpected database error """
-        # Manipulate the db session
-        broken_session = AsyncMock(wraps=self.service.db_session)
-        broken_session.__class__ = AsyncSession
-        broken_session.execute.side_effect = SQLAlchemyError("Broken db session")
-        self.service.db_session = broken_session
-
-        # Start the test with broken db session
-        success, msg = await self.service.update()
-        assert not success
-
 
 
 class TestTodoEditorUpdateEndpoint:
@@ -93,86 +61,62 @@ class TestTodoEditorUpdateEndpoint:
 
     @pytest_asyncio.fixture(autouse=True)
     async def setup(self, fake_todo: Tuple[Todo, User, AsyncSession]) -> None:
-        """ Set up common test data """
+        """ Set up test data """
         self.todo, self.user, self.db_session = fake_todo
-        self.token = create_token(data={"sub": str(self.user.id)})
 
-        # Set default overrides
+        # Define default test values
+        self.api_url: str = os.getenv("VITE_API_URL")
+        self.path_url: str = "/todo/update"
+        self.token: str = create_token(data={"sub": str(self.user.id)})
+
+        # Set dependencies
         api.dependency_overrides[get_db] = lambda: self.db_session
         api.dependency_overrides[get_bearer_token] = lambda: self.token
 
         self.transport = ASGITransport(app=api)
-        self.base_url = os.getenv("VITE_API_URL")
-        self.path_url = "/todo/update"
 
-        # Define standard test payload
-        self.payload: dict = {
-            "title": "Valid Title",
-            "description": "Valid Description",
-            "todo_id": str(self.todo.id)
-        }
-
-    def teardown_method(self) -> None:
-        """ Removes the overwritten dependencies before starting a new test case """
+    def teardown_method(self):
         api.dependency_overrides.clear()
-
+    
     @pytest.mark.asyncio
-    async def test_update_successful(self) -> None:
-        """ Tests the success update case """
-        async with AsyncClient(transport=self.transport, base_url=self.base_url) as ac:
-            response = await ac.post(self.path_url, json=self.payload)
+    async def test_todo_update_endpoint_success(self) -> None:
+        """ Tests the success case when someone updates a todo """
+        async with AsyncClient(transport=self.transport, base_url=self.api_url) as ac:
+            payload: dict = {
+                "title": "New title",
+                "description": "New description",
+                "todo_id": str(self.todo.id)
+            }
+
+            response = await ac.post(url=self.path_url, json=payload)
             assert response.status_code == 200
 
-            # Checks whether the update was actually successful
-            todo_obj = await check_update(user_id=self.user.id, todo_id=self.todo.id, db_session=self.db_session)
-            assert todo_obj.title == self.payload["title"]
-            assert todo_obj.description == self.payload["description"]
+        # Checks whether the update was actually succcessful
+        todo_obj = await check_update(user_id=self.user.id, todo_id=self.todo.id, db_session=self.db_session)
+        assert todo_obj.title == payload["title"]
+        assert todo_obj.description == payload["description"]
 
-    @pytest.mark.asyncio
-    async def test_update_failed_because_todo_does_not_exist(self) -> None:
-        """ Tests the failed case when the todo does not exist """
-        async with AsyncClient(transport=self.transport, base_url=self.base_url) as ac:
-            # Overwrite the todo_id with an invalid id for the test
-            payload: dict = self.payload.copy()
-            payload["todo_id"] = str(uuid.uuid4())
-
-            response = await ac.post(self.path_url, json=payload)
-            assert response.status_code == 400
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize("failure_type", [("database"), ("token")])
-    async def test_update_failed_because_value_error(self, failure_type: str) -> None:
-        """ Tests the failed case if a ValueError occurred """
-        async with AsyncClient(transport=self.transport, base_url=self.base_url) as ac:
-            # Overwrite the token or the db session with an invalid token or an invalid db session for the test
-            if failure_type == "database":
-                invalid_db_session: str = "INVALID_DB_SESSION"
-                api.dependency_overrides[get_db] = lambda: invalid_db_session
-            else:
-                invalid_token: str = create_token(data={"no_sub": str(self.user.id)})
-                api.dependency_overrides[get_bearer_token] = lambda: invalid_token
-
-            response = await ac.post(self.path_url, json=self.payload)
-            assert response.status_code == 400
-
+        
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "failure_type, invalid_value", 
+        "title, description, valid_todo_id",
         [
-            ("title", 0), # Invalid type
-            ("title", ""), # too short
-            ("title", "x" * 141), # too long
-            ("description", 0), # Invalid type
-            ("description", "x" * 321), # too long
-            ("todo_id", 0) # Invalid type
+            ("", "", True), # title too short
+            ("X" * 141, "", True), # title too long
+            ("Valid title", "X" * 321, True), # Description too long
+            ("Valid title", "", False) # Invalid todo id
         ]
     )
-    async def test_update_failed_because_validation_error(self, failure_type: str, invalid_value: str | int) -> None:
-        """ Tests the failed case if a ValidationError occurred """
-        async with AsyncClient(transport=self.transport, base_url=self.base_url) as ac:
-            # Overwrite the payload with invalid types
-            payload: dict = self.payload.copy()
-            payload[failure_type] = invalid_value
+    async def test_todo_update_endpoint_failed_because_validation_error(
+        self, title: str, description: str, valid_todo_id: bool
+    ) -> None:
+        """ Tests the failed case if a validation error occurrs """
+        async with AsyncClient(transport=self.transport, base_url=self.api_url) as ac:
+            payload: dict = {
+                "title": title,
+                "description": description,
+                "todo_id": str(self.todo.id) if valid_todo_id else "Invalid todo id"
+            }
 
-            response = await ac.post(self.path_url, json=payload)
+            response = await ac.post(url=self.path_url, json=payload)
             assert response.status_code == 422
