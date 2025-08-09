@@ -34,9 +34,6 @@ class Login:
         ---------
             - (bool): A boolean
         """
-        if not isinstance(self.data.password, str):
-            raise ValueError("Password must be a string.")
-        
         # Checks whether the password in db is in bytes -> convert it in a string
         if isinstance(password_in_db, bytes):
             try:
@@ -44,7 +41,7 @@ class Login:
             except UnicodeDecodeError:
                 raise ValueError("Password in database is not UTF-8 decodable.")
 
-        # Checks whether the password in db is a string, if not raise an ValueError
+        # Checks whether the password in db is a string, if not raise a ValueError
         elif isinstance(password_in_db, str):
             password_in_db_str = password_in_db
         else:
