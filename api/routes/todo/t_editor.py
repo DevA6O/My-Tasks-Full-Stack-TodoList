@@ -12,6 +12,7 @@ from database.connection import get_db
 from security.jwt import get_bearer_token, decode_token
 from routes.todo.t_validation_model import TodoEditorModel, TodoExistCheckModel
 from routes.todo.t_utils import (
+    validate_constructor,
     run_todo_db_statement, RunTodoDbStatementContext,
     handle_todo_request, HandleTodoRequestModel
 )
@@ -23,14 +24,8 @@ DEFAULT_UPDATE_FAILED_MSG: str = "Update failed: Todo could not be updated for t
 "Please try again later."
 
 class TodoEditor:
-    def __init__(self, data: TodoEditorModel, db_session: AsyncSession, user_id: UUID) -> None:
-        # Validate class params
-        if not isinstance(db_session, AsyncSession):
-            raise ValueError("db_session must be an AsyncSession.")
-        
-        if not isinstance(user_id, UUID):
-            raise ValueError("user_id must be a UUID.")
-
+    @validate_constructor
+    def __init__(self, data: TodoEditorModel, user_id: UUID, db_session: AsyncSession) -> None:
         # Defines the class params globally
         self.db_session: AsyncSession = db_session
         self.user_id: UUID = user_id

@@ -9,21 +9,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 from pydantic import BaseModel, ConfigDict
 
-from database.connection import get_db
 from database.models import User
+from database.connection import get_db
 from security.jwt import decode_token, get_bearer_token
+from routes.todo.t_utils import validate_constructor
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 class TodoHome():
+    @validate_constructor
     def __init__(self, db_session: AsyncSession, user_id: UUID) -> None:
-        # Validate the class params
-        if not isinstance(db_session, AsyncSession):
-            raise ValueError("db_session is not a AsyncSession.")
-        if not isinstance(user_id, UUID):
-            raise ValueError("user_id is not a UUID.")
-            
         self.user_id: UUID = user_id
         self.db_session: AsyncSession = db_session
 
@@ -38,26 +34,26 @@ class TodoHome():
                 - An error message if an error occurred, otherwise NoneType.
         """
         try:
-            # Statement to get the todos and the user
             stmt: tuple = (
                 select(User)
                 .options(selectinload(User.todos))
                 .where(User.id == self.user_id)
             )
-            # Fetch the user and todos with the statement and try to get that informations
-            result_obj = await self.db_session.execute(stmt)
-            user: User = result_obj.scalar_one_or_none()
 
-            # If the user could not found
-            if not user:
+            # Fetches the user object
+            result = await self.db_session.execute(stmt)
+            user_obj: User = result.scalar_one_or_none()
+
+            # Checks whether the user could not be found
+            if not user_obj:
                 return None, [], "Unknown User"
             
             # Return the requested informations
-            username: str = user.name
-            todos: list = user.todos
+            username: str = user_obj.name
+            todos: list = user_obj.todos
 
             return username, todos, None
-        except SQLAlchemyError as e: # If some unexpceted database error occurred
+        except SQLAlchemyError as e: # Fallback, if an unexpected database error occurrs
             logger.exception(f"Database error: {str(e)}", exc_info=True, extra={"user_id": self.user_id})
             return None, [], "Server error: Please try it later again."
 
@@ -93,13 +89,13 @@ async def get_all_todos_endpoint(
         todo_service = TodoHome(db_session=db_session, user_id=user_id)
         username, todos, error_msg = await todo_service.get_username_with_todos()
 
-        # If some error occurred
+        # If an error occurred
         if not error_msg is None:
             if not error_msg.lower() == "Unknown User".lower():
                 http_exception.detail = error_msg
             raise http_exception
 
-        # Return response if no error occurred
+        # Return response if no error is occurred
         return JSONResponse(
             status_code=status.HTTP_200_OK, content={
                 "username": username, 
@@ -108,5 +104,5 @@ async def get_all_todos_endpoint(
         )
     except ValueError as e: # Fallback
         logger.exception(str(e), exc_info=True)
-        http_exception.detail = "An unexpected error occurred: Please try it later again."
+        http_exception.detail = "An unexpected error occurred: Please try again later."
         raise http_exception

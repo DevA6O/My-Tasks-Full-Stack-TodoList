@@ -10,6 +10,7 @@ from database.models import Todo
 from security.jwt import decode_token, get_bearer_token
 from database.connection import get_db
 from routes.todo.t_utils import (
+    validate_constructor,
     run_todo_db_statement, RunTodoDbStatementContext,
     handle_todo_request
 )
@@ -26,15 +27,8 @@ DEFAULT_UPDATE_FAILED_MSG: str = "Creation failed: Todo could not be created for
 
 class TodoCreation:
     """ Class to create a new Todo """
-
-    def __init__(self, db_session: AsyncSession, data: TodoCreationModel, user_id: UUID) -> None:
-        # Validate the class params
-        if not isinstance(db_session, AsyncSession):
-            raise ValueError("db_session is not an AsyncSession")
-
-        if not isinstance(user_id, UUID):
-            raise ValueError("user_id is not a UUID")
-        
+    @validate_constructor
+    def __init__(self, data: TodoCreationModel, user_id: UUID, db_session: AsyncSession) -> None:
         # Define the params for the class global
         self.db_session: AsyncSession = db_session
         self.data: TodoCreationModel = data

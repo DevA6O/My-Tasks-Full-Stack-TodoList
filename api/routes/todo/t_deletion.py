@@ -11,6 +11,7 @@ from database.connection import get_db
 from security.jwt import get_bearer_token, decode_token
 from routes.todo.t_validation_model import TodoDeletionModel, TodoExistCheckModel
 from routes.todo.t_utils import (
+    validate_constructor,
     run_todo_db_statement, RunTodoDbStatementContext,
     handle_todo_request, HandleTodoRequestModel
 )
@@ -22,14 +23,8 @@ DEFAULT_DELETION_ERROR_MSG: str = "Deletion failed: Todo could not be deleted fo
 "Please try again later."
 
 class TodoDeletion:
-    def __init__(self, data: TodoDeletionModel, db_session: AsyncSession, user_id: UUID) -> None:
-        # Validate the class params
-        if not isinstance(db_session, AsyncSession):
-            raise ValueError("db_session must be an AsyncSession.")
-        
-        if not isinstance(user_id, UUID):
-            raise ValueError("user_id must be not None.")
-
+    @validate_constructor
+    def __init__(self, data: TodoDeletionModel, user_id: UUID, db_session: AsyncSession) -> None:
         self.data: TodoDeletionModel = data
         self.user_id: UUID = user_id
         self.db_session: AsyncSession = db_session
