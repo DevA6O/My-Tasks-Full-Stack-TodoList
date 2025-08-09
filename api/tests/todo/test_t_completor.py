@@ -42,7 +42,7 @@ class TestTodoCompletorBaseMethod:
         # Manipulate the todo id with an invalid uuid
         self.service.data.todo_id = uuid.uuid4()
 
-        with patch("routes.todo.t_editor.todo_exists", new=AsyncMock(return_value=True)):
+        with patch("routes.todo.t_utils.todo_exists", new=AsyncMock(return_value=True)):
             success, msg = await self.service.mark_as_completed()
             assert not success
 
