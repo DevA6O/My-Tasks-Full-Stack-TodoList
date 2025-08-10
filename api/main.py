@@ -6,8 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from database import models # -> required to load every model
 from database.connection import init_models
 from exception_handler import validation_exception_handler
-from routes.auth.register import router as RegisterRouter
-from routes.auth.login import router as LoginRouter
+from routes.auth import AuthRouter
 from routes.todo import TodoRouter
 from security.jwt import router as JWTRouter
 
@@ -38,7 +37,6 @@ api.add_middleware(
 api.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 # Add routers 
-api.include_router(RegisterRouter)
-api.include_router(LoginRouter)
+api.include_router(AuthRouter)
 api.include_router(TodoRouter)
 api.include_router(JWTRouter)
