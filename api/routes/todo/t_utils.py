@@ -9,12 +9,12 @@ from fastapi.responses import JSONResponse
 from typing import Any, Tuple, TYPE_CHECKING
 from sqlalchemy.sql import Executable
 
-from routes.todo.t_validation_model import TodoExistCheckModel, HandleTodoRequestModel
+from routes.todo.t_validation_models import TodoExistCheckModel, HandleTodoRequestModel
 from database.models import Todo
 from security.jwt import decode_token
 
 if TYPE_CHECKING:
-    from routes.todo.t_validation_model import TodoExistCheckModel
+    from routes.todo.t_validation_models import TodoExistCheckModel
 
 logger = logging.getLogger(__name__)
 

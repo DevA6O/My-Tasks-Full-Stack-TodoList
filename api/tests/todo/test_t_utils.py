@@ -9,7 +9,7 @@ from typing import Tuple, Any
 
 from database.models import Todo, User
 from routes.todo.t_creation import TodoCreation
-from routes.todo.t_validation_model import TodoCreationModel, TodoExistCheckModel, HandleTodoRequestModel
+from routes.todo.t_validation_models import TodoCreationModel, TodoExistCheckModel, HandleTodoRequestModel
 from routes.todo.t_utils import (
     todo_exists, TodoExistCheckModel,
     run_todo_db_statement, RunTodoDbStatementContext,

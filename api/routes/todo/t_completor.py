@@ -10,7 +10,7 @@ from database.models import Todo
 from database.connection import get_db
 from security.jwt import get_bearer_token
 from shared.decorators import validate_constructor
-from routes.todo.t_validation_model import TodoCompletorModel
+from routes.todo.t_validation_models import TodoCompletorModel
 from routes.todo.t_utils import (
     TodoExistCheckModel,
     run_todo_db_statement, RunTodoDbStatementContext,
