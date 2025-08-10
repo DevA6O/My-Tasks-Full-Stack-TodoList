@@ -98,7 +98,7 @@ def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
     return encoded_jwt
 
 
-async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200, content: dict = None) -> JSONResponse:
+def set_refresh_token(user_id: uuid.UUID, status_code: int = 200, content: dict = None) -> JSONResponse:
     """ Set refresh token as HttpOnly cookie
 
     Returns:
