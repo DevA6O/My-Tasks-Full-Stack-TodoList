@@ -20,7 +20,7 @@ DEFAULT_ERROR_MSG: str = "An unknown error occurred: Account could not be create
 class EmailAlreadyRegisteredException(Exception):
     """ A custom exception to handle it easier when
     the email is already registered """
-    def __init__(self, message: str) -> None:
+    def __init__(self, message: str = "Registration failed: The email address is already registered.") -> None:
         self.message = message
         super().__init__(message)
 
@@ -45,6 +45,33 @@ class Register:
         result = await self.db_session.execute(stmt)
         return result.scalar()
 
+    async def _insert_user_into_db(self) -> User | None:
+        """ Helper-Method for the create_user method 
+        This method is finally writing the user into the database
+
+        Returns:
+        ---------
+            - (User): The user object or None
+        """
+        # Hashes the password
+        hashed_pwd: str = hash_pwd(self.data.password)
+
+        # Creates the user
+        stmt = (
+            insert(User).values(name=self.data.username, email=self.data.email, password=hashed_pwd)
+            .returning(User.id)
+        )
+        result = await self.db_session.execute(stmt)
+        await self.db_session.commit()
+
+        # Checks whether the user could successfully added
+        user_id = result.scalar_one_or_none()
+
+        if user_id:
+            return await self.db_session.get(User, user_id)
+        
+        return None
+
     async def create_user(self) -> Tuple[User | None, str]:
         """ Create a new user account.
 
@@ -57,35 +84,22 @@ class Register:
         try:
             # Checks whether the email is already registered
             if await self._is_email_registered():
-                logger.warning("Try to open an account with this email address, even though one already exists.",
-                    extra={"email": self.data.email}
-                )
-                raise EmailAlreadyRegisteredException(message="The email address is already registered.")
+                log_msg: str = "Registration failed: Try to open an account with this email address, even though one already exists."
+                
+                logger.warning(log_msg, extra={"email": self.data.email})
+                raise EmailAlreadyRegisteredException()
             
-            # Hashes the password
-            hashed_pwd: str = hash_pwd(self.data.password)
-
             # Creates the user
-            stmt = (
-                insert(User).values(
-                    name=self.data.username, email=self.data.email, password=hashed_pwd
-                ).returning(User.id)
-            )
-            result = await self.db_session.execute(stmt)
-            await self.db_session.commit()
+            user_obj = await self._insert_user_into_db()
 
-            # Checks whether the user is successfully created
-            user_id = result.scalar_one_or_none()
-
-            if user_id is not None:
-                user_obj = await self.db_session.get(User, user_id)
-                return user_obj, "Account successfully registered."
+            if user_obj:
+                return user_obj, "Registration successful: Account successfully registered."
         except IntegrityError as e:
             logger.exception(f"Insertion failed: {str(e)}", exc_info=True, extra={"email": self.data.email})
         except SQLAlchemyError as e:
             logger.exception(f"Database error: {str(e)}", exc_info=True, extra={"email": self.data.email})
 
-        # Return a default error message to user
+        # Return a default error message
         return None, DEFAULT_ERROR_MSG
 
 
@@ -104,14 +118,11 @@ async def register_endpoint(data: RegisterModel, db_session: AsyncSession = Depe
         register_service = Register(db_session=db_session, data=data)
         user_obj, msg = await register_service.create_user()
 
-        # Checks whether the user was successfully registered
-        if user_obj is not None:
-            logger.info(str(msg), extra={"email": data.email})
-            response: JSONResponse = await set_refresh_token(user_id=user_obj.id, status_code=201)
-            return response
-        
-        logger.info(msg, extra={"email": data.email})
-        http_exception.detail = msg
+        # Logs the creation message
+        logger.info(str(msg), extra={"email": data.email})
+
+        if user_obj:
+            return await set_refresh_token(user_id=user_obj.id, status_code=201)
     except EmailAlreadyRegisteredException as e:
         http_exception.status_code = status.HTTP_409_CONFLICT
         http_exception.detail = str(e)
