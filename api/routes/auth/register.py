@@ -53,23 +53,26 @@ class Register:
         ---------
             - (User): The user object or None
         """
-        # Hashes the password
-        hashed_pwd: str = hash_pwd(self.data.password)
+        try:
+            # Hashes the password
+            hashed_pwd: str = hash_pwd(self.data.password)
 
-        # Creates the user
-        stmt = (
-            insert(User).values(name=self.data.username, email=self.data.email, password=hashed_pwd)
-            .returning(User.id)
-        )
-        result = await self.db_session.execute(stmt)
-        await self.db_session.commit()
+            # Creates the user
+            stmt = (
+                insert(User).values(name=self.data.username, email=self.data.email, password=hashed_pwd)
+                .returning(User.id)
+            )
+            result = await self.db_session.execute(stmt)
+            await self.db_session.commit()
 
-        # Checks whether the user could successfully added
-        user_id = result.scalar_one_or_none()
+            # Checks whether the user could successfully added
+            user_id = result.scalar_one_or_none()
 
-        if user_id:
-            return await self.db_session.get(User, user_id)
-        
+            if user_id:
+                return await self.db_session.get(User, user_id)
+        except ValueError as e:
+            logger.exception(f"Password hashing failed: {str(e)}", exc_info=True, extra={"email": self.data.email})
+
         return None
 
     async def create_user(self) -> Tuple[User | None, str]:
