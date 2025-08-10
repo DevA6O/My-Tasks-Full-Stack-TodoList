@@ -44,37 +44,32 @@ class TestGetBearerToken:
         assert exc_info.value.detail
 
 
-# @pytest.mark.parametrize(
-#     "valid_token, user, expected_value",
-#     [
-#         (True, True, uuid.UUID), # Success -> UUID
-#         (True, False, ValueError), # Success but no sub (user) -> ValueError
-#         (False, False, None), # Invalid token -> None
-#     ]
-# )
-# def test_decode_token(valid_token: bool, user: bool, expected_value: Union[Exception, uuid.UUID]) -> None:
-#     if user:
-#         data: dict = {"sub": str(uuid.uuid4())}
-#     else:
-#         data: dict = {"no_sub": str(uuid.uuid4())}
+class TestDecodeToken:
+    """ Test class for different test scenarios for the decode_token function """
 
-#     if valid_token:
-#         fake_token = create_token(data=data)
-#     else:
-#         fake_token = create_token(data=data, expire_delta=timedelta(seconds=1))
-#         time.sleep(1.5) # wait 1.5 seconds to make sure that the token is invalid
+    def test_decode_token_success(self) -> None:
+        """ Tests the success case """
+        user_id: uuid.UUID = uuid.uuid4()
+        token: str = create_token(data={"sub": str(user_id)})
+        
+        result = decode_token(token=token)
+        assert result == user_id
 
-#     if isinstance(expected_value, type) and issubclass(expected_value, Exception):
-#         with pytest.raises(expected_value):
-#             decode_token(token=fake_token)
-#         return
+    def test_decode_token_failed_because_value_error(self) -> None:
+        """ Tests the failed case when a ValueError occurrs """
+        token: str = create_token(data={"no_sub": str(uuid.uuid4())})
+        
+        with pytest.raises(ValueError):
+            decode_token(token=token)
 
-#     result = decode_token(token=fake_token)
+    def test_decode_token_failed_because_py_jwt_error(self) -> None:
+        """ Tests the failed case when a PyJWTError occurrs """
+        token: str = create_token(data={"sub": str(uuid.uuid4())}, expire_delta=timedelta(seconds=1))
+        time.sleep(1.5) # Wait until the token is expired (invalid)
 
-#     if expected_value is None:
-#         assert result is None
-#     else:
-#         assert isinstance(result, expected_value)
+        result = decode_token(token=token)
+        assert result is None
+
 
 
 # @pytest.mark.parametrize(
