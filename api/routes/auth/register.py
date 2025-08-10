@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 DEFAULT_ERROR_MSG: str = "An unknown error occurred: Account could not be created. Please try again later."
 
 class EmailAlreadyRegisteredException(Exception):
+    """ A custom exception to handle it easier when
+    the email is already registered """
     def __init__(self, message: str) -> None:
         self.message = message
         super().__init__(message)
@@ -32,16 +34,14 @@ class Register:
         self.db_session: AsyncSession = db_session
         self.data: RegisterModel = data
 
-    async def is_email_registered(self) -> bool:
+    async def _is_email_registered(self) -> bool:
         """ Check if the email address is already registered or not 
         
         Returns:
         ---------
             - A boolean
         """
-        stmt = select(
-            exists().where(User.email == self.data.email)
-        )
+        stmt = select(exists().where(User.email == self.data.email))
         result = await self.db_session.execute(stmt)
         return result.scalar()
 
@@ -55,8 +55,8 @@ class Register:
         """
 
         try:
-            # Checks whether the email is registered
-            if await self.is_email_registered():
+            # Checks whether the email is already registered
+            if await self._is_email_registered():
                 logger.warning("Try to open an account with this email address, even though one already exists.",
                     extra={"email": self.data.email}
                 )
@@ -80,29 +80,26 @@ class Register:
             if user_id is not None:
                 user_obj = await self.db_session.get(User, user_id)
                 return user_obj, "Account successfully registered."
-        # Exception if the insertion was failed
         except IntegrityError as e:
             logger.exception(f"Insertion failed: {str(e)}", exc_info=True, extra={"email": self.data.email})
-        
-        # Exception if some database error occurred
         except SQLAlchemyError as e:
             logger.exception(f"Database error: {str(e)}", exc_info=True, extra={"email": self.data.email})
 
-        # Return a standard error message to user
+        # Return a default error message to user
         return None, DEFAULT_ERROR_MSG
 
 
 
 @router.post("/api/register")
-async def register(data: RegisterModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
+async def register_endpoint(data: RegisterModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
     """ Endpoint to register a new user """
-    # Standard http exception
-    http_exception = HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail=DEFAULT_ERROR_MSG
-    )
-
     try:
+        # Default http exception
+        http_exception = HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=DEFAULT_ERROR_MSG
+        )
+
         # Creates the user with the specified information
         register_service = Register(db_session=db_session, data=data)
         user_obj, msg = await register_service.create_user()
