@@ -104,7 +104,7 @@ async def login_endpoint(data: LoginModel, db_session: AsyncSession = Depends(ge
         user_obj, message = await login_service.authenticate()
 
         if user_obj: # Checks whether the credentials are correct
-            response: JSONResponse = await set_refresh_token(user_id=user_obj.id, status_code=200)
+            response: JSONResponse = set_refresh_token(user_id=user_obj.id, status_code=200)
             logger.info("User logged in successfully.", extra={"email": data.email})
             return response
         
