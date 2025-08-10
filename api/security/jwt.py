@@ -30,8 +30,14 @@ REFRESH_MAX_AGE = int(os.getenv("REFRESH_MAX_AGE", 60 * 60 * 24 * 7))  # Default
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+
 def get_bearer_token(authorization: str = Header(None)) -> str:
-    """ Function to get the bearer token """
+    """ Function to get the bearer token from header
+    
+    Returns:
+    ---------
+        - (str): A token in string format
+    """
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -41,7 +47,12 @@ def get_bearer_token(authorization: str = Header(None)) -> str:
 
 
 def decode_token(token: str) -> uuid.UUID:
-    """ Function to decode the token """
+    """ Function to decode the token 
+    
+    Returns:
+    --------
+        - (UUID): The user_id from token
+    """
     try:
         # Decode the token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -60,12 +71,18 @@ def decode_token(token: str) -> uuid.UUID:
 
 
 def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
-    """ Creates an access or a refresh token """
-    # Validate params
+    """ Creates an access or a refresh token 
+    
+    Returns:
+    --------
+        - (str): A token
+    """
     if not data:
         raise ValueError("Data must not be empty.")
+    
     if not isinstance(data, dict):
         raise ValueError("Data must be a dictionary.")
+    
     if not isinstance(expire_delta, (timedelta, type(None))):
         raise ValueError("Expire delta must be a timedelta or None.")
     
@@ -82,12 +99,18 @@ def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
 
 
 async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200, content: dict = None) -> JSONResponse:
-    """ Set refresh token as HttpOnly cookie (no access_token returned) """
-    # Validate params
+    """ Set refresh token as HttpOnly cookie
+
+    Returns:
+    --------
+        - (JSONResponse): A JSONResponse that has set the refresh token in the cookie
+    """
     if not isinstance(user_id, uuid.UUID):
         raise ValueError("User ID must be a valid UUID.")
+    
     if not isinstance(status_code, int):
         raise ValueError("Status code must be an integer.")
+    
     if not isinstance(content, dict) and content is not None:
         raise ValueError("Content must be a dictionary.")
 
@@ -112,8 +135,10 @@ async def set_refresh_token(user_id: uuid.UUID, status_code: int = 200, content:
 
 
 @router.post("/api/refresh")
-async def refresh_token(request: Request, response: Response, db_session: AsyncSession = Depends(get_db)):
-    """ Checks whether a refresh token is valid and returns an access token if it is valid """
+async def refresh_token_endpoint(
+    request: Request, response: Response, db_session: AsyncSession = Depends(get_db)
+) -> JSONResponse:
+    """ Endpoint which returns a access token if the user has a valid refresh token """
     refresh_token = request.cookies.get("refresh_token")
 
     # Validate the presence of the refresh token
