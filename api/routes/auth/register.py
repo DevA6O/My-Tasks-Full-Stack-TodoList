@@ -11,6 +11,7 @@ from database.connection import get_db
 from .validation_models import RegisterModel
 from security.jwt import set_refresh_token
 from security.hashing import hash_pwd
+from shared.decorators import validate_constructor
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -26,11 +27,8 @@ class EmailAlreadyRegisteredException(Exception):
 
 
 class Register:
+    @validate_constructor
     def __init__(self, db_session: AsyncSession, data: RegisterModel) -> None:
-        # Validate the db session
-        if not isinstance(db_session, AsyncSession):
-            raise ValueError("db_session must be an AsyncSession.")
-
         self.db_session: AsyncSession = db_session
         self.data: RegisterModel = data
 

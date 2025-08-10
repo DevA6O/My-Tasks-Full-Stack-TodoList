@@ -11,17 +11,15 @@ from database.models import User
 from database.connection import get_db
 from security.hashing import is_hashed
 from security.jwt import set_refresh_token
+from shared.decorators import validate_constructor
 from routes.auth.validation_models import LoginModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 class Login:
-    def __init__(self, db_session: AsyncSession, data: LoginModel):
-        # Validate the db session
-        if not isinstance(db_session, AsyncSession):
-            raise ValueError("db_session must be an AsyncSession.")
-                
+    @validate_constructor
+    def __init__(self, db_session: AsyncSession, data: LoginModel):     
         self.db_session: AsyncSession = db_session
         self.data: LoginModel = data
     
