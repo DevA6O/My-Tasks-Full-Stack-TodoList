@@ -5,22 +5,21 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Tuple
 
 from database.models import User
 from database.connection import get_db
-from routes.auth.validation_models import LoginModel
 from security.hashing import is_hashed
 from security.jwt import set_refresh_token
+from shared.decorators import validate_constructor
+from routes.auth.validation_models import LoginModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 class Login:
-    def __init__(self, db_session: AsyncSession, data: LoginModel):
-        # Validate the db session
-        if not isinstance(db_session, AsyncSession):
-            raise ValueError("db_session must be an AsyncSession.")
-                
+    @validate_constructor
+    def __init__(self, db_session: AsyncSession, data: LoginModel):     
         self.db_session: AsyncSession = db_session
         self.data: LoginModel = data
     
@@ -31,11 +30,8 @@ class Login:
 
         Returns:
         ---------
-            - A boolean
+            - (bool): A boolean
         """
-        if not isinstance(self.data.password, str):
-            raise ValueError("Password must be a string.")
-        
         # Checks whether the password in db is in bytes -> convert it in a string
         if isinstance(password_in_db, bytes):
             try:
@@ -43,7 +39,7 @@ class Login:
             except UnicodeDecodeError:
                 raise ValueError("Password in database is not UTF-8 decodable.")
 
-        # Checks whether the password in db is a string, if not raise an ValueError
+        # Checks whether the password in db is a string, if not raise a ValueError
         elif isinstance(password_in_db, str):
             password_in_db_str = password_in_db
         else:
@@ -62,57 +58,59 @@ class Login:
         
         Returns:
         ---------
-            - The user object or None (if the user wasn't found)
+            - (User): The user object or None (if the user wasn't found)
         """
         stmt = select(User).where(User.email == self.data.email)
         result = await self.db_session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def authenticate(self) -> None:
-        """ Authenticate user with the provided credentials. """
+    async def authenticate(self) -> Tuple[User | None, str]:
+        """ Authenticate user with the provided credentials 
+        
+        Returns:
+        ---------
+            - (User): A user object or None (if the credentials are wrong)
+            - (str): A detailed message 
+        """
         try:
-            # Gets the user object
             user_obj = await self._get_user()
 
-            # Checks whether the user with the email exist or not
+            # Checks whether the user could found with this email address
             if not user_obj:
-                return None, "Email is not registered."
+                return None, "Login failed: This email address is not registered."
             
-            # Checks whether the password, the user typed in, is correct or not
+            # Checks whether the password, the user typed in, is not correct
             if not self._verify_password(password_in_db=user_obj.password):
-                return None, "Incorrect password."
+                return None, "Login failed: Password is incorrect."
 
-            return user_obj, "Login successful."
-        # Fallback if the database connection or something else is broken / invalid
-        except SQLAlchemyError as e:
+            return user_obj, "Login successful: Email address and password are correct."
+        except SQLAlchemyError as e: # Fallback if the database has problems
             logger.exception(f"Database error: {str(e)}", exc_info=True, extra={"email": self.data.email})
             return None, "Server error: An unexpected server error occurred. Please try again later."
     
 
 @router.post("/api/login")
-async def login(data: LoginModel, db_session: AsyncSession = Depends(get_db)) -> None:
-    """ Endpoint to log in a user. """
-    # Defines the standard http exception
-    http_exception = HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Invalid login credentials."
-    )
-
+async def login_endpoint(data: LoginModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
+    """ Endpoint to log in a user """
     try:
-        # Defines the login service and calls the authenticate method
+        # Default http exception
+        http_exception = HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid login credentials."
+        )
+
+        # Define service and calling the authenticate method
         login_service = Login(db_session=db_session, data=data)
         user_obj, message = await login_service.authenticate()
 
-        # If the credentials or somethings else is wrong (e.g. database crash)
-        if not user_obj:
-            logger.warning(f"Login failed: {message}", extra={"email": data.email})
-            raise http_exception
+        if user_obj: # Checks whether the credentials are correct
+            response: JSONResponse = await set_refresh_token(user_id=user_obj.id, status_code=200)
+            logger.info("User logged in successfully.", extra={"email": data.email})
+            return response
         
-        # If the credentials are correct
-        response: JSONResponse = await set_refresh_token(user_id=user_obj.id, status_code=200)
-        logger.info("User logged in successfully", extra={"email": data.email})
-        return response
-    except ValueError as e: # Fallback for any ValueError raised in the service
+        # If the credentials are wrong
+        logger.warning(f"Login failed: {message}", extra={"email": data.email})
+    except ValueError as e: # Fallback
         logger.exception(str(e), exc_info=True)
-        http_exception.detail = str(e)
-        raise http_exception
+    
+    raise http_exception

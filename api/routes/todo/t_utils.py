@@ -9,34 +9,14 @@ from fastapi.responses import JSONResponse
 from typing import Any, Tuple, TYPE_CHECKING
 from sqlalchemy.sql import Executable
 
-from routes.todo.t_validation_model import TodoExistCheckModel, HandleTodoRequestModel
+from routes.todo.t_validation_models import TodoExistCheckModel, HandleTodoRequestModel
 from database.models import Todo
 from security.jwt import decode_token
 
 if TYPE_CHECKING:
-    from routes.todo.t_validation_model import TodoExistCheckModel
+    from routes.todo.t_validation_models import TodoExistCheckModel
 
 logger = logging.getLogger(__name__)
-
-
-def validate_constructor(method):
-    """ Validator to validate the db_session and / or the user_id """
-    from functools import wraps
-
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        # Fetches the db_session and user_id
-        db_session = kwargs.get("db_session", None)
-        user_id = kwargs.get("user_id", None)
-
-        if db_session is not None and not isinstance(db_session, AsyncSession):
-            raise ValueError("db_session must be an instance of AsyncSession.")
-        if user_id is not None and not isinstance(user_id, UUID):
-            raise ValueError("user_id must be an instance of UUID.")
-        
-        return method(self, *args, **kwargs)
-    
-    return wrapper
 
 
 async def todo_exists(data: TodoExistCheckModel, db_session: AsyncSession) -> bool:

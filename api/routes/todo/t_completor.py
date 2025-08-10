@@ -9,7 +9,8 @@ from typing import Tuple
 from database.models import Todo
 from database.connection import get_db
 from security.jwt import get_bearer_token
-from routes.todo.t_validation_model import TodoCompletorModel
+from shared.decorators import validate_constructor
+from routes.todo.t_validation_models import TodoCompletorModel
 from routes.todo.t_utils import (
     TodoExistCheckModel,
     run_todo_db_statement, RunTodoDbStatementContext,
@@ -23,14 +24,8 @@ DEFAULT_COMPLETION_ERROR_MSG: str = "Completion failed: Todo could not be delete
 "Please try again later."
 
 class TodoCompletor:
+    @validate_constructor
     def __init__(self, data: TodoCompletorModel, db_session: AsyncSession, user_id: UUID) -> None:
-        # Validate class params
-        if not isinstance(db_session, AsyncSession):
-            raise ValueError("db_session must be an AsyncSession.")
-        
-        if not isinstance(user_id, UUID):
-            raise ValueError("user_id must be an UUID.")
-
         self.data: TodoCompletorModel = data
         self.db_session: AsyncSession = db_session
         self.user_id: UUID = user_id

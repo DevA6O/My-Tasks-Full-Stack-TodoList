@@ -9,9 +9,9 @@ from typing import Tuple
 from database.models import Todo
 from database.connection import get_db
 from security.jwt import get_bearer_token
-from routes.todo.t_validation_model import TodoEditorModel, TodoExistCheckModel
+from shared.decorators import validate_constructor
+from routes.todo.t_validation_models import TodoEditorModel, TodoExistCheckModel
 from routes.todo.t_utils import (
-    validate_constructor,
     run_todo_db_statement, RunTodoDbStatementContext,
     handle_todo_request, HandleTodoRequestModel
 )

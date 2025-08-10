@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict
 from database.models import User
 from database.connection import get_db
 from security.jwt import decode_token, get_bearer_token
-from routes.todo.t_utils import validate_constructor
+from shared.decorators import validate_constructor
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
