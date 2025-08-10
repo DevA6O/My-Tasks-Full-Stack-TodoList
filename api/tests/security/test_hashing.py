@@ -1,32 +1,29 @@
 import pytest
 from security.hashing import hash_pwd, is_hashed
+from conftest import fake_password, fake_hashed_password
 
-@pytest.mark.parametrize(
-    "password, expected_value",
-    [
-        ("FakePassword123", str),
-        (0, ValueError),
-    ]
-)
-def test_hash_pwd(password: str, expected_value: type) -> None:
-    if expected_value is ValueError:
+
+class TestHashPwd:
+    """ Test class for different test scenarios for the hash_pwd function """
+
+    def test_hash_pwd_success(self) -> None:
+        """ Tests the success case """
+        hashed_password: str = hash_pwd(password=fake_password)
+        assert isinstance(hashed_password, str)
+
+    def test_hash_pwd_failed_because_value_error(self) -> None:
+        """ Tests the failed case when a ValueError occurrs """
         with pytest.raises(ValueError):
-            hash_pwd(password)
-        return
-    
-    hashed_password: str = hash_pwd(password)
-    assert isinstance(hashed_password, expected_value)
+            hash_pwd(password=int(0))
 
 
-# Hash test password for is_hashed test function
-test_hashed_pwd = hash_pwd("TestPassword123")
+class TestIsHashed:
+    """ Test class for different test scenarios for the is_hashed function """
 
-@pytest.mark.parametrize(
-    "password, expected_value",
-    [
-        (test_hashed_pwd, True),
-        ("NotAHashedPassword", False)
-    ]
-)
-def test_is_hashed(password: str, expected_value: bool) -> None:
-    assert is_hashed(password) == expected_value
+    def test_is_hashed_success(self) -> None:
+        """ Tests the success case """
+        assert is_hashed(fake_hashed_password)
+
+    def test_is_hashed_failed_because_pwd_is_not_hashed(self) -> None:
+        """ Tests the success case when a password is not hashed """
+        assert not is_hashed(fake_password)

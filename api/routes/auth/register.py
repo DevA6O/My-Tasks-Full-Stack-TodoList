@@ -123,7 +123,7 @@ async def register_endpoint(data: RegisterModel, db_session: AsyncSession = Depe
         logger.info(str(msg), extra={"email": data.email})
 
         if user_obj:
-            return await set_refresh_token(user_id=user_obj.id, status_code=201)
+            return set_refresh_token(user_id=user_obj.id, status_code=201)
     except EmailAlreadyRegisteredException as e:
         http_exception.status_code = status.HTTP_409_CONFLICT
         http_exception.detail = str(e)
