@@ -21,6 +21,7 @@ const schema = yup.object().shape({
 
 export default function Login() {
     const [generalError, setGeneralError] = React.useState("");
+    const DEFAULT_ERROR_MSG = "An unexpected error occurred. Please try again."
 
     const {
         register: login,
@@ -47,11 +48,12 @@ export default function Login() {
                 window.location.href = "/";
             } else {
                 setGeneralError(
-                    data.detail || "An unexpected error occurred. Please try again."
+                    data.detail || DEFAULT_ERROR_MSG
                 )
             };
         } catch (error) {
-            setGeneralError(error);
+            setGeneralError(DEFAULT_ERROR_MSG);
+            console.error(error);
         };
     };
 
