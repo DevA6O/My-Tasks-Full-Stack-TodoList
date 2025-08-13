@@ -3,10 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { cleanup, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Login from "../../../pages/auth/Login";
+import checkFormValidation from "../../helper/formValidation";
 
 let emailInput;
 let passwordInput;
-let confirmBtn;
+let submitButton;
 
 const DEFAULT_ERROR_MSG = /an unexpected error has occurred. please try again later./i
 
@@ -16,7 +17,7 @@ describe(Login, () => {
 
         emailInput = await screen.getByLabelText(/e-mail address/i);
         passwordInput = await screen.getByLabelText(/password/i);
-        confirmBtn = await screen.getByRole("button", {name: /login/i});
+        submitButton = await screen.getByRole("button", {name: /login/i});
 
         globalThis.fetch = vi.fn();
     })
@@ -32,7 +33,7 @@ describe(Login, () => {
     it("Login displays the input fields and confirm button", () => {
         expect(emailInput).not.toBeNull();
         expect(passwordInput).not.toBeNull();
-        expect(confirmBtn).not.toBeNull();
+        expect(submitButton).not.toBeNull();
     });
 
 
@@ -41,13 +42,10 @@ describe(Login, () => {
         ["", /email is required./i],
         ["invalidemail", /email must be a valid email address/i]
     ])("Login shows validation error for email field ('%s')", async (emailValue, errorMsg) => {
-        if (emailValue !== "") {
-            await userEvent.type(emailInput, emailValue);
-        }
-        await userEvent.click(confirmBtn);
-
-        const emailError = await screen.findByText(errorMsg);
-        expect(emailError).not.toBeNull();
+        await checkFormValidation(
+            emailInput, emailValue,
+            submitButton, errorMsg
+        )
     });
 
 
@@ -57,15 +55,10 @@ describe(Login, () => {
         ["short", /password must have at least 8 characters./i],
         ["x".repeat(33), /password cannot have more than 32 characters./i],
     ])("Login shows validation error for password field ('%s')", async (passwordValue, errorMsg) => {
-        await userEvent.type(emailInput, "test@email.com");
-
-        if (passwordValue !== "") {
-            await userEvent.type(passwordInput, passwordValue);
-        } 
-        await userEvent.click(confirmBtn); 
-
-        const passwordError = await screen.findByText(errorMsg);
-        expect(passwordError).not.toBeNull();
+        await checkFormValidation(
+            passwordInput, passwordValue,
+            submitButton, errorMsg
+        )
     });
 
 
@@ -85,7 +78,7 @@ describe(Login, () => {
 
         await userEvent.type(emailInput, "test@mail.com");
         await userEvent.type(passwordInput, "very_secret_password123");
-        await userEvent.click(confirmBtn);
+        await userEvent.click(submitButton);
         
         // Ensure fetch was called with the correct login URL and options
         expect(fetch).toHaveBeenCalledWith(
@@ -112,7 +105,7 @@ describe(Login, () => {
 
         await userEvent.type(emailInput, "not.registered@email.com");
         await userEvent.type(passwordInput, "invalid_password123456");
-        await userEvent.click(confirmBtn);
+        await userEvent.click(submitButton);
 
         const errorMsg = await screen.findByText(findMsg);
         expect(errorMsg).not.toBeNull();
@@ -125,7 +118,7 @@ describe(Login, () => {
 
         await userEvent.type(emailInput, "test@email.com");
         await userEvent.type(passwordInput, "very_secret_password123");
-        await userEvent.click(confirmBtn);
+        await userEvent.click(submitButton);
 
         const errorMsg = await screen.findByText(DEFAULT_ERROR_MSG);
         expect(errorMsg).not.toBeNull();
