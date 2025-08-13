@@ -21,7 +21,7 @@ const schema = yup.object().shape({
 
 export default function Login() {
     const [generalError, setGeneralError] = React.useState("");
-    const DEFAULT_ERROR_MSG = "An unexpected error occurred. Please try again."
+    const DEFAULT_ERROR_MSG = "An unexpected error has occurred. Please try again later."
 
     const {
         register: login,

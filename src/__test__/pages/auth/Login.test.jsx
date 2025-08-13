@@ -1,6 +1,6 @@
 import React from "react";
 import userEvent from "@testing-library/user-event";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Login from "../../../pages/auth/Login";
 
@@ -8,7 +8,7 @@ let emailInput;
 let passwordInput;
 let confirmBtn;
 
-const DEFAULT_ERROR_MSG = /an unexpected error occurred. please try again./i
+const DEFAULT_ERROR_MSG = /an unexpected error has occurred. please try again later./i
 
 describe(Login, () => {
     beforeEach(() => {
