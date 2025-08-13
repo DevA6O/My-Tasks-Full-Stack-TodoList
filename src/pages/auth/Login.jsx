@@ -6,16 +6,17 @@ import * as yup from "yup";
 const schema = yup.object().shape({
     email: yup
         .string()
+        .required("Email is required.")
         .matches(
             /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
             "Email must be a valid email address."
-        )
-        .required("Email is required."),
+        ),
     password: yup
         .string()
+        .required("Password is required.")
         .min(8, "Password must have at least 8 characters.")
         .max(32, "Password cannot have more than 32 characters.")
-        .required("Password is required.")
+        
 })
 
 export default function Login() {
@@ -27,7 +28,7 @@ export default function Login() {
         formState: { errors }
     } = useForm({
         resolver: yupResolver(schema),
-        mode: "onTouched"
+        mode: "onBlur"
     })
 
     const onSubmit = async (formData) => {
@@ -43,15 +44,13 @@ export default function Login() {
             const data = await response.json();
             
             if (response.ok && response.status === 200) {
-                window.location.href = "/"; // Reload html and the memory
+                window.location.href = "/";
             } else {
-                // Display failed message
                 setGeneralError(
                     data.detail || "An unexpected error occurred. Please try again."
                 )
             };
         } catch (error) {
-            // Display error message
             setGeneralError(error);
         };
     };
@@ -74,7 +73,6 @@ export default function Login() {
                         type="email"
                         id="email"
                         {...login("email")}
-                        required
                         className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                         />
                         {errors.email && (
@@ -88,9 +86,6 @@ export default function Login() {
                         type="password"
                         id="password"
                         {...login("password")}
-                        required
-                        minLength={8}
-                        maxLength={32}
                         className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                         />
                         {errors.password && (
@@ -112,7 +107,6 @@ export default function Login() {
                         </a>
                         .
                     </p>
-
                 </form>
             </div>
         </div>
