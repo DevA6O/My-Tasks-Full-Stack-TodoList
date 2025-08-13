@@ -8,13 +8,15 @@ let emailInput;
 let passwordInput;
 let confirmBtn;
 
+const DEFAULT_ERROR_MSG = /an unexpected error occurred. please try again./i
+
 describe(Login, () => {
     beforeEach(() => {
         render(<Login/>);
 
         emailInput = screen.getByLabelText(/e-mail address/i);
         passwordInput = screen.getByLabelText(/password/i);
-        confirmBtn = screen.getByRole("button", {name: /login/i})
+        confirmBtn = screen.getByRole("button", {name: /login/i});
 
         globalThis.fetch = vi.fn();
     })
@@ -97,7 +99,7 @@ describe(Login, () => {
 
 
     it.each([
-        ["", /an unexpected error occurred. please try again./i],
+        ["", DEFAULT_ERROR_MSG],
         ["Invalid login credentials", /invalid login credentials/i]
     ])("Shows error message on failed login", async (detailMsg, findMsg) => {
         const mockErrorResponse = {
@@ -113,6 +115,19 @@ describe(Login, () => {
         await userEvent.click(confirmBtn);
 
         const errorMsg = await screen.findByText(findMsg);
+        expect(errorMsg).not.toBeNull();
+    });
+
+
+
+    it("Sets general error message caused by fetch / network error", async () => {
+        fetch.mockResolvedValueOnce(new Error("Network error"));
+
+        await userEvent.type(emailInput, "test@email.com");
+        await userEvent.type(passwordInput, "very_secret_password123");
+        await userEvent.click(confirmBtn);
+
+        const errorMsg = await screen.findByText(DEFAULT_ERROR_MSG);
         expect(errorMsg).not.toBeNull();
     });
 });
