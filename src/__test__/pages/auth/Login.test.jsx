@@ -11,12 +11,12 @@ let confirmBtn;
 const DEFAULT_ERROR_MSG = /an unexpected error has occurred. please try again later./i
 
 describe(Login, () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         render(<Login/>);
 
-        emailInput = screen.getByLabelText(/e-mail address/i);
-        passwordInput = screen.getByLabelText(/password/i);
-        confirmBtn = screen.getByRole("button", {name: /login/i});
+        emailInput = await screen.getByLabelText(/e-mail address/i);
+        passwordInput = await screen.getByLabelText(/password/i);
+        confirmBtn = await screen.getByRole("button", {name: /login/i});
 
         globalThis.fetch = vi.fn();
     })
