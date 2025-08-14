@@ -28,7 +28,6 @@ export default function Home() {
     const { accessToken, loading: authLoading } = useAuth();
     const [tasks, setTasks] = useState([]);
     const [username, setUsername] = useState("User");
-    const [taskErrors, setTaskError] = useState(null);
     const [isLoading, setLoading] = useState(true);
     const [reloadTasks, setReloadTasks] = useState(false);
     const [editTask, setEditTask] = useState(null);
@@ -102,10 +101,13 @@ export default function Home() {
                     setTasks(Array.isArray(data.todos) ? data.todos : []);
                     setUsername(data.username || "User");
                 } else {
-                    setTaskError("Server error: Tasks could not be loaded.");
+                    setError("loadedTasks", {type: "server", message: "Server error: Tasks could not be loaded."});
                 };
             } catch (error) {
-                setTaskError(error);
+                setError("loadedTasks", {
+                    type: "server", 
+                    message: "An unexpected error occurred while loading all tasks. Please try again later."
+                });
             } finally{
                 setLoading(false);
                 setReloadTasks(false);
@@ -226,8 +228,8 @@ export default function Home() {
                             
                             {/* Display task errors */}
                             <div className="mt-5">
-                                {taskErrors && (<p className="text-red-500 font-sans">{taskErrors.toString()}</p>)}
-                                {!isLoading && !taskErrors && tasks.length === 0 && (
+                                {errors.loadedTasks && (<p className="text-red-500 font-bold">{errors.loadedTasks.message}</p>)}
+                                {!isLoading && !errors.loadedTasks && tasks.length === 0 && (
                                     <p className="text-blue-800 font-sans font-semibold text-xl max-w-11/12">
                                         Nice work! Currently you have no tasks to solve!
                                     </p>
@@ -235,7 +237,7 @@ export default function Home() {
                             </div>
                             
                             {/* Display all tasks if there are no errors */}
-                            {!isLoading && !taskErrors && tasks.length > 0 && (
+                            {!isLoading && !errors.loadedTasks && tasks.length > 0 && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 max-w-[85%]">
                                     {tasks.map((task) => (
                                         <div 
