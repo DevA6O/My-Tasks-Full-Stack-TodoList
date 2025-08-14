@@ -16,16 +16,16 @@ const schema = yup.object().shape({
         .required("Password is required.")
         .min(8, "Password must have at least 8 characters.")
         .max(32, "Password cannot have more than 32 characters.")
-        
 })
 
 export default function Login() {
     const [generalError, setGeneralError] = React.useState("");
-    const DEFAULT_ERROR_MSG = "An unexpected error has occurred. Please try again later."
+    const DEFAULT_ERROR_MSG = "Login failed: An unexpected error has occurred. Please try again later."
 
     const {
         register: login,
         handleSubmit,
+        setError,
         formState: { errors }
     } = useForm({
         resolver: yupResolver(schema),
@@ -46,10 +46,16 @@ export default function Login() {
             
             if (response.ok && response.status === 200) {
                 window.location.href = "/";
-            } else {
-                setGeneralError(
-                    data.detail || DEFAULT_ERROR_MSG
-                )
+            } 
+            else {
+                const field = data.detail?.field;
+
+                if (field) {
+                    const message = data.detail?.message || DEFAULT_ERROR_MSG;
+                    setError(field, {type: "server", message: message});
+                } else {
+                    setGeneralError(data.detail || DEFAULT_ERROR_MSG);
+                };
             };
         } catch (error) {
             setGeneralError(DEFAULT_ERROR_MSG);
