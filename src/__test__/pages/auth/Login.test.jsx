@@ -33,9 +33,9 @@ describe(Login, () => {
 
 
     it("Login displays the input fields and confirm button", () => {
-        expect(emailInput).not.toBeNull();
-        expect(passwordInput).not.toBeNull();
-        expect(submitButton).not.toBeNull();
+        expect(emailInput).toBeInTheDocument();
+        expect(passwordInput).toBeInTheDocument();
+        expect(submitButton).toBeInTheDocument();
     });
 
 
@@ -110,7 +110,7 @@ describe(Login, () => {
         await userEvent.click(submitButton);
 
         const errorMsg = await screen.findByText(findMsg);
-        expect(errorMsg).not.toBeNull();
+        expect(errorMsg).toBeInTheDocument();
     });
 
 
@@ -144,7 +144,7 @@ describe(Login, () => {
         // Chechs whether the displayed message is placed correctly
         const container = inputElement.closest("div");
         const errorMsg = within(container).getByText(/string has not been validated correctly./i);
-        expect(errorMsg).not.toBeNull();
+        expect(errorMsg).toBeInTheDocument();
     })
 
 
@@ -157,6 +157,6 @@ describe(Login, () => {
         await userEvent.click(submitButton);
 
         const errorMsg = await screen.findByText(DEFAULT_ERROR_MSG);
-        expect(errorMsg).not.toBeNull();
+        expect(errorMsg).toBeInTheDocument();
     });
 });
