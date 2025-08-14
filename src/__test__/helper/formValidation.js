@@ -12,5 +12,5 @@ export default async function checkFormValidation(
 
     // Fetch displayed error message and check whether it displayed correctly
     const displayedErrorMsg = await screen.findByText(errorMsg);
-    expect(displayedErrorMsg).not.toBeNull();
+    expect(displayedErrorMsg).toBeInTheDocument();
 };
