@@ -15,9 +15,9 @@ import { EditTaskForm } from "./todo/t_editor";
 const schema = yup.object().shape({
     title: yup
         .string()
+        .required("Title is required.")
         .min(2, "Title must have at least 2 characters.")
-        .max(140, "Title cannot have more than 140 characters.")
-        .required("Title is required."),
+        .max(140, "Title cannot have more than 140 characters."),
     description: yup
         .string()
         .max(320, "Description cannot have more than 320 characters.")
@@ -41,34 +41,37 @@ export default function Home() {
         formState: { errors },
     } = useForm({
         resolver: yupResolver(schema),
-        mode: "onTouched"
+        mode: "onBlur"
     });
 
     const onSubmit = async (formData) => {
         try {
             await createTodoAPI(formData, accessToken); 
-            setReloadTasks(true); // Reload the current displayed tasks
+            setReloadTasks(true); // Reload the tasks
             reset(); // Reset form 
-        } catch (error) { // Display an api error message
-            setError("apiError", {type: "manual", message: error.toString()}); 
+        } catch (error) {
+            setError("apiError", {type: "manual", message: error.message});
+            console.error(error);
         };
     };
 
     const deleteTodo = async (todoID) => {
         try {
             await deleteTodoAPI(todoID, accessToken);
-            setReloadTasks(true); // Reload the current displayed tasks
+            setReloadTasks(true); // Reload the tasks
         } catch (error) {
-            alert(`Deletion failed: ${error}`)
+            setError("task", {type: "server", message: error.message, id: error.todoID});
+            console.error(error);
         };
     };
 
     const completeTodo = async (todoID) => {
         try {
             await completeTodoAPI(todoID, accessToken);
-            setReloadTasks(true);
+            setReloadTasks(true); // Reload the tasks
         } catch (error) {
-            alert(error.toString());
+            setError("task", {type: "server", message: error.message, id: error.todoID});
+            console.error(error);
         }
     }
 
@@ -239,7 +242,16 @@ export default function Home() {
                                             key={task.id}
                                             className={`w-full max-w-2xl flex flex-col justify-between p-5 borderrounded shadow-lg
                                                 ${task.completed ? 'bg-gray-100 text-gray-400 border-gray-300' : 'border-gray-400/40'}`}
-                                        >
+                                        >   
+                                            {/* Displays task errors when an error occurrs */}
+                                            {errors.task && errors.task.id == task.id && (
+                                                <div className="flex justify-center items-center text-center mb-5">
+                                                    <div className="px-5 py-2 border rounded bg-red-200 text-red-800">
+                                                        <h1>{errors.task.message}</h1>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <div className="flex flex-col max-w-[85%] overflow-hidden">
                                                 {/* Task title */}
                                                 <h1 className={`font-semibold text-lg leading-snug break-words
