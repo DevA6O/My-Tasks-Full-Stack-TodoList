@@ -110,12 +110,12 @@ describe(Register, async () => {
 
 
     it("Register shows an error message when email is already registered", async () => {
-        const mockFetchResponse = {
+        const mockErrorResponse = {
             ok: false,
             status: 409,
             json: async () => ({detail: "Email is already registered."})
         };
-        fetch.mockResolvedValueOnce(mockFetchResponse);
+        fetch.mockResolvedValueOnce(mockErrorResponse);
 
         await userEvent.type(usernameInput, testUsername);
         await userEvent.type(emailInput, testEmail);
@@ -129,11 +129,9 @@ describe(Register, async () => {
     
 
     it.each([
-        ["username"],
-        ["email"],
-        ["password"]
+        ["username"], ["email"], ["password"]
     ])("Backend returns an error message for input element '%s'", async (field) => {
-        const mockFetchResponse = {
+        const mockErrorResponse = {
             ok: false,
             status: 422,
             json: async () => ({
@@ -143,7 +141,7 @@ describe(Register, async () => {
                 }
             })
         };
-        fetch.mockResolvedValueOnce(mockFetchResponse);
+        fetch.mockResolvedValueOnce(mockErrorResponse);
 
         await userEvent.type(usernameInput, testUsername);
         await userEvent.type(emailInput, testEmail);
@@ -151,12 +149,12 @@ describe(Register, async () => {
         await userEvent.click(submitButton);
 
         // Defines an input mapping to retrieve the current input element
-        const inputMap = {
+        const inputMapper = {
             username: usernameInput,
             email: emailInput,
             password: passwordInput
         };
-        const inputElement = inputMap[field];
+        const inputElement = inputMapper[field];
 
         // Chechs whether the displayed message is placed correctly
         const container = inputElement.closest("div");
@@ -167,12 +165,12 @@ describe(Register, async () => {
 
 
     it("Backend returns an unknown error message", async () => {
-        const mockFetchResponse = {
+        const mockErrorResponse = {
             ok: false,
             status: 400,
             json: async () => ({})
         };
-        fetch.mockResolvedValueOnce(mockFetchResponse);
+        fetch.mockResolvedValueOnce(mockErrorResponse);
 
         await userEvent.type(usernameInput, testUsername);
         await userEvent.type(emailInput, testEmail);
