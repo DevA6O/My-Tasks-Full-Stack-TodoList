@@ -1,6 +1,6 @@
 import React from "react";
 import userEvent from "@testing-library/user-event";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Login from "../../../pages/auth/Login";
 import checkFormValidation from "../../helper/formValidation";
@@ -10,6 +10,8 @@ let passwordInput;
 let submitButton;
 
 const DEFAULT_ERROR_MSG = /an unexpected error has occurred. please try again later./i
+const testEmail = "test@email.com";
+const testPassword = "very_secret_lol123+";
 
 describe(Login, () => {
     beforeEach(async () => {
@@ -76,8 +78,8 @@ describe(Login, () => {
         delete window.location;
         window.location = {href: ""};
 
-        await userEvent.type(emailInput, "test@mail.com");
-        await userEvent.type(passwordInput, "very_secret_password123");
+        await userEvent.type(emailInput, testEmail);
+        await userEvent.type(passwordInput, testPassword);
         await userEvent.click(submitButton);
         
         // Ensure fetch was called with the correct login URL and options
@@ -94,7 +96,7 @@ describe(Login, () => {
     it.each([
         ["", DEFAULT_ERROR_MSG],
         ["Invalid login credentials", /invalid login credentials/i]
-    ])("Shows error message on failed login", async (detailMsg, findMsg) => {
+    ])("Shows error message on failed login ('%s')", async (detailMsg, findMsg) => {
         const mockErrorResponse = {
             ok: false,
             status: 401,
@@ -103,13 +105,47 @@ describe(Login, () => {
 
         fetch.mockResolvedValueOnce(mockErrorResponse);
 
-        await userEvent.type(emailInput, "not.registered@email.com");
-        await userEvent.type(passwordInput, "invalid_password123456");
+        await userEvent.type(emailInput, testEmail);
+        await userEvent.type(passwordInput, testPassword);
         await userEvent.click(submitButton);
 
         const errorMsg = await screen.findByText(findMsg);
         expect(errorMsg).not.toBeNull();
     });
+
+
+
+    it.each([
+        ["email"], ["password"]
+    ])("Backend returns a validation error for input field '%s'", async (field) => {
+        const mockErrorResponse = {
+            ok: false,
+            status: 422,
+            json: async () => ({
+                detail: {
+                    message: "String has not been validated correctly.",
+                    field: field
+                }
+            })
+        };
+        fetch.mockResolvedValueOnce(mockErrorResponse);
+
+        await userEvent.type(emailInput, testEmail);
+        await userEvent.type(passwordInput, testPassword);
+        await userEvent.click(submitButton);
+
+        // Defines an input mapping to get the current input field
+        const inputMapper = {
+            email: emailInput,
+            password: passwordInput
+        };
+        const inputElement = inputMapper[field]
+
+        // Chechs whether the displayed message is placed correctly
+        const container = inputElement.closest("div");
+        const errorMsg = within(container).getByText(/string has not been validated correctly./i);
+        expect(errorMsg).not.toBeNull();
+    })
 
 
 
