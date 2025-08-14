@@ -13,6 +13,8 @@ export default async function deleteTodoAPI(todoID, accessToken) {
     if (!response.ok) {
         data = await response.json();
 
-        throw new Error(data.detail || "Deletion failed: An unexpected error occurred. Please try again later.");
+        const error = new Error(data.detail || "Deletion failed: An unexpected error occurred. Please try again later.");
+        error.todoID = todoID;
+        throw error
     };
 };
