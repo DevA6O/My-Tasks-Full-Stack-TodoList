@@ -13,7 +13,7 @@ const DEFAULT_ERROR_MSG = /an unexpected error has occurred. please try again la
 const testEmail = "test@email.com";
 const testPassword = "very_secret_lol123+";
 
-describe(Login, () => {
+describe(Login, async () => {
     beforeEach(async () => {
         render(<Login/>);
 
