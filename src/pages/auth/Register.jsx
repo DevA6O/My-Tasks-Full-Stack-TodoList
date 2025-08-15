@@ -6,25 +6,26 @@ import * as yup from "yup";
 const schema = yup.object().shape({
     username: yup
         .string()
+        .required("Username is required.")
         .min(2, "Username must have at least 2 characters.")
-        .max(16, "Username coudn't have more than 16 characters.")
-        .required("Username is required."),
+        .max(16, "Username cannot have more than 16 characters."),
     email: yup
         .string()
+        .required("Email is required.")
         .matches(
             /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
             "Email must be a valid email address."
-        )
-        .required("Email is required."),
+        ),
     password: yup
         .string()
+        .required("Password is required.")
         .min(8, "Password must have at least 8 characters.")
         .max(32, "Password cannot have more than 32 characters.")
-        .required("Password is required.")
 })
 
 export default function Register() {
     const [generalError, setGeneralError] = useState("");
+    const DEFAULT_ERROR_MSG = "Registration failed: An unexpected error has occurred. Please try again later."
 
     const {
         register,
@@ -33,7 +34,7 @@ export default function Register() {
         formState: { errors },
     } = useForm({
         resolver: yupResolver(schema),
-        mode: "onTouched"
+        mode: "onBlur"
     });
 
     const onSubmit = async (formData) => {
@@ -46,35 +47,31 @@ export default function Register() {
                 },
                 body: JSON.stringify(formData)
             });
-
             const data = await response.json();
             
-            // If the user has successfully registered
+
             if (response.ok && response.status === 201) {
-                window.location.href = "/"; // Reload html and the memory
-            } 
-            // If the email address is already registered
-            else if (response.status === 409) {
-                setError("email", {type: "server", message: data.detail});
+                window.location.href = "/";
             }
-            // If a answer is incorrect (Validation error)
-            else { 
-                const field = data.detail.field;
-                
-                // Fallback solution, if the field (in which the problem occurs) is not specified
-                if (field === undefined) {
-                    window.alert("This page is currently unavailable. Please try again later.");
-                    window.location.href = "/";
-                    return;
+            else if (response.status == 409) {
+                setError("email", {type: "server", message: data.detail});
+            } 
+            else if (!response.ok) {
+                const field = data.detail?.field;
+               
+                if (field) {
+                    const message = data.detail?.message || DEFAULT_ERROR_MSG;
+                    setError(field, {type: "server", message: message});
                 } else {
-                    setError(field, {
-                        type: "server",
-                        message: data.detail.message
-                    });
-                };
-            };
+                    setGeneralError("Registration failed: An unknown page error occurred. You will be redirected shortly...")
+
+                    setTimeout(() => {
+                        window.location.href = "/";
+                    }, 10000);
+                }
+            }
         } catch (error) {
-            setGeneralError("An unknown error has occurred: Please try again later.");
+            setGeneralError(DEFAULT_ERROR_MSG);
             console.log(error);
         };
     };
@@ -97,9 +94,6 @@ export default function Register() {
                             type="text"
                             id="username"
                             {...register("username")}
-                            required
-                            maxLength={16}
-                            minLength={2}
                             className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                         />
                         {errors.username && (
@@ -113,7 +107,6 @@ export default function Register() {
                             type="email"
                             id="email"
                             {...register("email")}
-                            required
                             className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                         />
                         {errors.email && (
@@ -127,9 +120,6 @@ export default function Register() {
                             type="password"
                             id="password"
                             {...register("password")}
-                            required
-                            minLength={8}
-                            maxLength={32}
                             className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                         />
                         {errors.password && (

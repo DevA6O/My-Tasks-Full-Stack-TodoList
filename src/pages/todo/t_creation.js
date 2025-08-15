@@ -7,10 +7,16 @@ export default async function createTodoAPI(formData, accessToken) {
         },
         body: JSON.stringify(formData)
     });
+    const data = await response.json();
 
     if (!response.ok) {
-        const data = await response.json();
+        let errorMsg = data.detail;
 
-        throw new Error(data.detail || "Creation failed: An unexpected error occurred. Please try again later.");
+        // If a validation error occurs
+        if (!response.ok && response.status == 422) {
+            errorMsg = data.detail?.message;
+        };
+
+        throw new Error(errorMsg || "Creation failed: An unexpected error occurred. Please try again later.");
     };
 };

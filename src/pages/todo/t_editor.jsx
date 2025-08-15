@@ -88,6 +88,7 @@ export function EditTaskForm({ task, validationSchema, accessToken, onSuccess })
                 <input
                     type="text"
                     id="editTitle"
+                    data-testid={`edit-title-task-${task.id}`}
                     {...registerEditor("title")}
                     className="w-full px-3 py-2 border rounded"/>
 
@@ -102,6 +103,7 @@ export function EditTaskForm({ task, validationSchema, accessToken, onSuccess })
                 <input
                     type="text"
                     id="editDescription"
+                    data-testid={`edit-description-task-${task.id}`}
                     {...registerEditor("description")}
                     className="w-full px-3 py-2 border rounded"/>
 
@@ -120,6 +122,7 @@ export function EditTaskForm({ task, validationSchema, accessToken, onSuccess })
                 </button>
                 <button 
                     type="submit"
+                    data-testid={`edit-submit-btn-task-${task.id}`}
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 cursor-pointer">
                     Save
                 </button>

@@ -9,7 +9,10 @@ export default async function completeTodoAPI(todoID, accessToken) {
     });
 
     if (!response.ok) {
-        data = await response.json();
-        throw new Error(data.detail || "Completion failed: An unexpected error is occurred.");
+        const data = await response.json();
+
+        const error = new Error(data.detail || "Completion failed: An unexpected error is occurred.");
+        error.todoID = todoID;
+        throw error;
     };
 }
