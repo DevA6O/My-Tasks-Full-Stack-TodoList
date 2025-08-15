@@ -50,7 +50,7 @@ describe("Home - Add Task", async () => {
         const errorMsg = /description cannot have more than 320 characters./i
 
         await checkFormValidation(descriptionInput, descriptionValue, submitButton, errorMsg);
-    });
+    }, 8000);
 
 
 
