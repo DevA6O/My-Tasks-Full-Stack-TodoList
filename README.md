@@ -48,8 +48,12 @@ Please make sure it is installed on your system for the best visual experience.
 
 ### 🧪 Testing
 ```bash
-cd api (or you are already in the api path)
-pytest tests
+- Frontend:
+    npm test
+
+- Backend:
+    cd api
+    pytest tests
 ```
 
 ### 💬 Contact
