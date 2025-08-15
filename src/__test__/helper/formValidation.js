@@ -1,5 +1,5 @@
 import userEvent from "@testing-library/user-event";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import { expect } from "vitest";
 
 export default async function checkFormValidation(
@@ -11,6 +11,8 @@ export default async function checkFormValidation(
     await userEvent.click(submitButton);
 
     // Fetch displayed error message and check whether it displayed correctly
-    const displayedErrorMsg = await screen.findByText(errorMsg);
-    expect(displayedErrorMsg).toBeInTheDocument();
+    await waitFor(async () => {
+        const displayedErrorMsg = await screen.findByText(errorMsg);
+        expect(displayedErrorMsg).toBeInTheDocument();
+    })
 };
