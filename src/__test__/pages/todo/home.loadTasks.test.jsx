@@ -1,6 +1,6 @@
 import React from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitForElementToBeRemoved } from "@testing-library/react";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, waitForElementToBeRemoved } from "@testing-library/react";
 import { setMockUseAuth } from "../../helper/mockUseAuth";
 import Home from "../../../pages/home";
 
@@ -10,6 +10,10 @@ describe("Home - Load Tasks", async () => {
     beforeEach(() => {
         setMockUseAuth({accessToken: "fake-token", loading: false});
         globalThis.fetch = vi.fn();
+    });
+
+    afterEach(() => {
+        cleanup();
     })
 
     it("Load tasks successful", async () => {
