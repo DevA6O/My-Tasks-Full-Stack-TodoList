@@ -16,16 +16,12 @@ from database.connection import get_db
 
 load_dotenv()
 
-# NOTE: Maybe add a revoke session function 
-# (with database management where the user can remove some session from his account, like Discord, Spotify, ...)
-
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 15))
-REFRESH_MAX_AGE = int(os.getenv("REFRESH_MAX_AGE", 60 * 60 * 24 * 7))  # Default to 7 days
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -98,40 +94,6 @@ def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
     return encoded_jwt
 
 
-def set_refresh_token(user_id: uuid.UUID, status_code: int = 200, content: dict = None) -> JSONResponse:
-    """ Set refresh token as HttpOnly cookie
-
-    Returns:
-    --------
-        - (JSONResponse): A JSONResponse that has set the refresh token in the cookie
-    """
-    if not isinstance(user_id, uuid.UUID):
-        raise ValueError("User ID must be a valid UUID.")
-    
-    if not isinstance(status_code, int):
-        raise ValueError("Status code must be an integer.")
-    
-    if not isinstance(content, dict) and content is not None:
-        raise ValueError("Content must be a dictionary.")
-
-    # Create the refresh token
-    refresh_token = create_token(data={"sub": str(user_id)}, expire_delta=timedelta(seconds=REFRESH_MAX_AGE))
-
-    # Secure HTTPS setting
-    SECURE_HTTPS = os.getenv("SECURE_HTTPS", "False").lower() == "true"
-
-    # Set the cookie in the response
-    response = JSONResponse(status_code=status_code, content=content)
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=SECURE_HTTPS,
-        samesite="lax",
-        max_age=REFRESH_MAX_AGE,
-        path="/"
-    )
-    return response
 
 
 @router.post("/api/refresh")
