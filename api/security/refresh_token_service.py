@@ -1,20 +1,23 @@
 import uuid
-import os
 import logging
-from dotenv import load_dotenv
+import jwt
 from datetime import datetime, timedelta, timezone
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Request
+from fastapi import Request, Depends, HTTPException, status, APIRouter
 from fastapi.responses import JSONResponse
+from jwt.exceptions import PyJWTError
 
+from security import REFRESH_MAX_AGE, ALGORITHM, SECRET_KEY, SECURE_HTTPS
 from security.jwt import create_token
 from security.auth_token_service import StoreAuthToken, AuthTokenDetails
 from shared.decorators import validate_constructor
+from database.models import User, Auth
+from database.connection import get_db
 
+router = APIRouter()
 logger = logging.getLogger(__name__)
-load_dotenv()
 
-REFRESH_MAX_AGE = int(os.getenv("REFRESH_MAX_AGE", 60 * 60 * 24 * 7))  # Default to 7 days
 
 class RefreshTokenService:
     @validate_constructor
@@ -84,9 +87,6 @@ class RefreshTokenService:
         """
         refresh_token = await self._create_and_store_refresh_token()
 
-        # Secure HTTPS setting
-        SECURE_HTTPS = os.getenv("SECURE_HTTPS", "False").lower() == "true"
-
         # Set the cookie in the response
         response = JSONResponse(status_code=self.status_code, content=self.content)
         response.set_cookie(
@@ -99,3 +99,70 @@ class RefreshTokenService:
             path="/"
         )
         return response
+    
+
+
+@validate_constructor # <- Error handler for user_id and db_session
+async def is_refresh_token_valid(user_id: uuid.UUID, db_session: AsyncSession) -> bool:
+    """ Helper-Function to check whether the refresh token is valid or invalid 
+    
+    Returns:
+    ---------
+        - A boolean
+    """
+    # Start database request to check the state of the token
+    stmt = select(Auth).where(Auth.user_id == uuid.UUID(user_id))
+    result = await db_session.execute(stmt)
+    result_obj = result.scalar_one_or_none()
+
+    # Check whether no token was found
+    if result_obj is None:
+        return False
+
+    # Get values
+    is_revoked = result_obj.revoked
+    is_expired = result_obj.expires_at
+
+    # Check whether the token is revoked or expired
+    if is_revoked or (is_expired < datetime.now(timezone.utc).timestamp()):
+        return False
+
+    return True # <- Token is valid
+
+
+@router.post("/api/refresh_token/valid")
+async def is_refresh_token_valid_endpoint(
+    request: Request, db_session: AsyncSession = Depends(get_db)
+) -> JSONResponse:
+    """ Endpoint which returns a access token if the user has a valid refresh token """
+    refresh_token = request.cookies.get("refresh_token")
+
+    # Validate the presence of the refresh token
+    if not refresh_token:
+        logger.warning("Refresh token missing in request.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token")
+    
+    try:
+        # Decode the refresh token
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        
+        # Check whether sub exists
+        if not user_id:
+            logger.warning("User not found in database for refresh token", extra={"user_id": user_id})
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User could not be identified.")
+        
+        # Check whether the token is invalid
+        if not await is_refresh_token_valid(user_id=user_id, db_session=db_session):
+            logger.warning("Token is revoked or expired.", extra={"user_id": user_id})
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is invalid.")
+
+        access_token = create_token(data={"sub": user_id})
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"access_token": access_token, "token_type": "bearer"})
+    except PyJWTError:
+        logger.exception("JWT verification failed for refresh token", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is no longer valid.")
+    
+    except ValueError as e:
+        logger.exception("Error in refresh token processing", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
