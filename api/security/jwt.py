@@ -96,8 +96,8 @@ def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
 
 
 
-@router.post("/api/refresh")
-async def refresh_token_endpoint(
+@router.post("/api/refresh_token/valid")
+async def is_refresh_token_valid_endpoint(
     request: Request, response: Response, db_session: AsyncSession = Depends(get_db)
 ) -> JSONResponse:
     """ Endpoint which returns a access token if the user has a valid refresh token """
