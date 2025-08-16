@@ -34,12 +34,20 @@ class StoreAuthToken:
         """ Returns the ip address from user """
         x_forwarded_for: str | None = self.request.headers.get("x-forwarded-for")
 
-        if x_forwarded_for:
-            ip: str = x_forwarded_for.split(",")[0].strip()
-        else:
-            ip: str = self.request.client.host
+        if x_forwarded_for and not x_forwarded_for == "":
+            ip_address = [ip.strip() for ip in x_forwarded_for.split(",") if ip.strip()]
 
-        return ip
+            if ip_address:
+                return ip_address[0]
+        
+        # Fallback: If no ip address was found in header
+        client_host = getattr(getattr(self.request, "client", None), "host", None)
+        
+        if client_host:
+            return client_host
+        
+        # Return empty string, if no ip address could be found
+        return ""
 
     def _extract_informations(self, ip_address: str) -> Insert:
         """ Returns a SQLAlchemy Insert statement for inserting a record into the Auth table """
