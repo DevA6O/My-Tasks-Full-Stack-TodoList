@@ -92,7 +92,6 @@ class Login:
 @router.post("/api/login")
 async def login_endpoint(request: Request, data: LoginModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
     """ Endpoint to log in a user """
-    import logging
     try:
         # Default http exception
         http_exception = HTTPException(
@@ -109,8 +108,6 @@ async def login_endpoint(request: Request, data: LoginModel, db_session: AsyncSe
                 request=request, user_id=user_obj.id, db_session=db_session, status_code=200
             )
             response = await refresh_service.set_refresh_token()
-            
-            logging.info(response)
             logger.info("User logged in successfully.", extra={"email": data.email})
             return response
         
@@ -118,5 +115,5 @@ async def login_endpoint(request: Request, data: LoginModel, db_session: AsyncSe
         logger.warning(f"Login failed: {message}", extra={"email": data.email})
     except ValueError as e: # Fallback
         logger.exception(str(e), exc_info=True)
-    logging.info("Failed")
+
     raise http_exception
