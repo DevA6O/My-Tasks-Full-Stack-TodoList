@@ -35,7 +35,7 @@ class StoreAuthToken:
         x_forwarded_for: str | None = self.request.headers.get("x-forwarded-for")
 
         if x_forwarded_for:
-            ip: str = x_forwarded_for.split(", ", [])[0].strip()
+            ip: str = x_forwarded_for.split(",")[0].strip()
         else:
             ip: str = self.request.client.host
 
