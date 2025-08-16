@@ -48,7 +48,7 @@ class RefreshTokenService:
             - (str): Refresh token
         """
         # Create token
-        jti_id: uuid.UUID = uuid.UUID
+        jti_id: uuid.UUID = uuid.uuid4()
         refresh_token = create_token(
             data={
                 "sub": str(self.user_id),
@@ -58,7 +58,7 @@ class RefreshTokenService:
         )
 
         # Store the token
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=REFRESH_MAX_AGE)
+        expires_at = int((datetime.now(timezone.utc) + timedelta(seconds=REFRESH_MAX_AGE)).timestamp())
 
         data = AuthTokenDetails(
             user_id=self.user_id, jti_id=jti_id, is_refresh_token=True,
