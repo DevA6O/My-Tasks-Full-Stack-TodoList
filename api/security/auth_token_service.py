@@ -30,7 +30,7 @@ class StoreAuthToken:
         self.data: AuthTokenDetails = data
         self.db_session: AsyncSession = db_session
 
-    def _get_ip_adress(self) -> str:
+    def _get_ip_address(self) -> str:
         """ Returns the ip address from user """
         x_forwarded_for: str | None = self.request.headers.get("x-forwarded-for")
 
@@ -72,7 +72,7 @@ class StoreAuthToken:
 
     async def store_token(self) -> bool:
         """ Stores the auth token into the database """
-        ip_address: str = self._get_ip_adress()
+        ip_address: str = self._get_ip_address()
 
         try:
             # Store the token
