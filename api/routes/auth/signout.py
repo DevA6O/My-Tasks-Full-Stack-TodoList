@@ -21,13 +21,16 @@ logger = logging.getLogger(__name__)
 
 @router.post("/api/signout")
 async def signout_endpoint(
-    request: Request, token: str = Depends(get_bearer_token),
+    request: Request, 
     db_session: AsyncSession = Depends(get_db)
 ) -> None:
     """ Endpoint to logout an user """
     refresh_token = request.cookies.get("refresh_token")
 
+    logger.info(f"Headers: {dict(request.headers)}")
+
     if not refresh_token:
+        logger.info("You are not logged in.")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You are not logged in."
@@ -39,6 +42,7 @@ async def signout_endpoint(
         jti_id: str = payload.get("jti")
 
         if not user_id or not jti_id:
+            logger.info("You could not be identified.")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="You could not be identified."
@@ -51,10 +55,7 @@ async def signout_endpoint(
             )
             result = await db_session.execute(stmt)
 
-            # Check whethter the deletion was successful
-            deletion_obj = result.scalar_one_or_none()
-
-            if deletion_obj:
+            if result.rowcount > 0:
                 await db_session.commit()
                 return JSONResponse(
                     status_code=status.HTTP_200_OK,
@@ -66,6 +67,7 @@ async def signout_endpoint(
     except ValueError as e:
         logger.exception(f"ValueError: {str(e)}", exc_info=True)
 
+    logger.info("An unexpected error occurred: Please try again later.")
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="An unexpected error occurred: Please try again later."
