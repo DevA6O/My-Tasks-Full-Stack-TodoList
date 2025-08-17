@@ -1,9 +1,9 @@
 export default async function signoutUserAPI() {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/signout`, {
         method: "POST",
+        credentials: "include",
         headers: {
-            "Content-Type": "application/json",
-            "credentials": "include"
+            "Content-Type": "application/json"
         }
     })
 
