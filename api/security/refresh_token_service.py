@@ -12,7 +12,7 @@ from security import REFRESH_MAX_AGE, ALGORITHM, SECRET_KEY, SECURE_HTTPS
 from security.jwt import create_token
 from security.auth_token_service import StoreAuthToken, AuthTokenDetails
 from shared.decorators import validate_constructor
-from database.models import User, Auth
+from database.models import Auth
 from database.connection import get_db
 
 router = APIRouter()
