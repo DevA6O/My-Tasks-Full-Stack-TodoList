@@ -164,13 +164,13 @@ class RefreshTokenVerifier:
         result = await self.db_session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def is_valid(self) -> bool:
+    async def is_valid(self) -> Auth:
         """ Validates whether the given refresh token is valid.
 
         Returns:
         --------
         bool
-            Returns True if the token is valid.
+            The auth object
 
         Raises:
         -------
@@ -198,7 +198,7 @@ class RefreshTokenVerifier:
                 logger.warning("Authorization failed: Refresh token is not in the database", extra={
                     "user_id": user_id, "jti_id": jti_id
                 })
-                return self.http_exception
+                raise self.http_exception
             
             return auth_obj
         except SQLAlchemyError as e:
