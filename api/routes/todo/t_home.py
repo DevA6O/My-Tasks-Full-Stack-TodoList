@@ -82,14 +82,15 @@ async def get_all_todos_endpoint(
         )
 
         # Gets the user id from the token
-        user_id: UUID = decode_token(token=token)
+        payload: dict = decode_token(token=token)
+        user_id: str = payload.get("sub")
 
         # If the token has no user id
-        if user_id is None:
+        if not user_id:
             raise http_exception
         
         # Request to get the todos and the username
-        todo_service = TodoHome(db_session=db_session, user_id=user_id)
+        todo_service = TodoHome(db_session=db_session, user_id=UUID(user_id))
         username, todos, error_msg = await todo_service.get_username_with_todos()
 
         # If an error is occurred
