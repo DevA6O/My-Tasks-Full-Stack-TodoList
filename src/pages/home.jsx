@@ -77,6 +77,7 @@ export default function Home() {
     }
 
     const signoutUser = async () => {
+        console.log("Signout button clicked 🚪");
         try {
             await signoutUserAPI();
             window.location.href = "/";
@@ -143,7 +144,10 @@ export default function Home() {
 
                         <div className="flex flex-col font-sans">
                             <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
-                            <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Sign out</button>
+                            <button 
+                                onClick={signoutUser}
+                                className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
+                                >Sign out</button>
                         </div>
                     </aside>
 
@@ -154,7 +158,7 @@ export default function Home() {
                         <div className="flex gap-4 mt-4 sm:mt-0">
                             <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
                             <button 
-                                onClick={signoutUser()}
+                                onClick={signoutUser}
                                 className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
                                 >Sign out</button>
                         </div>
