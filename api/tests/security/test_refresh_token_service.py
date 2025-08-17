@@ -363,6 +363,103 @@ class TestCheckTokenInDb:
             await verifier._check_token_in_db(user_id=self.user.id, jti_id="No an UUID.")
         
 
+class TestIsValidMethod:
+    """ Test class for different test scenarios for is_valid method """
+
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+        """ Set up common test data """
+        self.user, self.db_session = fake_user
+
+        # Mock request
+        self.user_agent_str = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) " \
+        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
+
+        self.mock_request = Mock()
+        self.mock_request.__class__ = Request
+        self.mock_request.headers = {"user-agent": self.user_agent_str}
+        self.mock_request.client.host = "000.000.000.000"
+
+
+    @pytest.mark.asyncio
+    async def test_is_valid_success(self) -> None:
+        """ Tests the success case """
+        # Create and save refresh token
+        service = RefreshTokenService(
+            request=self.mock_request, user_id=self.user.id,
+            db_session=self.db_session
+        )
+        refresh_token: str = await service._create_and_store_refresh_token()
+        assert isinstance(refresh_token, str)
+
+        # Mock cookies in request
+        self.mock_request.cookies = {"refresh_token": refresh_token}
+
+        # Start the test
+        verifier = RefreshTokenVerifier(request=self.mock_request, db_session=self.db_session)
+        auth_obj: Auth = await verifier.is_valid()
+        assert isinstance(auth_obj, Auth)
+
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("user_id, jti_id", [(True, False), (False, True)])
+    async def test_is_valid_failed_because_no_user_or_no_jti(self, user_id: bool, jti_id: bool) -> None:
+        """ Tests the failed case when no user_id or not jti_id is in the payload """
+        # Create a refresh token
+        if user_id:
+            refresh_token = create_token(data={"sub": str(self.user.id)})
+        elif jti_id:
+            refresh_token = create_token(data={"jti": str(uuid.uuid4())})
+
+        self.mock_request.cookies = {"refresh_token": refresh_token}
+
+        # Start the test
+        verifier = RefreshTokenVerifier(request=self.mock_request, db_session=self.db_session)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await verifier.is_valid()
+       
+        assert exc_info.value.status_code == 401
+        assert exc_info.value.detail == "Authorization failed: Invalid token structure."
+
+    
+    @pytest.mark.asyncio
+    async def test_is_valid_failed_because_token_is_not_in_db(self) -> None:
+        """ Tests the failed case when the token is not in the database """
+        refresh_token = create_token(data={"sub": str(self.user.id), "jti": str(uuid.uuid4())})
+        self.mock_request.cookies = {"refresh_token": refresh_token}
+
+        verifier = RefreshTokenVerifier(request=self.mock_request, db_session=self.db_session)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await verifier.is_valid()
+
+        assert exc_info.value.status_code == 401
+        assert exc_info.value.detail == "Authorization failed: Authentication token could not be found."
+
+    
+    @pytest.mark.asyncio
+    async def test_is_valid_failed_because_db_error(self) -> None:
+        """ Tests the failed case when a database error occurrs """
+        # Create token
+        refresh_token = create_token(data={"sub": str(self.user.id), "jti": str(uuid.uuid4())})
+        self.mock_request.cookies = {"refresh_token": refresh_token}
+
+        # Mock database session
+        broken_session = AsyncMock(wraps=self.db_session)
+        broken_session.__class__ = AsyncSession
+        broken_session.execute.side_effect = SQLAlchemyError("Broken database session")
+        
+        # Start the test
+        verifier = RefreshTokenVerifier(request=self.mock_request, db_session=broken_session)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await verifier.is_valid()
+
+        assert exc_info.value.status_code == 401
+        assert exc_info.value.detail == "Authorization failed: An unknown error has occurred. Please try again later."
+
+
 
 
 # class TestIsRefreshTokenValidAPIEndpoint:
