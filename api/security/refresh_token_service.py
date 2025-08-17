@@ -87,6 +87,12 @@ class RefreshTokenService:
         """
         refresh_token = await self._create_and_store_refresh_token()
 
+        if not refresh_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication failed: An unknown error is occurred."
+            )
+
         # Set the cookie in the response
         response = JSONResponse(status_code=self.status_code, content=self.content)
         response.set_cookie(
