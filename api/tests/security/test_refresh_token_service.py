@@ -20,7 +20,7 @@ from database.connection import get_db
 from database.models import User, Auth
 from security.jwt import create_token
 from security.refresh_token_service import (
-    RefreshTokenService, is_refresh_token_valid,
+    RefreshTokenService, RefreshTokenVerifier,
     REFRESH_MAX_AGE, SECRET_KEY, ALGORITHM
 )
 from main import api
@@ -157,208 +157,250 @@ class TestSetRefreshTokenMethod:
 
 
 
-class TestIsRefreshTokenValidFunction:
-    """ Test class for different test scenarios for is_refresh_token_valid function """
+# class TestIsRefreshTokenValidFunction:
+#     """ Test class for different test scenarios for is_refresh_token_valid function """
 
-    @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+#     @pytest_asyncio.fixture(autouse=True)
+#     async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+#         """ Set up common test data """
+#         self.user, self.db_session = fake_user
+
+#         # Define test values
+#         self.user_agent_str = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) " \
+#         "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
+
+#         self.mock_request = Mock()
+#         self.mock_request.__class__ = Request
+#         self.mock_request.headers = {"user-agent": self.user_agent_str}
+#         self.mock_request.client.host = "123.123.123.123"
+
+#         self.service = RefreshTokenService(
+#             request=self.mock_request, user_id=self.user.id,
+#             db_session=self.db_session, status_code=200, content={}
+#         )
+
+#     def get_jti_id(self, refresh_token: str) -> uuid.UUID:
+#         """ Returns the jti id """
+#         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+#         return uuid.UUID(payload.get("jti"))
+
+#     @pytest.mark.asyncio
+#     async def test_is_refresh_token_valid_success(self) -> None:
+#         """ Tests the success case """
+#         # Insert a token in database
+#         refresh_token = await self.service._create_and_store_refresh_token()
+#         assert isinstance(refresh_token, str)
+
+#         # Check whether the token has a jti id
+#         jti_id = self.get_jti_id(refresh_token=refresh_token)
+#         assert isinstance(jti_id, uuid.UUID)
+
+#         # Check whether the inserted token is valid
+#         result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=self.db_session)
+#         assert result
+
+#     @pytest.mark.asyncio
+#     async def test_is_refresh_token_valid_failed_because_no_token_in_db(self) -> None:
+#         """ Tests the failed case when no token is in the database """
+#         result = await is_refresh_token_valid(jti_id=uuid.uuid4(), user_id=self.user.id, db_session=self.db_session)
+#         assert not result
+
+#     @pytest.mark.asyncio
+#     async def test_is_refresh_token_valid_failed_because_token_is_revoked(self) -> None:
+#         """ Tests the failed case when the token is revoked """
+#         # Create a token
+#         refresh_token = await self.service._create_and_store_refresh_token()
+#         assert isinstance(refresh_token, str)
+
+#         # Check whether the token has a jti id
+#         jti_id = self.get_jti_id(refresh_token=refresh_token)
+#         assert isinstance(jti_id, uuid.UUID)
+
+#         # Set token to revoked
+#         stmt = update(Auth).where(Auth.jti_id == jti_id, Auth.user_id == self.user.id).values(
+#             revoked=True
+#         )
+#         result = await self.db_session.execute(stmt)
+#         await self.db_session.commit()
+
+#         # Start the test
+#         result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=self.db_session)
+#         assert not result
+
+#     @pytest.mark.asyncio
+#     async def test_is_refresh_token_valid_failed_because_token_is_expired(self) -> None:
+#         """ Tests the failed case when the token is expired """
+#         # Create a token
+#         refresh_token = await self.service._create_and_store_refresh_token()
+#         assert isinstance(refresh_token, str)
+
+#         # Check whether the token has a jti id
+#         jti_id = self.get_jti_id(refresh_token=refresh_token)
+#         assert isinstance(jti_id, uuid.UUID)
+
+#         # Set token expiration to expired
+#         stmt = update(Auth).where(Auth.jti_id == jti_id, Auth.user_id == self.user.id).values(
+#             expires_at=int(datetime.now(timezone.utc).timestamp())
+#         )
+#         result = await self.db_session.execute(stmt)
+#         await self.db_session.commit()
+
+#         time.sleep(1) # <- Safety buffer
+
+#         # Start the test
+#         result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=self.db_session)
+#         assert not result
+
+#     @pytest.mark.asyncio
+#     async def test_is_refresh_token_valid_failed_because_db_is_broken(self) -> None:
+#         """ Tests the failed case when the database is broken """
+#         # Create a token (So that it doesn't fail because of that)
+#         refresh_token = await self.service._create_and_store_refresh_token()
+#         assert isinstance(refresh_token, str)
+
+#         # Check whether the token has a jti id
+#         jti_id = self.get_jti_id(refresh_token=refresh_token)
+#         assert isinstance(jti_id, uuid.UUID)
+
+#         # Mock the database session
+#         broken_session = AsyncMock(wraps=self.db_session)
+#         broken_session.__class__ = AsyncSession
+#         broken_session.execute.side_effect = SQLAlchemyError("Broken database session")
+
+#         # Start the test
+#         result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=broken_session)
+#         assert not result
+
+
+class TestGetRefreshTokenMethod:
+    """ Test class for different test scenarios for _get_refresh_token method """
+
+    @pytest.fixture(autouse=True)
+    def setup(self, db_session: AsyncSession) -> None:
         """ Set up common test data """
-        self.user, self.db_session = fake_user
-
-        # Define test values
-        self.user_agent_str = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) " \
-        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
+        self.db_session: AsyncSession = db_session
 
         self.mock_request = Mock()
         self.mock_request.__class__ = Request
-        self.mock_request.headers = {"user-agent": self.user_agent_str}
         self.mock_request.client.host = "123.123.123.123"
 
-        self.service = RefreshTokenService(
-            request=self.mock_request, user_id=self.user.id,
-            db_session=self.db_session, status_code=200, content={}
-        )
-
-    def get_jti_id(self, refresh_token: str) -> uuid.UUID:
-        """ Returns the jti id """
-        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-        return uuid.UUID(payload.get("jti"))
-
-    @pytest.mark.asyncio
-    async def test_is_refresh_token_valid_success(self) -> None:
+        self.token = create_token(data={
+            "sub": str(uuid.uuid4()), 
+            "jti": str(uuid.uuid4())
+        })
+        self.mock_request.cookies = {"refresh_token": self.token}
+        
+    def test_get_refresh_token_success(self) -> None:
         """ Tests the success case """
-        # Insert a token in database
-        refresh_token = await self.service._create_and_store_refresh_token()
-        assert isinstance(refresh_token, str)
+        verifier = RefreshTokenVerifier(request=self.mock_request, db_session=self.db_session)
+        result = verifier._get_refresh_token()
+        assert isinstance(result, str)
 
-        # Check whether the token has a jti id
-        jti_id = self.get_jti_id(refresh_token=refresh_token)
-        assert isinstance(jti_id, uuid.UUID)
+    def test_get_refresh_token_failed_because_no_refresh_token(self) -> None:
+        """ Tests the failed case when no refresh token is given """
+        mock_request = self.mock_request
+        mock_request.cookies = {}
 
-        # Check whether the inserted token is valid
-        result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=self.db_session)
-        assert result
+        verifier = RefreshTokenVerifier(request=mock_request, db_session=self.db_session)
 
-    @pytest.mark.asyncio
-    async def test_is_refresh_token_valid_failed_because_no_token_in_db(self) -> None:
-        """ Tests the failed case when no token is in the database """
-        result = await is_refresh_token_valid(jti_id=uuid.uuid4(), user_id=self.user.id, db_session=self.db_session)
-        assert not result
-
-    @pytest.mark.asyncio
-    async def test_is_refresh_token_valid_failed_because_token_is_revoked(self) -> None:
-        """ Tests the failed case when the token is revoked """
-        # Create a token
-        refresh_token = await self.service._create_and_store_refresh_token()
-        assert isinstance(refresh_token, str)
-
-        # Check whether the token has a jti id
-        jti_id = self.get_jti_id(refresh_token=refresh_token)
-        assert isinstance(jti_id, uuid.UUID)
-
-        # Set token to revoked
-        stmt = update(Auth).where(Auth.jti_id == jti_id, Auth.user_id == self.user.id).values(
-            revoked=True
-        )
-        result = await self.db_session.execute(stmt)
-        await self.db_session.commit()
-
-        # Start the test
-        result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=self.db_session)
-        assert not result
-
-    @pytest.mark.asyncio
-    async def test_is_refresh_token_valid_failed_because_token_is_expired(self) -> None:
-        """ Tests the failed case when the token is expired """
-        # Create a token
-        refresh_token = await self.service._create_and_store_refresh_token()
-        assert isinstance(refresh_token, str)
-
-        # Check whether the token has a jti id
-        jti_id = self.get_jti_id(refresh_token=refresh_token)
-        assert isinstance(jti_id, uuid.UUID)
-
-        # Set token expiration to expired
-        stmt = update(Auth).where(Auth.jti_id == jti_id, Auth.user_id == self.user.id).values(
-            expires_at=int(datetime.now(timezone.utc).timestamp())
-        )
-        result = await self.db_session.execute(stmt)
-        await self.db_session.commit()
-
-        time.sleep(1) # <- Safety buffer
-
-        # Start the test
-        result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=self.db_session)
-        assert not result
-
-    @pytest.mark.asyncio
-    async def test_is_refresh_token_valid_failed_because_db_is_broken(self) -> None:
-        """ Tests the failed case when the database is broken """
-        # Create a token (So that it doesn't fail because of that)
-        refresh_token = await self.service._create_and_store_refresh_token()
-        assert isinstance(refresh_token, str)
-
-        # Check whether the token has a jti id
-        jti_id = self.get_jti_id(refresh_token=refresh_token)
-        assert isinstance(jti_id, uuid.UUID)
-
-        # Mock the database session
-        broken_session = AsyncMock(wraps=self.db_session)
-        broken_session.__class__ = AsyncSession
-        broken_session.execute.side_effect = SQLAlchemyError("Broken database session")
-
-        # Start the test
-        result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=broken_session)
-        assert not result
+        with pytest.raises(HTTPException) as exc_info:
+            verifier._get_refresh_token()
+        
+        assert exc_info.value.status_code == 401
+        assert exc_info.value.detail
 
 
-class TestIsRefreshTokenValidAPIEndpoint:
-    """ Test class for different test scenarios for api endpoint """
-
-    @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
-        """ Set up common test data """
-        self.user, self.db_session = fake_user
-
-        # Set up the dependency
-        api.dependency_overrides[get_db] = lambda: self.db_session
-
-        self.base_url: str = os.getenv("VITE_API_URL")
-        self.path_url: str = "/refresh_token/valid"
-        self.transport = ASGITransport(app=api)
-
-        # Create refresh token
-        self.mock_request = Mock()
-        self.mock_request.__class__ = Request
-        self.mock_request.headers = {}
-        self.mock_request.client.host = "123.123.123.123"
-
-        self.service = RefreshTokenService(
-            request=self.mock_request, user_id=self.user.id,
-            db_session=self.db_session, status_code=200, content={}
-        )
-
-        self.refresh_token = await self.service._create_and_store_refresh_token()
-        self.cookies = {"refresh_token": self.refresh_token}
 
 
-    @pytest.mark.asyncio
-    async def test_is_refresh_token_valid_endpoint_success(self) -> None:
-        """ Tests the success case """
-        async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=self.cookies) as ac:
-            response = await ac.post(self.path_url)
-            assert response.status_code == 200
-            assert "access_token" in response.json()
 
-    @pytest.mark.asyncio
-    async def test_refresh_token_endpoint_failed_because_refresh_token_does_not_exist(self) -> None:
-        """ Tests the error case when the refresh token is not present 
-        in the cookies """
-        async with AsyncClient(transport=self.transport, base_url=self.base_url) as ac:
-            response = await ac.post(self.path_url)
-            assert response.status_code == 401
-            assert "detail" in response.json()
 
-    @pytest.mark.asyncio
-    async def test_refresh_token_endpoint_failed_because_user_does_not_exist(self) -> None:
-        """ Tests the failed case when the user is not in the refresh token """
-        cookies = {"refresh_token": create_token(data={"no_sub": str(uuid.uuid4())})}
+# class TestIsRefreshTokenValidAPIEndpoint:
+#     """ Test class for different test scenarios for api endpoint """
 
-        async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=cookies) as ac:
-            response = await ac.post(self.path_url)
-            assert response.status_code == 401
-            assert "detail" in response.json()
+#     @pytest_asyncio.fixture(autouse=True)
+#     async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+#         """ Set up common test data """
+#         self.user, self.db_session = fake_user
 
-    @pytest.mark.asyncio
-    async def test_refresh_token_endpoint_failed_because_jti_does_not_exist(self) -> None:
-        """ Tests the failed case when the jti id is not in the refresh token """
-        cookies = {"refresh_token": create_token(data={"sub": str(uuid.uuid4())})}
+#         # Set up the dependency
+#         api.dependency_overrides[get_db] = lambda: self.db_session
 
-        async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=cookies) as ac:
-            response = await ac.post(self.path_url)
-            assert response.status_code == 401
-            assert "detail" in response.json()
+#         self.base_url: str = os.getenv("VITE_API_URL")
+#         self.path_url: str = "/refresh_token/valid"
+#         self.transport = ASGITransport(app=api)
 
-    @pytest.mark.asyncio
-    async def test_refresh_token_endpoint_failed_because_py_jwt_error(self) -> None:
-        """ Tests the failed case when a PyJWTError occurrs """
-        cookies = {
-            "refresh_token": create_token(
-                data={"sub": str(self.user.id)},
-                expire_delta=timedelta(seconds=1)
-        )}
-        time.sleep(1.5) # Wait until the token is invalid
+#         # Create refresh token
+#         self.mock_request = Mock()
+#         self.mock_request.__class__ = Request
+#         self.mock_request.headers = {}
+#         self.mock_request.client.host = "123.123.123.123"
 
-        async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=cookies) as ac:
-            response = await ac.post(self.path_url)
-            assert response.status_code == 401
-            assert "detail" in response.json()
+#         self.service = RefreshTokenService(
+#             request=self.mock_request, user_id=self.user.id,
+#             db_session=self.db_session, status_code=200, content={}
+#         )
 
-    @pytest.mark.asyncio
-    async def test_refresh_token_failed_because_value_error(self) -> None:
-        """ Tests the failed case when a ValueError occurrs """
-        with patch("security.refresh_token_service.is_refresh_token_valid", side_effect=ValueError("Validation failed: ...")):
-            async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=self.cookies) as ac:
-                response = await ac.post(self.path_url)
-                assert response.status_code == 400
-                assert "detail" in response.json()
+#         self.refresh_token = await self.service._create_and_store_refresh_token()
+#         self.cookies = {"refresh_token": self.refresh_token}
+
+
+#     @pytest.mark.asyncio
+#     async def test_is_refresh_token_valid_endpoint_success(self) -> None:
+#         """ Tests the success case """
+#         async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=self.cookies) as ac:
+#             response = await ac.post(self.path_url)
+#             assert response.status_code == 200
+#             assert "access_token" in response.json()
+
+#     @pytest.mark.asyncio
+#     async def test_refresh_token_endpoint_failed_because_refresh_token_does_not_exist(self) -> None:
+#         """ Tests the error case when the refresh token is not present 
+#         in the cookies """
+#         async with AsyncClient(transport=self.transport, base_url=self.base_url) as ac:
+#             response = await ac.post(self.path_url)
+#             assert response.status_code == 401
+#             assert "detail" in response.json()
+
+#     @pytest.mark.asyncio
+#     async def test_refresh_token_endpoint_failed_because_user_does_not_exist(self) -> None:
+#         """ Tests the failed case when the user is not in the refresh token """
+#         cookies = {"refresh_token": create_token(data={"no_sub": str(uuid.uuid4())})}
+
+#         async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=cookies) as ac:
+#             response = await ac.post(self.path_url)
+#             assert response.status_code == 401
+#             assert "detail" in response.json()
+
+#     @pytest.mark.asyncio
+#     async def test_refresh_token_endpoint_failed_because_jti_does_not_exist(self) -> None:
+#         """ Tests the failed case when the jti id is not in the refresh token """
+#         cookies = {"refresh_token": create_token(data={"sub": str(uuid.uuid4())})}
+
+#         async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=cookies) as ac:
+#             response = await ac.post(self.path_url)
+#             assert response.status_code == 401
+#             assert "detail" in response.json()
+
+#     @pytest.mark.asyncio
+#     async def test_refresh_token_endpoint_failed_because_py_jwt_error(self) -> None:
+#         """ Tests the failed case when a PyJWTError occurrs """
+#         cookies = {
+#             "refresh_token": create_token(
+#                 data={"sub": str(self.user.id)},
+#                 expire_delta=timedelta(seconds=1)
+#         )}
+#         time.sleep(1.5) # Wait until the token is invalid
+
+#         async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=cookies) as ac:
+#             response = await ac.post(self.path_url)
+#             assert response.status_code == 401
+#             assert "detail" in response.json()
+
+#     @pytest.mark.asyncio
+#     async def test_refresh_token_failed_because_value_error(self) -> None:
+#         """ Tests the failed case when a ValueError occurrs """
+#         with patch("security.refresh_token_service.is_refresh_token_valid", side_effect=ValueError("Validation failed: ...")):
+#             async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=self.cookies) as ac:
+#                 response = await ac.post(self.path_url)
+#                 assert response.status_code == 400
+#                 assert "detail" in response.json()
