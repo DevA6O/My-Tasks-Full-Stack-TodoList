@@ -56,9 +56,9 @@ class StoreAuthToken:
         user_agent = parse(user_agent_str)
 
         # Define informations to save
-        device = user_agent.device.family or "Unknown"
-        browser = user_agent.browser.family or "Unknown"
-        os_family = user_agent.os.family or "Unknown"
+        device = user_agent.device.family or "Unknown" # Fallback (Unknown): Normally, it should be "Other"
+        browser = user_agent.browser.family or "Unknown" # Fallback (Unknown): Normally, it should be "Other"
+        os_family = user_agent.os.family or "Unknown" # Fallback (Unknown): Normally, it should be "Other"
 
         # Create database statement
         stmt = (
