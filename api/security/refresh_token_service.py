@@ -12,7 +12,7 @@ from jwt.exceptions import PyJWTError
 from security import REFRESH_MAX_AGE, ALGORITHM, SECRET_KEY, SECURE_HTTPS
 from security.jwt import create_token
 from security.auth_token_service import StoreAuthToken, AuthTokenDetails
-from shared.decorators import validate_constructor
+from shared.decorators import validate_params
 from database.models import Auth
 from database.connection import get_db
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class RefreshTokenService:
-    @validate_constructor
+    @validate_params
     def __init__(
         self, 
         request: Request, user_id: uuid.UUID, db_session: AsyncSession, 
@@ -109,7 +109,7 @@ class RefreshTokenService:
     
 
 
-@validate_constructor # <- Error handler for user_id and db_session
+@validate_params # <- Error handler for user_id and db_session
 async def is_refresh_token_valid(user_id: uuid.UUID, db_session: AsyncSession) -> bool:
     """ Helper-Function to check whether the refresh token is valid or invalid 
     
@@ -119,7 +119,7 @@ async def is_refresh_token_valid(user_id: uuid.UUID, db_session: AsyncSession) -
     """
     try:
         # Start database request to check the state of the token
-        stmt = select(Auth).where(Auth.user_id == uuid.UUID(user_id))
+        stmt = select(Auth).where(Auth.user_id == user_id)
         result = await db_session.execute(stmt)
         result_obj = result.scalar_one_or_none()
 
