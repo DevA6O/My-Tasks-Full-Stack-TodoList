@@ -18,10 +18,10 @@ from typing import Tuple
 
 from database.connection import get_db
 from database.models import User, Auth
-from security.jwt import create_token
+from security.jwt import create_token, decode_token
 from security.refresh_token_service import (
     RefreshTokenService, RefreshTokenVerifier,
-    REFRESH_MAX_AGE, SECRET_KEY, ALGORITHM
+    REFRESH_MAX_AGE
 )
 from main import api
 
@@ -138,8 +138,8 @@ class TestSetRefreshTokenMethod:
             if part.strip().startswith("refresh_token="):
                 refresh_token: str = part.strip().split("=", 1)[1]
 
-                payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-                decoded_user_id = payload.get("sub")
+                payload: dict = decode_token(token=refresh_token)
+                decoded_user_id: str = payload.get("sub")
         
         assert uuid.UUID(decoded_user_id) == self.service.user_id
 
@@ -310,7 +310,58 @@ class TestGetRefreshTokenMethod:
         assert exc_info.value.detail
 
 
+class TestCheckTokenInDb:
+    """ Test class for different test scenarios for _check_token_in_db method """
 
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+        """ Set up common test data """
+        self.user, self.db_session = fake_user
+
+        # Mock request
+        self.user_agent_str = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) " \
+        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
+
+        self.mock_request = Mock()
+        self.mock_request.__class__ = Request
+        self.mock_request.headers = {"user-agent": self.user_agent_str}
+        self.mock_request.client.host = "000.000.000.000"
+
+    @pytest.mark.asyncio
+    async def test_check_token_in_db_success(self) -> None:
+        """ Tests the success case """
+        # Create and save refresh token
+        service = RefreshTokenService(
+            request=self.mock_request, user_id=self.user.id,
+            db_session=self.db_session
+        )
+        refresh_token: str = await service._create_and_store_refresh_token()
+        assert isinstance(refresh_token, str)
+
+        # Get the jti id
+        payload: dict = decode_token(token=refresh_token)
+        jti_id: str = payload.get("jti")
+
+        # Start the test
+        verifier = RefreshTokenVerifier(request=self.mock_request, db_session=self.db_session)
+        auth_obj: Auth = await verifier._check_token_in_db(user_id=self.user.id, jti_id=uuid.UUID(jti_id))
+        assert isinstance(auth_obj, Auth)
+
+    @pytest.mark.asyncio
+    async def test_check_token_in_db_failed_because_no_token_in_db(self) -> None:
+        """ Tests the failed case when no token is in the database """
+        verifier = RefreshTokenVerifier(request=self.mock_request, db_session=self.db_session)
+        auth_obj: None = await verifier._check_token_in_db(user_id=self.user.id, jti_id=uuid.uuid4())
+        assert auth_obj is None
+
+    @pytest.mark.asyncio
+    async def test_check_token_in_db_failed_because_value_error(self) -> None:
+        """ Tests the failed case when a ValueError occurrs """
+        verifier = RefreshTokenVerifier(request=self.mock_request, db_session=self.db_session)
+        
+        with pytest.raises(ValueError):
+            await verifier._check_token_in_db(user_id=self.user.id, jti_id="No an UUID.")
+        
 
 
 
