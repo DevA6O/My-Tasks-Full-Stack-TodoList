@@ -143,10 +143,15 @@ async def handle_todo_request(
 
     try:
         # Extract the user id from token
-        user_id: UUID = decode_token(token=params.token)
+        payload: dict = decode_token(token=params.token)
+        user_id: str = payload.get("sub")
+
+        # Check whether the user ID exists
+        if not user_id:
+            raise ValueError("Token error: User ID is not included in the token.")
 
         # Define service instance and method
-        service = params.service_class(data=data_model, db_session=db_session, user_id=user_id)
+        service = params.service_class(data=data_model, db_session=db_session, user_id=UUID(user_id))
         method = getattr(service, params.service_method)
 
         # Calls the method
