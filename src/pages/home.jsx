@@ -12,6 +12,8 @@ import completeTodoAPI from "./todo/t_completor";
 import EditorModal from "./todo/t_editor";
 import { EditTaskForm } from "./todo/t_editor";
 
+import signoutUserAPI from "./todo/t_signout";
+
 const schema = yup.object().shape({
     title: yup
         .string()
@@ -72,6 +74,16 @@ export default function Home() {
             setError("task", {type: "server", message: error.message, id: error.todoID});
             console.error(error);
         }
+    }
+
+    const signoutUser = async () => {
+        try {
+            await signoutUserAPI();
+            window.location.href = "/";
+        } catch (error) {
+            setError("root", {type: "server", message: error.message});
+            console.log(error);
+        };
     }
 
 
@@ -141,7 +153,10 @@ export default function Home() {
 
                         <div className="flex gap-4 mt-4 sm:mt-0">
                             <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
-                            <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Sign out</button>
+                            <button 
+                                onClick={signoutUser()}
+                                className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
+                                >Sign out</button>
                         </div>
                     </nav>
 
