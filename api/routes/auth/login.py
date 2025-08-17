@@ -11,14 +11,14 @@ from database.models import User
 from database.connection import get_db
 from security.hashing import is_hashed
 from security.refresh_token_service import RefreshTokenService
-from shared.decorators import validate_constructor
+from shared.decorators import validate_params
 from routes.auth.validation_models import LoginModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 class Login:
-    @validate_constructor
+    @validate_params
     def __init__(self, db_session: AsyncSession, data: LoginModel):     
         self.db_session: AsyncSession = db_session
         self.data: LoginModel = data

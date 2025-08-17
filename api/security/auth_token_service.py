@@ -8,7 +8,7 @@ from fastapi import Request
 from user_agents import parse
 from pydantic import BaseModel
 from database.models import Auth
-from shared.decorators import validate_constructor
+from shared.decorators import validate_params
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class AuthTokenDetails(BaseModel):
 
 
 class StoreAuthToken:
-    @validate_constructor
+    @validate_params
     def __init__(self, request: Request, data: AuthTokenDetails, db_session: AsyncSession) -> None:
         # Validate the param
         if not isinstance(request, Request):

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 
 from database.models import User
-from shared.decorators import validate_constructor
+from shared.decorators import validate_params
 
 class TestValidateConstructor:
     """ Test class for different scenarios for the decorator """
@@ -16,7 +16,7 @@ class TestValidateConstructor:
         self.user, self.db_session = fake_user
 
         class DummyService:
-            @validate_constructor
+            @validate_params
             def __init__(self, db_session: AsyncSession = None, user_id: uuid.UUID = None) -> None:
                 self.db_session: AsyncSession = db_session
                 self.user_id: uuid.UUID = user_id
@@ -24,7 +24,7 @@ class TestValidateConstructor:
         self.dummy_service = DummyService
 
     @pytest.mark.asyncio
-    async def test_validate_constructor_with_valid_params(self) -> None:
+    async def test_validate_params_with_valid_params(self) -> None:
         """ Tests the success case with valid params """
         instance = self.dummy_service(db_session=self.db_session, user_id=self.user.id)
         assert instance.db_session == self.db_session
@@ -32,7 +32,7 @@ class TestValidateConstructor:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("invalid_db_session, invalid_user_id", [(True, False), (False, True)])
-    async def test_validate_constructor_with_invalid_params(
+    async def test_validate_params_with_invalid_params(
         self, invalid_db_session: bool, invalid_user_id: bool
     ) -> None:
         """ Tests the failed case when a parameter is set incorrectly """
@@ -44,7 +44,7 @@ class TestValidateConstructor:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("failure_arg", [("db_session"), ("user_id")])
-    async def test_validate_constructor_with_only_one_invalid_param(
+    async def test_validate_params_with_only_one_invalid_param(
         self, failure_arg: str
     ) -> None:
         """ Tests the failed case when only one parameter is set incorrectly """

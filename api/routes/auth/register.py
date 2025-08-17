@@ -11,7 +11,7 @@ from database.connection import get_db
 from .validation_models import RegisterModel
 from security.hashing import hash_pwd
 from security.refresh_token_service import RefreshTokenService
-from shared.decorators import validate_constructor
+from shared.decorators import validate_params
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ class EmailAlreadyRegisteredException(Exception):
 
 
 class Register:
-    @validate_constructor
+    @validate_params
     def __init__(self, db_session: AsyncSession, data: RegisterModel) -> None:
         self.db_session: AsyncSession = db_session
         self.data: RegisterModel = data

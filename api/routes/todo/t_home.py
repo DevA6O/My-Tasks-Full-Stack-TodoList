@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict
 from database.models import User
 from database.connection import get_db
 from security.jwt import decode_token, get_bearer_token
-from shared.decorators import validate_constructor
+from shared.decorators import validate_params
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_UNKNOWN_ERROR_MSG: str = "Unknown user: User could not be indentified."
 
 class TodoHome():
-    @validate_constructor
+    @validate_params
     def __init__(self, db_session: AsyncSession, user_id: UUID) -> None:
         self.user_id: UUID = user_id
         self.db_session: AsyncSession = db_session
