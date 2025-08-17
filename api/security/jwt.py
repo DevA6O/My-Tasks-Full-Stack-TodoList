@@ -30,28 +30,21 @@ def get_bearer_token(authorization: str = Header(None)) -> str:
     return authorization[len("Bearer "):]
 
 
-def decode_token(token: str) -> uuid.UUID:
+def decode_token(token: str) -> dict:
     """ Function to decode the token 
     
     Returns:
     --------
-        - (UUID): The user_id from token
+        - (dict): The payload or an empty dict
     """
     try:
         # Decode the token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-
-        # Check whether the user was found
-        if user_id is None:
-            raise ValueError("User could not be found.")
-        
-        # Return user id
-        user_id = uuid.UUID(user_id)
-        return user_id
+        return payload
     except PyJWTError as e:
         logger.exception(f"JWT verification failed: {str(e)}", exc_info=True)
-        return None
+    
+    return {}
 
 
 def create_token(data: dict, expire_delta: timedelta | None = None) -> str:
