@@ -164,8 +164,8 @@ async def is_refresh_token_valid_endpoint(
         user_id = payload.get("sub")
         
         # Check whether sub exists
-        if not user_id:
-            logger.warning("User not found in database for refresh token", extra={"user_id": user_id})
+        if not user_id or not jti_id:
+            logger.warning("User / JTI_ID not found in refresh token", extra={"user_id": user_id})
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User could not be identified.")
         
         # Check whether the token is invalid
