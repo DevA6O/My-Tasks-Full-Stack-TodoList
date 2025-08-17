@@ -40,15 +40,8 @@ class TestDecodeToken:
         user_id: uuid.UUID = uuid.uuid4()
         token: str = create_token(data={"sub": str(user_id)})
         
-        result = decode_token(token=token)
-        assert result == user_id
-
-    def test_decode_token_failed_because_value_error(self) -> None:
-        """ Tests the failed case when a ValueError occurrs """
-        token: str = create_token(data={"no_sub": str(uuid.uuid4())})
-        
-        with pytest.raises(ValueError):
-            decode_token(token=token)
+        payload: dict = decode_token(token=token)
+        assert uuid.UUID(payload.get("sub")) == user_id
 
     def test_decode_token_failed_because_py_jwt_error(self) -> None:
         """ Tests the failed case when a PyJWTError occurrs """
@@ -56,7 +49,7 @@ class TestDecodeToken:
         time.sleep(1.5) # Wait until the token is expired (invalid)
 
         result = decode_token(token=token)
-        assert result is None
+        assert not result
 
 
 class TestCreateToken:
