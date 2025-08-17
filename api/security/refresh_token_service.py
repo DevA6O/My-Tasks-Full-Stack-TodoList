@@ -156,8 +156,8 @@ class RefreshTokenVerifier:
 
         # Database query
         stmt = select(Auth).where(
-            Auth.user_id == self.user_id,
-            Auth.jti_id == self.jti_id,
+            Auth.user_id == user_id,
+            Auth.jti_id == jti_id,
             Auth.revoked == False,
             Auth.expires_at > int(datetime.now(timezone.utc).timestamp())
         )
@@ -179,7 +179,7 @@ class RefreshTokenVerifier:
         """
         refresh_token: str = self._get_refresh_token()
         payload: dict = decode_token(token=refresh_token)
-        user_id: str = payload.get("user_id")
+        user_id: str = payload.get("sub")
         jti_id: str = payload.get("jti")
 
         try:
