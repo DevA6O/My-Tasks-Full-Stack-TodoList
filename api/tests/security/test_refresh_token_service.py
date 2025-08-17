@@ -1,5 +1,4 @@
 import os
-import jwt
 import json
 import uuid
 import time
@@ -10,7 +9,7 @@ from httpx import ASGITransport, AsyncClient
 from unittest.mock import AsyncMock, Mock, patch
 from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timedelta, timezone
