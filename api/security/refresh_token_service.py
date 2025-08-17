@@ -110,7 +110,7 @@ class RefreshTokenService:
 
 
 @validate_params # <- Error handler for user_id and db_session
-async def is_refresh_token_valid(user_id: uuid.UUID, db_session: AsyncSession) -> bool:
+async def is_refresh_token_valid(jti_id: uuid.UUID, user_id: uuid.UUID, db_session: AsyncSession) -> bool:
     """ Helper-Function to check whether the refresh token is valid or invalid 
     
     Returns:
@@ -118,8 +118,12 @@ async def is_refresh_token_valid(user_id: uuid.UUID, db_session: AsyncSession) -
         - A boolean
     """
     try:
+        # Validate param
+        if not isinstance(jti_id, uuid.UUID):
+            raise ValueError("jti_id must be an UUID.")
+
         # Start database request to check the state of the token
-        stmt = select(Auth).where(Auth.user_id == user_id)
+        stmt = select(Auth).where(Auth.jti_id == jti_id, Auth.user_id == user_id)
         result = await db_session.execute(stmt)
         auth_obj = result.scalar_one_or_none()
 
@@ -156,6 +160,7 @@ async def is_refresh_token_valid_endpoint(
     try:
         # Decode the refresh token
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        jti_id = payload.get("jti")
         user_id = payload.get("sub")
         
         # Check whether sub exists
@@ -164,7 +169,7 @@ async def is_refresh_token_valid_endpoint(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User could not be identified.")
         
         # Check whether the token is invalid
-        if not await is_refresh_token_valid(user_id=user_id, db_session=db_session):
+        if not await is_refresh_token_valid(jti_id=uuid.UUID(jti_id), user_id=uuid.UUID(user_id), db_session=db_session):
             logger.warning("Token is revoked or expired.", extra={"user_id": user_id})
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is invalid.")
 
@@ -175,5 +180,5 @@ async def is_refresh_token_valid_endpoint(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is no longer valid.")
     
     except ValueError as e:
-        logger.exception("Error in refresh token processing", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.exception(f"Error in refresh token processing: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="An unknown error occurred. Please try again later.")

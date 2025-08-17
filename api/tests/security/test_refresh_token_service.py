@@ -172,6 +172,11 @@ class TestIsRefreshTokenValidFunction:
             db_session=self.db_session, status_code=200, content={}
         )
 
+    def get_jti_id(self, refresh_token: str) -> uuid.UUID:
+        """ Returns the jti id """
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        return uuid.UUID(payload.get("jti"))
+
     @pytest.mark.asyncio
     async def test_is_refresh_token_valid_success(self) -> None:
         """ Tests the success case """
@@ -179,14 +184,18 @@ class TestIsRefreshTokenValidFunction:
         refresh_token = await self.service._create_and_store_refresh_token()
         assert isinstance(refresh_token, str)
 
+        # Check whether the token has a jti id
+        jti_id = self.get_jti_id(refresh_token=refresh_token)
+        assert isinstance(jti_id, uuid.UUID)
+
         # Check whether the inserted token is valid
-        result = await is_refresh_token_valid(user_id=self.user.id, db_session=self.db_session)
+        result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=self.db_session)
         assert result
 
     @pytest.mark.asyncio
     async def test_is_refresh_token_valid_failed_because_no_token_in_db(self) -> None:
         """ Tests the failed case when no token is in the database """
-        result = await is_refresh_token_valid(user_id=self.user.id, db_session=self.db_session)
+        result = await is_refresh_token_valid(jti_id=uuid.uuid4(), user_id=self.user.id, db_session=self.db_session)
         assert not result
 
     @pytest.mark.asyncio
@@ -196,15 +205,19 @@ class TestIsRefreshTokenValidFunction:
         refresh_token = await self.service._create_and_store_refresh_token()
         assert isinstance(refresh_token, str)
 
+        # Check whether the token has a jti id
+        jti_id = self.get_jti_id(refresh_token=refresh_token)
+        assert isinstance(jti_id, uuid.UUID)
+
         # Set token to revoked
-        stmt = update(Auth).where(Auth.user_id == self.user.id).values(
+        stmt = update(Auth).where(Auth.jti_id == jti_id, Auth.user_id == self.user.id).values(
             revoked=True
         )
         result = await self.db_session.execute(stmt)
         await self.db_session.commit()
 
         # Start the test
-        result = await is_refresh_token_valid(user_id=self.user.id, db_session=self.db_session)
+        result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=self.db_session)
         assert not result
 
     @pytest.mark.asyncio
@@ -214,8 +227,12 @@ class TestIsRefreshTokenValidFunction:
         refresh_token = await self.service._create_and_store_refresh_token()
         assert isinstance(refresh_token, str)
 
+        # Check whether the token has a jti id
+        jti_id = self.get_jti_id(refresh_token=refresh_token)
+        assert isinstance(jti_id, uuid.UUID)
+
         # Set token expiration to expired
-        stmt = update(Auth).where(Auth.user_id == self.user.id).values(
+        stmt = update(Auth).where(Auth.jti_id == jti_id, Auth.user_id == self.user.id).values(
             expires_at=int(datetime.now(timezone.utc).timestamp())
         )
         result = await self.db_session.execute(stmt)
@@ -224,7 +241,7 @@ class TestIsRefreshTokenValidFunction:
         time.sleep(1) # <- Safety buffer
 
         # Start the test
-        result = await is_refresh_token_valid(user_id=self.user.id, db_session=self.db_session)
+        result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=self.db_session)
         assert not result
 
     @pytest.mark.asyncio
@@ -234,11 +251,15 @@ class TestIsRefreshTokenValidFunction:
         refresh_token = await self.service._create_and_store_refresh_token()
         assert isinstance(refresh_token, str)
 
+        # Check whether the token has a jti id
+        jti_id = self.get_jti_id(refresh_token=refresh_token)
+        assert isinstance(jti_id, uuid.UUID)
+
         # Mock the database session
         broken_session = AsyncMock(wraps=self.db_session)
         broken_session.__class__ = AsyncSession
         broken_session.execute.side_effect = SQLAlchemyError("Broken database session")
 
         # Start the test
-        result = await is_refresh_token_valid(user_id=self.user.id, db_session=broken_session)
+        result = await is_refresh_token_valid(jti_id=jti_id, user_id=self.user.id, db_session=broken_session)
         assert not result
