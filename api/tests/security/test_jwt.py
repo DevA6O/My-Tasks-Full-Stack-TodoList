@@ -93,59 +93,6 @@ class TestCreateToken:
             create_token(data={"sub": str(uuid.uuid4())}, expire_delta=False)
 
 
-# class TestSetRefreshToken:
-#     """ Test class for different test scenarios for the set_refresh_token function """
-
-#     @pytest.mark.parametrize("secure_https", [(True), (False), (None)])
-#     def test_set_refresh_token_success(self, secure_https: bool, monkeypatch) -> None:
-#         """ Tests the success case """
-#         # Manipulate the .env variable SECURE_HTTPS
-#         if secure_https:
-#             monkeypatch.setenv("SECURE_HTTPS", str(secure_https).lower())
-#         elif secure_https is None or not secure_https:
-#             monkeypatch.delenv("SECURE_HTTPS", raising=False)
-
-#         # Sets the refresh token
-#         response: JSONResponse = set_refresh_token(user_id=uuid.uuid4())
-#         assert response.status_code == 200
-
-#         # Checks whether the cookie is set correctly
-#         cookie = response.headers["set-cookie"]
-
-#         assert "set-cookie" in response.headers
-#         assert "refresh_token" in cookie
-#         assert "HttpOnly" in cookie
-#         assert "Path=/" in cookie
-#         assert "SameSite=lax" in cookie
-#         assert f"Max-Age={REFRESH_MAX_AGE}" in cookie
-        
-#         if secure_https:
-#             assert "Secure" in cookie
-#         else:
-#             assert "Secure" not in cookie
-
-
-#     def test_set_refresh_token_success_but_only_test_param_values(self) -> None:
-#         """ Tests the success case but it will only check whether 
-#         the function params are set correctly """
-#         user_id: uuid.UUID = uuid.uuid4()
-#         status_code: int = 510 # Intenionally use an unusual status code
-#         content: dict = {"message": "Successfully added: Refresh token successfully added."}
-
-#         response: JSONResponse = set_refresh_token(user_id=user_id, status_code=status_code, content=content)
-#         assert response.status_code == status_code
-#         assert json.loads(response.body.decode("utf-8")) == content
-
-#         # Gets the refresh token and decodes the token
-#         for part in response.headers["set-cookie"].split(";"):
-#             if part.strip().startswith("refresh_token="):
-#                 refresh_token: str = part.strip().split("=", 1)[1]
-
-#                 decoded_user_id = decode_token(token=refresh_token)
-        
-#         assert decoded_user_id == user_id
-
-
 #     @pytest.mark.parametrize(
 #         "valid_user_id, valid_status_code, valid_content",
 #         [
