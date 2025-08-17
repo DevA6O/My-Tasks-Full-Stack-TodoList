@@ -1,18 +1,9 @@
-import os
 import jwt
-import json
 import uuid
 import time
 import pytest
-import pytest_asyncio
 from datetime import datetime, timezone, timedelta
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Tuple
 
-from database.models import User
-from database.connection import get_db
-from main import api
 from security.jwt import (
     SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES,
     get_bearer_token, decode_token, create_token

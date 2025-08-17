@@ -3,12 +3,10 @@ import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
 from httpx import AsyncClient, ASGITransport
-from pydantic import ValidationError
-from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import patch, AsyncMock, Mock
-from typing import Optional, Tuple
+from typing import Tuple
 
 from database.models import User
 from database.connection import get_db
