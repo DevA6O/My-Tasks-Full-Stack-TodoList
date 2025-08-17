@@ -121,15 +121,15 @@ async def is_refresh_token_valid(user_id: uuid.UUID, db_session: AsyncSession) -
         # Start database request to check the state of the token
         stmt = select(Auth).where(Auth.user_id == user_id)
         result = await db_session.execute(stmt)
-        result_obj = result.scalar_one_or_none()
+        auth_obj = result.scalar_one_or_none()
 
         # Check whether no token was found
-        if result_obj is None:
+        if auth_obj is None:
             return False
 
         # Get values
-        is_revoked = result_obj.revoked
-        is_expired = result_obj.expires_at
+        is_revoked = auth_obj.revoked
+        is_expired = auth_obj.expires_at
 
         # Check whether the token is revoked or expired
         if is_revoked or (is_expired < datetime.now(timezone.utc).timestamp()):
