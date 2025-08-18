@@ -77,12 +77,11 @@ export default function Home() {
     }
 
     const signoutUser = async () => {
-        console.log("Signout button clicked 🚪");
         try {
             await signoutUserAPI();
             window.location.href = "/";
         } catch (error) {
-            setError("root", {type: "server", message: error.message});
+            setError("signout", {type: "server", message: error.message});
             console.log(error);
         };
     }
@@ -163,6 +162,17 @@ export default function Home() {
                                 >Sign out</button>
                         </div>
                     </nav>
+
+                    {/* Display signout error */}
+                    {errors.signout && (
+                        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full px-4">
+                            <div className="flex items-center justify-between gap-4 p-4 bg-red-100 border border-red-400 text-red-800 rounded shadow-md">
+                                <p data-testid="signout-error" className="font-bold text-sm sm:text-base break-words text-center w-full">
+                                    {errors.signout.message}
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Main content */}
                     <main className="flex-1 pt-40 pl-5 sm:pl-10 md:pl-10 lg:pt-30 lg:ml-80">
