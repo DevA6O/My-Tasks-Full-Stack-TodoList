@@ -203,6 +203,7 @@ class RefreshTokenVerifier:
             return auth_obj
         except SQLAlchemyError as e:
             logger.exception(f"Database error: {str(e)}", exc_info=True)
+            self.http_exception.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
         self.http_exception.detail = "Authorization failed: An unknown error has occurred. Please try again later."
         raise self.http_exception

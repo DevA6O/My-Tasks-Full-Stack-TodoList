@@ -34,6 +34,7 @@ async def signout_endpoint(request: Request, db_session: AsyncSession = Depends(
             )
     except SQLAlchemyError as e:
         logger.exception(f"Database error: {str(e)}", exc_info=True)
+        http_exception.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
     except ValueError as e:
         logger.exception(f"ValueError: {str(e)}", exc_info=True)
