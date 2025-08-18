@@ -12,7 +12,7 @@ import completeTodoAPI from "./todo/t_completor";
 import EditorModal from "./todo/t_editor";
 import { EditTaskForm } from "./todo/t_editor";
 
-import signoutUserAPI from "./todo/t_signout";
+import signoutUserAPI from "./t_signout";
 
 const schema = yup.object().shape({
     title: yup
