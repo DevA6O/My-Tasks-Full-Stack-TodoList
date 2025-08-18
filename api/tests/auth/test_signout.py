@@ -3,6 +3,7 @@ import pytest
 import pytest_asyncio
 from uuid import UUID
 from dotenv import load_dotenv
+from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -86,10 +87,19 @@ class TestSignoutAPIEnpoint:
         broken_session.commit.side_effect = SQLAlchemyError("Broken database session")
         
         # Overwrite dependency
-        api.dependency_overrides.clear()
         api.dependency_overrides[get_db] = lambda: broken_session
 
-        with patch("routes.auth.signout.RefreshTokenVerifier.is_valid", new=AsyncMock(return_value=Auth)):
+        # Create fake auth object
+        mock_auth_obj = Auth(
+            user_id=self.user.id,
+            jti_id=UUID("12345678-1234-1234-1234-123456789abc"),
+            revoked=False,
+            expires_at=int(datetime.now(timezone.utc).timestamp()) + 1000,
+            is_refresh_token=True
+        )
+
+        # Start the test
+        with patch("routes.auth.signout.RefreshTokenVerifier.is_valid", new=AsyncMock(return_value=mock_auth_obj)):
             async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=self.cookies) as ac:
                 response = await ac.post(self.path_url)
                 assert response.status_code == 503
