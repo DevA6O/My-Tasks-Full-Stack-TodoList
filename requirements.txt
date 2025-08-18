@@ -9,3 +9,5 @@ aiosqlite
 pytest
 pytest-asyncio
 httpx
+user-agents
+ua-parser

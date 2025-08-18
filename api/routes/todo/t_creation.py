@@ -9,7 +9,7 @@ from typing import Tuple
 from database.models import Todo
 from database.connection import get_db
 from security.jwt import get_bearer_token
-from shared.decorators import validate_constructor
+from shared.decorators import validate_params
 from routes.todo.t_utils import (
     run_todo_db_statement, RunTodoDbStatementContext,
     handle_todo_request
@@ -27,7 +27,7 @@ DEFAULT_UPDATE_FAILED_MSG: str = "Creation failed: Todo could not be created for
 
 class TodoCreation:
     """ Class to create a new Todo """
-    @validate_constructor
+    @validate_params
     def __init__(self, data: TodoCreationModel, user_id: UUID, db_session: AsyncSession) -> None:
         # Define the params for the class global
         self.db_session: AsyncSession = db_session

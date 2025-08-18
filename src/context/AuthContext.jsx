@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         async function refreshToken() {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/refresh`, {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/token/refresh/valid`, {
                     method: "POST",
                     credentials: "include",
                     headers: {"Content-Type": "application/json"}

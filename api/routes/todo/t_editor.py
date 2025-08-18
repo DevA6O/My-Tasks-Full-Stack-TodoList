@@ -9,7 +9,7 @@ from typing import Tuple
 from database.models import Todo
 from database.connection import get_db
 from security.jwt import get_bearer_token
-from shared.decorators import validate_constructor
+from shared.decorators import validate_params
 from routes.todo.t_validation_models import TodoEditorModel, TodoExistCheckModel
 from routes.todo.t_utils import (
     run_todo_db_statement, RunTodoDbStatementContext,
@@ -23,7 +23,7 @@ DEFAULT_UPDATE_FAILED_MSG: str = "Update failed: Todo could not be updated for t
 "Please try again later."
 
 class TodoEditor:
-    @validate_constructor
+    @validate_params
     def __init__(self, data: TodoEditorModel, user_id: UUID, db_session: AsyncSession) -> None:
         # Defines the class params globally
         self.db_session: AsyncSession = db_session

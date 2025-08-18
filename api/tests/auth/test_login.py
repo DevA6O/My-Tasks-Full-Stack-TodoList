@@ -2,9 +2,8 @@ import os
 import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
-from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Tuple, Optional, Union
+from typing import Tuple
 from httpx import AsyncClient, ASGITransport
 
 from database.models import User

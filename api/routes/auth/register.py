@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, insert, exists
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -9,9 +9,9 @@ from typing import Tuple
 from database.models import User
 from database.connection import get_db
 from .validation_models import RegisterModel
-from security.jwt import set_refresh_token
 from security.hashing import hash_pwd
-from shared.decorators import validate_constructor
+from security.refresh_token_service import RefreshTokenService
+from shared.decorators import validate_params
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ class EmailAlreadyRegisteredException(Exception):
 
 
 class Register:
-    @validate_constructor
+    @validate_params
     def __init__(self, db_session: AsyncSession, data: RegisterModel) -> None:
         self.db_session: AsyncSession = db_session
         self.data: RegisterModel = data
@@ -106,7 +106,7 @@ class Register:
 
 
 @router.post("/api/register")
-async def register_endpoint(data: RegisterModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
+async def register_endpoint(request: Request, data: RegisterModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
     """ Endpoint to register a new user """
     try:
         # Default http exception
@@ -123,7 +123,10 @@ async def register_endpoint(data: RegisterModel, db_session: AsyncSession = Depe
         logger.info(str(msg), extra={"email": data.email})
 
         if user_obj:
-            return set_refresh_token(user_id=user_obj.id, status_code=201)
+            refresh_service = RefreshTokenService(
+                request=request, user_id=user_obj.id, db_session=db_session, status_code=201
+            )
+            return await refresh_service.set_refresh_token()
     except EmailAlreadyRegisteredException as e:
         http_exception.status_code = status.HTTP_409_CONFLICT
         http_exception.detail = str(e)

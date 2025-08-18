@@ -12,6 +12,8 @@ import completeTodoAPI from "./todo/t_completor";
 import EditorModal from "./todo/t_editor";
 import { EditTaskForm } from "./todo/t_editor";
 
+import signoutUserAPI from "./t_signout";
+
 const schema = yup.object().shape({
     title: yup
         .string()
@@ -74,6 +76,16 @@ export default function Home() {
         }
     }
 
+    const signoutUser = async () => {
+        try {
+            await signoutUserAPI();
+            window.location.href = "/";
+        } catch (error) {
+            setError("signout", {type: "server", message: error.message});
+            console.log(error);
+        };
+    }
+
 
     useEffect(() => {
         // Wait for the access token
@@ -131,7 +143,10 @@ export default function Home() {
 
                         <div className="flex flex-col font-sans">
                             <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
-                            <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Sign out</button>
+                            <button 
+                                onClick={signoutUser}
+                                className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
+                                >Sign out</button>
                         </div>
                     </aside>
 
@@ -141,9 +156,23 @@ export default function Home() {
 
                         <div className="flex gap-4 mt-4 sm:mt-0">
                             <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
-                            <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Sign out</button>
+                            <button 
+                                onClick={signoutUser}
+                                className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
+                                >Sign out</button>
                         </div>
                     </nav>
+
+                    {/* Display signout error */}
+                    {errors.signout && (
+                        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full px-4">
+                            <div className="flex items-center justify-between gap-4 p-4 bg-red-100 border border-red-400 text-red-800 rounded shadow-md">
+                                <p data-testid="signout-error" className="font-bold text-sm sm:text-base break-words text-center w-full">
+                                    {errors.signout.message}
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Main content */}
                     <main className="flex-1 pt-40 pl-5 sm:pl-10 md:pl-10 lg:pt-30 lg:ml-80">

@@ -9,7 +9,7 @@ from typing import Tuple
 from database.models import Todo
 from database.connection import get_db
 from security.jwt import get_bearer_token
-from shared.decorators import validate_constructor
+from shared.decorators import validate_params
 from routes.todo.t_validation_models import TodoDeletionModel, TodoExistCheckModel
 from routes.todo.t_utils import (
     run_todo_db_statement, RunTodoDbStatementContext,
@@ -23,7 +23,7 @@ DEFAULT_DELETION_ERROR_MSG: str = "Deletion failed: Todo could not be deleted fo
 "Please try again later."
 
 class TodoDeletion:
-    @validate_constructor
+    @validate_params
     def __init__(self, data: TodoDeletionModel, user_id: UUID, db_session: AsyncSession) -> None:
         self.data: TodoDeletionModel = data
         self.user_id: UUID = user_id

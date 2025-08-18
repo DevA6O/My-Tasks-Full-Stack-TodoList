@@ -1,6 +1,6 @@
 import bcrypt
 import logging
-from fastapi import HTTPException, status, APIRouter, Depends
+from fastapi import HTTPException, status, APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -10,15 +10,15 @@ from typing import Tuple
 from database.models import User
 from database.connection import get_db
 from security.hashing import is_hashed
-from security.jwt import set_refresh_token
-from shared.decorators import validate_constructor
+from security.refresh_token_service import RefreshTokenService
+from shared.decorators import validate_params
 from routes.auth.validation_models import LoginModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 class Login:
-    @validate_constructor
+    @validate_params
     def __init__(self, db_session: AsyncSession, data: LoginModel):     
         self.db_session: AsyncSession = db_session
         self.data: LoginModel = data
@@ -90,7 +90,7 @@ class Login:
     
 
 @router.post("/api/login")
-async def login_endpoint(data: LoginModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
+async def login_endpoint(request: Request, data: LoginModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
     """ Endpoint to log in a user """
     try:
         # Default http exception
@@ -104,7 +104,10 @@ async def login_endpoint(data: LoginModel, db_session: AsyncSession = Depends(ge
         user_obj, message = await login_service.authenticate()
 
         if user_obj: # Checks whether the credentials are correct
-            response: JSONResponse = set_refresh_token(user_id=user_obj.id, status_code=200)
+            refresh_service = RefreshTokenService(
+                request=request, user_id=user_obj.id, db_session=db_session, status_code=200
+            )
+            response = await refresh_service.set_refresh_token()
             logger.info("User logged in successfully.", extra={"email": data.email})
             return response
         
@@ -112,5 +115,5 @@ async def login_endpoint(data: LoginModel, db_session: AsyncSession = Depends(ge
         logger.warning(f"Login failed: {message}", extra={"email": data.email})
     except ValueError as e: # Fallback
         logger.exception(str(e), exc_info=True)
-    
+
     raise http_exception
