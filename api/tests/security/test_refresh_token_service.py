@@ -339,7 +339,7 @@ class TestIsValidMethod:
         with pytest.raises(HTTPException) as exc_info:
             await verifier.is_valid()
 
-        assert exc_info.value.status_code == 401
+        assert exc_info.value.status_code == 503
         assert exc_info.value.detail == "Authorization failed: An unknown error has occurred. Please try again later."
 
 
