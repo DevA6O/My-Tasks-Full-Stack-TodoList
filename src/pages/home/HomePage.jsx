@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import HomePageNavigation from "./H_Navigation";
 import HomePageAddTodo from "./H_AddTodo";
 import HomePageManageAndDisplayTodos from "./H_ManageAndDisplayTodos";
+import LoadingScreen from "../../components/LoadingScreen";
 
 
 export default function HomePage() {
@@ -57,6 +58,8 @@ export default function HomePage() {
 
     return (
         <>
+            {isLoading && <LoadingScreen />}
+
             {!isLoading && (
                 <>
                     {/* Side- & Navbar */}
