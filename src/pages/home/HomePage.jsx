@@ -62,7 +62,7 @@ export default function HomePage() {
                     {/* Side- & Navbar */}
                     <HomePageNavigation />
 
-                    <main className="flex-1 pt-40 pl-5 sm:pl-10 md:pl-10 lg:pt-30 lg:ml-80">
+                    <main data-testid="homepage-main-content" className="flex-1 pt-40 pl-5 sm:pl-10 md:pl-10 lg:pt-30 lg:ml-80">
                         <div>
                             <h1 className="font-semibold text-2xl md:text-3xl">Welcome back, {username}!</h1>
                             <p className="md:text-lg">Ready to do a task or add a new one?</p>
