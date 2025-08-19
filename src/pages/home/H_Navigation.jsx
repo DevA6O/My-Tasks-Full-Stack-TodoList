@@ -11,8 +11,13 @@ export async function signoutUserAPI() {
     });
     
     if (!response.ok) {
-        const errorMsg = await response.json();
-        throw new Error(errorMsg || "Signout failed: An unexpected error occurred.");
+        const json = await response.json();
+        const errorMessage = 
+            typeof json === "string"
+                ? json
+                : json?.message || "Signout failed: An unexpected error occurred.";
+
+        throw new Error(errorMessage);
     };
 };
 
@@ -38,6 +43,7 @@ export default function HomePageNavigation() {
                     <div className="flex flex-col font-sans">
                         <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
                         <button 
+                            data-testid="HomePageNavigation-Desktop-Submit-Button"
                             onClick={signoutUser}
                             className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
                             >Sign out</button>
@@ -51,6 +57,7 @@ export default function HomePageNavigation() {
                     <div className="flex gap-4 mt-4 sm:mt-0">
                         <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
                         <button 
+                            data-testid="HomePageNavigation-Mobile-Submit-Button"
                             onClick={signoutUser}
                             className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
                             >Sign out</button>
