@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitForElementToBeRemoved } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { setMockUseAuth } from "../../helper/mockUseAuth";
@@ -7,9 +7,11 @@ import HomePage from "../../../pages/home/homepage";
 
 
 describe(HomePage, async () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         setMockUseAuth({accessToken: "fake-token", loading: false});
         render(<HomePage />);
+        
+        await waitForElementToBeRemoved(() => screen.queryByTestId("loading-text"));
     });
 
     it("HomePage shows elements correctly", async () => {
