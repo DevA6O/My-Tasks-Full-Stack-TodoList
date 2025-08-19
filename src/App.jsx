@@ -4,7 +4,6 @@ import { useAuth } from "./context/AuthContext";
 import { ToastContainer, Slide } from "react-toastify";
 import LoadingScreen from "./components/LoadingScreen";
 
-import Home from "./pages/home";
 import Register from "./pages/auth/Register";
 import Login from "./pages/auth/Login";
 import HomePage from "./pages/home/homepage";
@@ -46,8 +45,7 @@ export default function App() {
         <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
         <Route path="/login" element={<AuthRoute><Login /></AuthRoute>}/>
 
-        <Route path="/" element={<Home />} />
-        <Route path="/home" element={<HomePage />} />
+        <Route path="/" element={<HomePage />} />
       </Routes>
 
       <ToastContainer
