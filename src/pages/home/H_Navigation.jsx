@@ -30,32 +30,33 @@ export default function HomePageNavigation() {
 
     return (
         <>
-            {/* Desktop - Sidebar */}
-            <aside className="hidden lg:flex flex-col justify-between fixed top-0 left-0 h-screen items-center w-64 p-16 bg-gray-500/20 border-r-4 border-gray-300">
-                <h1 className="font-bold text-2xl">MyTasks</h1>
+            <div data-testid="HomePageNavigation">
+                {/* Desktop - Sidebar */}
+                <aside className="hidden lg:flex flex-col justify-between fixed top-0 left-0 h-screen items-center w-64 p-16 bg-gray-500/20 border-r-4 border-gray-300">
+                    <h1 className="font-bold text-2xl">MyTasks</h1>
 
-                <div className="flex flex-col font-sans">
-                    <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
-                    <button 
-                        onClick={signoutUser}
-                        className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
-                        >Sign out</button>
-                </div>
-            </aside>
+                    <div className="flex flex-col font-sans">
+                        <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
+                        <button 
+                            onClick={signoutUser}
+                            className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
+                            >Sign out</button>
+                    </div>
+                </aside>
 
-            {/* iPhone & iPads - Navbar */}
-            <nav className="lg:hidden fixed top-0 left-0 right-0 flex flex-col sm:flex-row justify-between p-6 sm:p-10 bg-gray-200 border-b-2">
-                <h1 className="font-bold text-2xl">MyTasks</h1>
+                {/* iPhone & iPads - Navbar */}
+                <nav className="lg:hidden fixed top-0 left-0 right-0 flex flex-col sm:flex-row justify-between p-6 sm:p-10 bg-gray-200 border-b-2">
+                    <h1 className="font-bold text-2xl">MyTasks</h1>
 
-                <div className="flex gap-4 mt-4 sm:mt-0">
-                    <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
-                    <button 
-                        onClick={signoutUser}
-                        className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
-                        >Sign out</button>
-                </div>
-            </nav>
+                    <div className="flex gap-4 mt-4 sm:mt-0">
+                        <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
+                        <button 
+                            onClick={signoutUser}
+                            className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
+                            >Sign out</button>
+                    </div>
+                </nav>
+            </div>
         </>
-        
     )
 }
