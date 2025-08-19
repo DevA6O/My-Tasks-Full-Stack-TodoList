@@ -74,7 +74,7 @@ describe(HomePage, async () => {
 
 
 
-    it("HomePage displays an error because tasks could not be loaded successful", async () => {
+    it("HomePage displays an error message if the tasks could not be loaded successful", async () => {
         // Mock api response from useEffect loadTasks
         fetch.mockResolvedValueOnce({
             ok: false,
@@ -88,6 +88,21 @@ describe(HomePage, async () => {
 
         // Check that the error message is displayed correctly
         const taskErrorMessage = await screen.findByText("Server error: Tasks could not be loaded.");
+        expect(taskErrorMessage).toBeInTheDocument();
+    });
+
+
+
+    it("HomePage displays an error message when an error occurrs", async () => {
+        // Mock api response from useEffect loadTasks
+        fetch.mockRejectedValueOnce(new Error("An unexpected error is occurred."));
+
+        // Render page and wait until the loading screen is removed
+        render(<HomePage />);
+        await waitForElementToBeRemoved(() => screen.queryByTestId("loading-text"));
+
+        // Check that the error message is displayed correctly
+        const taskErrorMessage = await screen.findByText("An unexpected error occurred while loading all tasks. Please try again later.");
         expect(taskErrorMessage).toBeInTheDocument();
     });
 })
