@@ -9,17 +9,6 @@ import { deleteTodoAPI, completeTodoAPI } from "./H_ManageTodos";
 export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setReloadTasks }) {
     const [editTask, setEditTask] = useState(null);
 
-    const deleteTodo = async (todoID) => {
-        try {
-            await deleteTodoAPI(todoID, accessToken);
-            setReloadTasks(true);
-            toast.success("Deletion successful: Todo has been successfully deleted.");
-        } catch (error) {
-            toast.error(error.message);
-            console.error(error);
-        };
-    };
-
     const completeTodo = async (todoID) => {
         try {
             await completeTodoAPI(todoID, accessToken);
@@ -31,9 +20,21 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
         };
     };
 
+    const deleteTodo = async (todoID) => {
+        try {
+            await deleteTodoAPI(todoID, accessToken);
+            setReloadTasks(true);
+            toast.success("Deletion successful: Todo has been successfully deleted.");
+        } catch (error) {
+            toast.error(error.message);
+            console.error(error);
+        };
+    };
+
     return (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 max-w-[85%]">
+            <div data-testid="HomePageManageAndDisplayTodos-Display-Tasks" 
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5 max-w-[85%]">
                 {tasks.map((task) => (
                     <div 
                         key={task.id} data-testid={`task-${task.id}`}
@@ -42,14 +43,12 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
                     >   
                         <div className="flex flex-col max-w-[85%] overflow-hidden">
                             {/* Task title */}
-                            <h1 className={`font-semibold text-lg leading-snug break-words
-                                ${task.completed ? 'text-gray-800/50' : 'text-gray-800'}`}
-                                data-testid="task-title">
+                            <h1 className={`font-semibold text-lg leading-snug break-words ${task.completed ? 'text-gray-800/50' : 'text-gray-800'}`}>
                                 {task.title}
                             </h1>
 
                             {/* Task description */}
-                            <p data-testid="task-description" className="font-sans text-lg leading-snug break-words">
+                            <p className="font-sans text-lg leading-snug break-words">
                                 {task.description}
                             </p>
                         </div>
@@ -61,7 +60,7 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
                             <button
                                 onClick={() => completeTodo(task.id)}
                                 disabled={task.completed}
-                                data-testid={`complete-btn-task-${task.id}`}
+                                data-testid={`HomePageManageAndDisplayTodos-Complete-Button-For-${task.id}`}
                                 className={`px-3 py-1 border border-gray-400/40 rounded-md font-semibold 
                                     transition-all ease-in-out duration-300
                                     ${task.completed 
@@ -75,7 +74,7 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
                             <button
                                 onClick={() => setEditTask(task)}
                                 disabled={task.completed}
-                                data-testid={`edit-btn-task-${task.id}`}
+                                data-testid={`HomePageManageAndDisplayTodos-Edit-Button-For-${task.id}`}
                                 className={`px-3 py-1 border border-gray-400/40 rounded-md font-semibold 
                                     transition-all ease-in-out duration-300
                                     ${task.completed 
@@ -88,7 +87,7 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
                             {/* Delete button */}
                             <button 
                                 onClick={() => deleteTodo(task.id)}
-                                data-testid={`delete-btn-task-${task.id}`}
+                                data-testid={`HomePageManageAndDisplayTodos-Delete-Button-For-${task.id}`}
                                 className={`px-3 py-1 border border-gray-400/40 rounded-md font-semibold 
                                     cursor-pointer hover:bg-red-500 hover:text-white text-red-500 transition-all ease-in-out duration-500`}>
                                 Delete
