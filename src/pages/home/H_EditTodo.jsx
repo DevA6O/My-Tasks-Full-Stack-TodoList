@@ -89,7 +89,8 @@ export function HomePageEditTaskForm({ task, validationSchema, accessToken, onSu
                     className="w-full px-3 py-2 border rounded"/>
 
                 {errors.title && (
-                    <p className="font-sans text-red-500 max-w-[90vw] break-words">{errors.title.message}</p>
+                    <p data-testid="EditTodo-Title-Error-Message"
+                    className="font-sans text-red-500 max-w-[90vw] break-words">{errors.title.message}</p>
                 )}
             </div>
 
@@ -104,7 +105,8 @@ export function HomePageEditTaskForm({ task, validationSchema, accessToken, onSu
                     className="w-full px-3 py-2 border rounded"/>
 
                 {errors.description && (
-                    <p className="font-sans text-red-500 max-w-[90vw] break-words">{errors.description.message}</p>
+                    <p data-testid="EditTodo-Description-Error-Message" 
+                    className="font-sans text-red-500 max-w-[90vw] break-words">{errors.description.message}</p>
                 )}
             </div>
 
