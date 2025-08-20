@@ -75,16 +75,32 @@ describe("[HomePageManageAndDisplayTodos | HomePageEditTaskForm]", async () => {
     });
 
 
-    it("HomePageEditTaskForm - Task successfully edited", async () => {
+    it.each([
+        [
+            "Task successfully edited",
+            {
+                ok: true,
+                status: 200,
+                json: async () => ({})
+            },
+            "Update successful: Todo has been successfully updated."
+        ],
+
+        [
+            "Task edit failed",
+            {
+                ok: false,
+                status: 400,
+                json: async () => ({})
+            },
+            "Update failed: An unexpected error occurred. Please try again later."
+        ]
+    ])("HomePageEditTaskForm - %s", async (funcDescription, mockResponse, expectedMessage) => {
         // Mock the setReloadTasks function
         const mockSetReloadTasks = vi.fn();
 
         // Mock API response
-        fetch.mockResolvedValueOnce({
-            ok: true,
-            status: 200,
-            json: async () => ({})
-        })
+        fetch.mockResolvedValueOnce(mockResponse);
 
         render(
             <>
@@ -106,12 +122,12 @@ describe("[HomePageManageAndDisplayTodos | HomePageEditTaskForm]", async () => {
 
         // Click on the submit button
         const submitButton = await screen.findByTestId("EditTodo-Submit-Button-For-1");
-        expect(submitButton).toBeInTheDocument()
+        expect(submitButton).toBeInTheDocument();
 
         await userEvent.click(submitButton);
 
-        // Check whether the edit was successful
-        const successMessage = await screen.findByText("Update successful: Todo has been successfully updated.");
+        // Check whether the expected message could be found
+        const successMessage = await screen.findByText(expectedMessage);
         expect(successMessage).toBeInTheDocument();
     });
 
@@ -150,14 +166,14 @@ describe("[HomePageManageAndDisplayTodos | HomePageEditTaskForm]", async () => {
 
         if (title !== "") {
             await userEvent.type(editTitleInput, title);
-        }
+        };
         if (description !== "") {
             await userEvent.type(editDescriptionInput, description);
-        }
+        };
 
         // Submit the informations
         const submitButton = await screen.findByTestId("EditTodo-Submit-Button-For-1");
-        expect(submitButton).toBeInTheDocument()
+        expect(submitButton).toBeInTheDocument();
 
         await userEvent.click(submitButton);
 
@@ -168,7 +184,7 @@ describe("[HomePageManageAndDisplayTodos | HomePageEditTaskForm]", async () => {
             errorMessageField = await screen.findByTestId("EditTodo-Title-Error-Message");
         } else if (type == "Description") {
             errorMessageField = await screen.findByTestId("EditTodo-Description-Error-Message");
-        }
+        };
 
         expect(errorMessageField).toHaveTextContent(errorMessage);
     }, 10000);
