@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { ToastContainer } from "react-toastify";
 
+import { setMockUseAuth } from "../../helper/mockUseAuth";
+import HomePage from "../../../pages/home/homepage";
 import HomePageManageAndDisplayTodos from "../../../pages/home/H_ManageAndDisplayTodos";
 
 
@@ -16,14 +18,27 @@ describe("[HomePageManageAndDisplayTodos | HomePageEditTaskForm]", async () => {
         cleanup();
     });
 
-    it("HomePageManageAndDisplayTodos displays the edit form overlay after clicking the 'Edit' button", async () => {
-        render(
-            <HomePageManageAndDisplayTodos 
-                tasks={[{id: 1, title: "Todo", description: "Unique description", completed: false}]}
-                accessToken={null}
-                setReloadTasks={null}
-            />  
-        );
+    it("[HomePage - HomePageManageAndDisplayTodos] displays the edit form overlay after clicking the 'Edit' button", async () => {
+        // Mock API response for useEffect in HomePage
+        fetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                todos: [
+                    {
+                        id: 1,
+                        title: "Todo",
+                        description: "",
+                        completed: false
+                    }
+                ],
+                username: "TestUser"
+            })
+        });
+
+        // Mock useAuth for HomePage and render HomePage
+        setMockUseAuth({accessToken: "fake-token", loading: false});
+        render(<HomePage/>);
 
         // Check and click the edit button
         const editButton = await screen.findByTestId("HomePageManageAndDisplayTodos-Edit-Button-For-1");

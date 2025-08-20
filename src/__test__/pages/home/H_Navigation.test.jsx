@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastContainer } from "react-toastify";
 
+import { setMockUseAuth } from "../../helper/mockUseAuth";
+import HomePage from "../../../pages/home/homepage";
 import HomePageNavigation from "../../../pages/home/H_Navigation";
 
 describe(HomePageNavigation, async () => {
@@ -11,8 +13,17 @@ describe(HomePageNavigation, async () => {
         global.fetch = vi.fn();
     });
 
-    it("HomePageNavigation displays navigation content correctly", async () => {
-        render(<HomePageNavigation/>);
+    it("[HomePage - HomePageNavigation] displays navigation content correctly", async () => {
+        // Mock API response for useEffect in HomePage
+        fetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({})
+        });
+
+        // Mock useAuth for HomePage and render HomePage
+        setMockUseAuth({accessToken: "fake-token", loading: false});
+        render(<HomePage/>);
 
         // Check that the navigation content is displayed correctly
         const navigation = await screen.findByTestId("HomePageNavigation");

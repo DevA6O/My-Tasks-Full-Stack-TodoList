@@ -4,7 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastContainer } from "react-toastify";
 
+import { setMockUseAuth } from "../../helper/mockUseAuth";
+import HomePage from "../../../pages/home/homepage";
 import HomePageManageAndDisplayTodos from "../../../pages/home/H_ManageAndDisplayTodos";
+
 
 describe(HomePageManageAndDisplayTodos, async () => {
     beforeEach(() => {
@@ -15,14 +18,29 @@ describe(HomePageManageAndDisplayTodos, async () => {
         vi.resetAllMocks();
     });
 
-    it("HomePageManageAndDisplayTodos displays all tasks that the user has", async () => {
-        render(<HomePageManageAndDisplayTodos 
-            tasks={[{id: 1, title: "Todo", description: "Unique description", completed: false}]}
-            accessToken={null}
-            setReloadTasks={null}
-        />);
+    it("[HomePage - HomePageManageAndDisplayTodos] displays all tasks that the user has", async () => {
+        // Mock API response for useEffect in HomePage
+        fetch.mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                todos: [
+                    {
+                        id: 1,
+                        title: "Todo",
+                        description: "Unique description",
+                        completed: false
+                    }
+                ],
+                username: "TestUser"
+            })
+        });
 
-        // Check that the main content is displayed correctly
+        // Mock useAuth for HomePage and render HomePage
+        setMockUseAuth({accessToken: "fake-token", loading: false});
+        render(<HomePage/>);
+
+        // Check whether the main content of HomePageManageAndDisplayTodos is displayed correctly on the HomePage
         const mainContent = await screen.findByTestId("HomePageManageAndDisplayTodos-Display-Tasks");
         expect(mainContent).toBeInTheDocument();
 
