@@ -28,16 +28,33 @@ describe(HomePageAddTodo, async () => {
         expect(homePageAddTodoContent).toBeInTheDocument();
     });
 
-    it("HomePageAddTodo successfully adds the task", async () => {
+
+    it.each([
+        [
+            "HomePageAddTodo successfully adds the task",
+            {
+                ok: true,
+                status: 200,
+                json: async () => ({})
+            },
+            "Creation successful: Todo was created successfully."
+        ],
+
+        [
+            "HomePageAddTodo was unable to add a task",
+            {
+                ok: false,
+                status: 400,
+                json: async () => ({})
+            },
+            "Creation failed: An unexpected error occurred. Please try again later."
+        ]
+    ])("%s", async (funcDescription, mockResponse, displayedMessage) => {
         // Mock onSuccess
         const mockOnSuccess = vi.fn();
 
         // Mock API response
-        fetch.mockResolvedValueOnce({
-            ok: true,
-            status: 200,
-            json: async () => ({})
-        });
+        fetch.mockResolvedValueOnce(mockResponse);
 
         render(
             <>
@@ -60,13 +77,13 @@ describe(HomePageAddTodo, async () => {
         const submitButton = await screen.findByTestId("HomePageAddTodo-Submit-Button");
         expect(submitButton).toBeInTheDocument();
 
-        // Add new todo
+        // Enter the information and submit it
         await userEvent.type(titleInput, "Title");
         await userEvent.type(descriptionInput, "Description");
         await userEvent.click(submitButton);
 
-        // Check whether the success message is displayed correctly
-        const successMessage = await screen.findByText("Creation successful: Todo was created successfully.");
-        expect(successMessage).toBeInTheDocument();
+        // Check whether the message is displayed correctly
+        const message = await screen.findByText(displayedMessage);
+        expect(message).toBeInTheDocument();
     });
 });
