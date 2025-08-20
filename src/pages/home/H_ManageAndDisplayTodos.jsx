@@ -1,7 +1,8 @@
 import React, { useState } from "react"
 import { toast } from "react-toastify";
-import EditorModal from "./H_EditTodo";
-import { EditTaskForm } from "./H_EditTodo";
+
+import HomePageEditorModal from "./H_EditTodo";
+import { HomePageEditTaskForm } from "./H_EditTodo";
 import { schema } from "./H_AddTodo";
 import { deleteTodoAPI, completeTodoAPI } from "./H_ManageTodos";
 
@@ -98,10 +99,10 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
             </div>
 
             {/* Editor overlay */}
-            <EditorModal
+            <HomePageEditorModal
                 isOpen={!!editTask}
                 onClose={() => setEditTask(null)}>
-                <EditTaskForm
+                <HomePageEditTaskForm
                     task={editTask}
                     validationSchema={schema}
                     accessToken={accessToken}
@@ -111,8 +112,8 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
                     }}
                     >
                     
-                </EditTaskForm>
-            </EditorModal>
+                </HomePageEditTaskForm>
+            </HomePageEditorModal>
         </>
     )
 }
