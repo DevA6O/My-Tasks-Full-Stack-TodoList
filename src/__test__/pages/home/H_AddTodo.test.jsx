@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastContainer } from "react-toastify";
 
 import { setMockUseAuth } from "../../helper/mockUseAuth";
+import checkFormValidation from "../../helper/formValidation";
 import HomePage from "../../../pages/home/homepage";
 import HomePageAddTodo from "../../../pages/home/H_AddTodo";
 
@@ -85,5 +86,38 @@ describe(HomePageAddTodo, async () => {
         // Check whether the message is displayed correctly
         const message = await screen.findByText(displayedMessage);
         expect(message).toBeInTheDocument();
+    });
+
+
+    it.each([
+        ["Title", "", "", "Title is required."],
+        ["Title", "x", "", "Title must have at least 2 characters."],
+        ["Title", "x".repeat(141), "", "Title cannot have more than 140 characters."],
+        ["Description", "xxx", "x".repeat(321), "Description cannot have more than 320 characters."]
+    ])("Add task shows a validation error message for '%s' input", async (type, titleValue, descriptionValue, errorMsg) => {
+        render(<HomePageAddTodo accessToken={null} onSuccess={null}/>);
+
+        // Check that the input fields and the “Send” button are present
+        const titleInput = await screen.findByTestId("HomePageAddTodo-Title-Input");
+        expect(titleInput).toBeInTheDocument();
+
+        const descriptionInput = await screen.findByTestId("HomePageAddTodo-Description-Input");
+        expect(descriptionInput).toBeInTheDocument();
+
+        const submitButton = await screen.findByTestId("HomePageAddTodo-Submit-Button");
+        expect(submitButton).toBeInTheDocument();
+
+        // Check the validation error message
+        if (titleValue !== "") {
+            await userEvent.type(titleInput, titleValue);
+        };
+        if (descriptionValue !== "") {
+            await userEvent.type(descriptionInput, descriptionValue);
+        };
+        
+        await userEvent.click(submitButton);
+
+        const displayedErrorMessage = await screen.findByText(errorMsg);
+        expect(displayedErrorMessage).toBeInTheDocument();
     });
 });
