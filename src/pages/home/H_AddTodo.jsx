@@ -43,7 +43,6 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
     const {
         register: registerHome,
         handleSubmit,
-        setError,
         reset,
         formState: { errors },
     } = useForm({
@@ -58,26 +57,17 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
             reset(); // Reset form 
             toast.success("Creation successful: Todo was created successfully.");
         } catch (error) {
-            setError("addTask", {type: "manual", message: error.message});
+            toast.error(error.message);
             console.error(error);
         };
     };
 
     return (
-        <div className="flex-1 mt-10 max-w-100">
+        <div data-testid="HomePageAddTodo" className="flex-1 mt-10 max-w-100">
             <h1 className="font-semibold text-xl">Add a New Task</h1>
             <p className="text-lg">Here you can add a new task.</p>
 
             <form className="flex flex-col" onSubmit={handleSubmit(onSubmit)}>
-                {/* Display an add task error */}
-                {errors.addTask && (
-                    <div className="flex justify-center w-full px-5 py-2 border border-red-600 bg-red-200 rounded">
-                        <p data-testid="add-task-error" className="font-sans text-red-900 break-words text-center">
-                            {errors.addTask.message}
-                        </p>
-                    </div>
-                )}
-
                 {/* Title input field */}
                 <div className="flex flex-col mt-5">
                     <label htmlFor="title" className="text-lg">
@@ -87,7 +77,7 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
                     <input 
                         id="title"
                         type="text"
-                        data-testid="title-input"
+                        data-testid="HomePageAddTodo-Title-Input"
                         {...registerHome("title")}
                         className="p-2 w-3xs md:w-100 border-2 border-gray-400 rounded"
                     />
@@ -105,7 +95,7 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
                     <input 
                         id="description"
                         type="text"
-                        data-testid="description-input"
+                        data-testid="HomePageAddTodo-Description-Input"
                         {...registerHome("description")}
                         className="p-2 w-3xs md:w-100 border-2 border-gray-400 rounded"
                     />
@@ -120,7 +110,7 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
                 <div className="mt-5 text-center flex md:justify-center">
                     <button 
                         type="submit"
-                        data-testid="add-todo-button"
+                        data-testid="HomePageAddTodo-Submit-Button"
                         className="px-5 py-2 text-lg text-white bg-blue-600 rounded cursor-pointer hover:bg-blue-500 transition-all ease-in-out duration-400"
                     >
                         Add Task
