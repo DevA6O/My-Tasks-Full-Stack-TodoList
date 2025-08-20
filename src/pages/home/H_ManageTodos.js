@@ -11,7 +11,7 @@ export async function completeTodoAPI(todoID, accessToken) {
     if (!response.ok) {
         const data = await response.json();
 
-        const error = new Error(data.detail || "Completion failed: An unexpected error is occurred.");
+        const error = new Error(data.detail || "Completion failed: An unexpected error is occurred. Please try again later.");
         error.todoID = todoID;
         throw error;
     };
@@ -30,7 +30,7 @@ export async function deleteTodoAPI(todoID, accessToken) {
     });
 
     if (!response.ok) {
-        data = await response.json();
+        const data = await response.json();
 
         const error = new Error(data.detail || "Deletion failed: An unexpected error occurred. Please try again later.");
         error.todoID = todoID;
