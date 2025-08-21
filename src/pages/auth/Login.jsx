@@ -51,7 +51,7 @@ async function loginUserAPI(formData, setError) {
     }
     // Handle other errors
     else {
-        toast.error(data.detail || "Login failed: An unknown page error occurred. You will be redirected shortly...");
+        toast.error(data.detail || DEFAULT_ERROR_MSG);
     };
 };
 
@@ -82,7 +82,7 @@ export default function Login() {
     };
 
     return (
-        <div className="flex justify-center items-center h-screen bg-gray-100">
+        <div data-testid="Login" className="flex justify-center items-center h-screen bg-gray-100">
             <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
                 <h1 className="text-center text-2xl font-bold mb-6 text-gray-800">Login to Your Account</h1>
 
