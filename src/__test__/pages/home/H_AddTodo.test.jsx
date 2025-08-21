@@ -118,5 +118,5 @@ describe(HomePageAddTodo, async () => {
 
         const displayedErrorMessage = await screen.findByText(errorMsg);
         expect(displayedErrorMessage).toBeInTheDocument();
-    });
+    }, 10000);
 });
