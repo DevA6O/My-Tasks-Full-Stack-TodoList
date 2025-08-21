@@ -1,10 +1,14 @@
 import React from "react";
 import userEvent from "@testing-library/user-event";
 import { vi, describe, it, beforeEach, afterEach, expect } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import { ToastContainer } from "react-toastify";
+
 import Register from "../../../pages/auth/Register";
 import checkFormValidation from "../../helper/formValidation";
 
+
+// Define global variables
 let usernameInput;
 let emailInput;
 let passwordInput;
@@ -16,83 +20,74 @@ const testPassword = "very_secret_lol123+"
 
 describe(Register, async () => {
     beforeEach(async () => {
-        render(<Register />);
+        render(
+            <>
+                <Register />
 
-        usernameInput = await screen.getByLabelText(/username/i);
-        emailInput = await screen.getByLabelText(/e-mail address/i);
-        passwordInput = await screen.getByLabelText(/password/i);
-        submitButton = await screen.getByRole("button", {name: /confirm/i});
+                <ToastContainer />
+            </>
+        );
+
+        // Defines the input elements and submit button
+        usernameInput = await screen.getByTestId("Register-Username-Input");
+        emailInput = await screen.getByTestId("Register-Email-Input");
+        passwordInput = await screen.getByTestId("Register-Password-Input");
+        submitButton = await screen.getByTestId("Register-Submit-Button");
 
         global.fetch = vi.fn();
     });
 
     afterEach(async () => {
-        await userEvent.clear(usernameInput);
-        await userEvent.clear(emailInput);
-        await userEvent.clear(passwordInput);
-
         cleanup();
     });
 
-    it("Register displays the username, email and password input", async () => {
+    it("Register displays the content correctly", async () => {
+        const registerComponent = await screen.getByTestId("Register");
+        expect(registerComponent).toBeInTheDocument();
+
+        // Checks whether the input fields and submit button are displayed
         expect(usernameInput).toBeInTheDocument();
         expect(emailInput).toBeInTheDocument();
         expect(passwordInput).toBeInTheDocument();
+        expect(submitButton).toBeInTheDocument();
     });
 
-    
+
 
     it.each([
-        ["", /username is required./i], 
-        ["x", /username must have at least 2 characters./i],
-        ["x".repeat(17), /username cannot have more than 16 characters./i]
+        ["", "Username is required."], 
+        ["x", "Username must have at least 2 characters."],
+        ["x".repeat(17), "Username cannot have more than 16 characters."]
     ])("Username '%s' shows an error message '%s'", async (usernameValue, errorMsg) => {
-        await checkFormValidation(
-            usernameInput, usernameValue,
-            submitButton, errorMsg
-        );
-    })
-
-
+        await checkFormValidation(usernameInput, usernameValue, submitButton, "Register-Username-Error", errorMsg);
+    });
 
     it.each([
-        ["", /email is required./i],
-        ["invalid-email", /email must be a valid email address./i],
+        ["", "Email is required."],
+        ["invalid-email", "Email must be a valid email address."],
     ])("Email '%s' shows an error message '%s'", async (emailValue, errorMsg) => {
-        await checkFormValidation(
-            emailInput, emailValue,
-            submitButton, errorMsg
-        )
+        await checkFormValidation(emailInput, emailValue, submitButton, "Register-Email-Error", errorMsg);
     });
-
-
 
     it.each([
-        ["", /password is required./i],
-        ["short", /password must have at least 8 characters./i],
-        ["x".repeat(33), /password cannot have more than 32 characters./i]
+        ["", "Password is required."],
+        ["short", "Password must have at least 8 characters."],
+        ["x".repeat(33), "Password cannot have more than 32 characters."]
     ])("Password '%s' shows an error message '%s'", async (passwordValue, errorMsg) => {
-        await checkFormValidation(
-            passwordInput, passwordValue,
-            submitButton, errorMsg
-        )
+        await checkFormValidation(passwordInput, passwordValue, submitButton, "Register-Password-Error", errorMsg);
     });
 
 
 
-    it("Redirects on the homepage after successful registration", async () => {
-        const mockFetchResponse = {
+    it("Registration was successful and a success message is displayed", async () => {
+        // Mock API response
+        fetch.mockResolvedValueOnce({
             ok: true,
             status: 201,
             json: async () => ({})
-        };
-        
-        fetch.mockResolvedValueOnce(mockFetchResponse);
+        });
 
-        // Mock window.location
-        delete window.location;
-        window.location = {href: ""}
-
+        // Simulate user input and submit the form
         await userEvent.type(usernameInput, testUsername);
         await userEvent.type(emailInput, testEmail);
         await userEvent.type(passwordInput, testPassword);
@@ -103,95 +98,95 @@ describe(Register, async () => {
             expect.stringContaining("/register"),
             expect.any(Object)
         );
-        // Checks whether the redirection was successful
-        expect(window.location.href).toBe("/");
+
+        // Checks whether the success message is displayed
+        const successMessage = await screen.findByText("Registration successful! You will be redirected to the homepage shortly.");
+        expect(successMessage).toBeInTheDocument();
     });
 
 
 
-    it("Register shows an error message when email is already registered", async () => {
-        const mockErrorResponse = {
+    it("Register shows an error message when the email is already registered", async () => {
+        fetch.mockResolvedValueOnce({
             ok: false,
             status: 409,
             json: async () => ({detail: "Email is already registered."})
-        };
-        fetch.mockResolvedValueOnce(mockErrorResponse);
+        });
 
+        // Simulate user input and submit the form
         await userEvent.type(usernameInput, testUsername);
         await userEvent.type(emailInput, testEmail);
         await userEvent.type(passwordInput, testPassword);
         await userEvent.click(submitButton);
 
-        const errorMsg = await screen.findByText(/email is already registered/i);
+        // Check whether the error message is displayed
+        const errorMsg = await screen.findByText("Email is already registered.");
         expect(errorMsg).toBeInTheDocument();
     });
 
     
 
     it.each([
-        ["username"], ["email"], ["password"]
-    ])("Backend returns an error message for input element '%s'", async (field) => {
-        const mockErrorResponse = {
+        ["username", "Register-Username-Error"], 
+        ["email", "Register-Email-Error"], 
+        ["password", "Register-Password-Error"]
+    ])("Backend returns a validation error for %s input field", async (field, errorField) => {
+        fetch.mockResolvedValueOnce({
             ok: false,
             status: 422,
             json: async () => ({
                 detail: {
-                    message: "String has not been validated correctly.",
+                    message: `${field} has not been validated correctly.`,
                     field: field
                 }
             })
-        };
-        fetch.mockResolvedValueOnce(mockErrorResponse);
+        });
 
+        // Simulate user input and submit the form
         await userEvent.type(usernameInput, testUsername);
         await userEvent.type(emailInput, testEmail);
         await userEvent.type(passwordInput, testPassword);
         await userEvent.click(submitButton);
 
-        // Defines an input mapping to retrieve the current input element
-        const inputMapper = {
-            username: usernameInput,
-            email: emailInput,
-            password: passwordInput
-        };
-        const inputElement = inputMapper[field];
-
         // Chechs whether the displayed message is placed correctly
-        const container = inputElement.closest("div");
-        const errorMsg = within(container).getByText(/string has not been validated correctly/i);
-        expect(errorMsg).toBeInTheDocument();
+        const errorElement = await screen.getByTestId(errorField);
+        expect(errorElement).toBeInTheDocument();
+        expect(errorElement).toHaveTextContent(`${field} has not been validated correctly.`);
     });
 
 
 
-    it("Backend returns an unknown error message", async () => {
-        const mockErrorResponse = {
+    it("Backend returns an unknown error", async () => {
+        fetch.mockResolvedValueOnce({
             ok: false,
             status: 400,
             json: async () => ({})
-        };
-        fetch.mockResolvedValueOnce(mockErrorResponse);
+        });
 
+        // Simulate user input and submit the form
         await userEvent.type(usernameInput, testUsername);
         await userEvent.type(emailInput, testEmail);
         await userEvent.type(passwordInput, testPassword);
         await userEvent.click(submitButton);
 
-        const errorMsg = await screen.findByText(/registration failed: an unknown page error occurred. you will be redirected shortly.../i);
+        // Check whether the error message is displayed
+        const errorMsg = await screen.findByText("Registration failed: An unknown page error occurred. You will be redirected shortly...");
         expect(errorMsg).toBeInTheDocument();
     });
 
 
 
-    it("An unknown fetch / network error occurred", async () => {
+    it("An unknown error has occurred", async () => {
         fetch.mockResolvedValueOnce(new Error("Network error"));
 
+        // Simulate user input and submit the form
         await userEvent.type(usernameInput, testUsername);
         await userEvent.type(emailInput, testEmail);
         await userEvent.type(passwordInput, testPassword);
         await userEvent.click(submitButton);
 
-        const errorMsg = await screen.findByText(/registration failed: an unexpected error has occurred. please try again later./i);
+        // Check whether the error message is displayed
+        const errorMsg = await screen.findByText("Registration failed: An unexpected error has occurred. Please try again later.");
         expect(errorMsg).toBeInTheDocument();
     });
 });
