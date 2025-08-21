@@ -148,7 +148,7 @@ describe(Register, async () => {
         await userEvent.type(passwordInput, testPassword);
         await userEvent.click(submitButton);
 
-        // Chechs whether the displayed message is placed correctly
+        // Checks whether the displayed message is placed correctly
         const errorElement = await screen.getByTestId(errorField);
         expect(errorElement).toBeInTheDocument();
         expect(errorElement).toHaveTextContent(`${field} has not been validated correctly.`);
