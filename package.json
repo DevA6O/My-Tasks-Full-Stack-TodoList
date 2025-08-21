@@ -8,31 +8,39 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "e2e:server": "concurrently -k -n backend,frontend -c blue,green \"cross-env TEST_DB=true uvicorn main:api --port 8000 --app-dir api\" \"npm run dev\"",
+    "test:e2e": "start-server-and-test \"npm run e2e:server\" http://localhost:8000/docs \"npx playwright test\"",
+    "test:all": "npm run test && npm run test:e2e"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
     "@tailwindcss/vite": "^4.1.11",
+    "cross-env": "^10.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.60.0",
     "react-router-dom": "^7.7.0",
+    "react-toastify": "^11.0.5",
     "tailwindcss": "^4.1.11",
     "yup": "^1.6.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
+    "@playwright/test": "^1.54.2",
     "@testing-library/jest-dom": "^6.6.4",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react-swc": "^3.10.2",
+    "concurrently": "^9.2.0",
     "eslint": "^9.30.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
     "jsdom": "^26.1.0",
+    "start-server-and-test": "^2.0.13",
     "vite": "^7.0.4",
     "vitest": "^3.2.4"
   }

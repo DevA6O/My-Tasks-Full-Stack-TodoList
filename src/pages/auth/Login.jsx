@@ -1,7 +1,12 @@
 import React from "react";
-import { useForm } from "react-hook-form";
+import { set, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import { toast } from "react-toastify";
+
+// Default error message for unexpected errors
+const DEFAULT_ERROR_MSG = "Login failed: An unexpected error has occurred. Please try again later.";
+
 
 const schema = yup.object().shape({
     email: yup
@@ -16,12 +21,43 @@ const schema = yup.object().shape({
         .required("Password is required.")
         .min(8, "Password must have at least 8 characters.")
         .max(32, "Password cannot have more than 32 characters.")
-})
+});
+
+
+
+async function loginUserAPI(formData, setError) {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(formData)
+    });
+    const data = await response.json();
+    
+    // Handle the response based on the status code
+
+    // If Login was successful
+    if (response.ok && response.status === 200) {
+        window.location.href = "/";
+        toast.success("Login successful! Redirecting to the homepage...");
+    }
+    // Handle validation error occurred
+    else if (response.status === 422) {
+        const field = data.detail?.field;
+        const message = data.detail?.message || DEFAULT_ERROR_MSG;
+        setError(field, {type: "server", message: message});
+    }
+    // Handle other errors
+    else {
+        toast.error(data.detail || DEFAULT_ERROR_MSG);
+    };
+};
+
+
 
 export default function Login() {
-    const [generalError, setGeneralError] = React.useState("");
-    const DEFAULT_ERROR_MSG = "Login failed: An unexpected error has occurred. Please try again later."
-
     const {
         register: login,
         handleSubmit,
@@ -30,49 +66,25 @@ export default function Login() {
     } = useForm({
         resolver: yupResolver(schema),
         mode: "onBlur"
-    })
+    });
 
     const onSubmit = async (formData) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(formData)
-            });
-            const data = await response.json();
-            
-            if (response.ok && response.status === 200) {
-                window.location.href = "/";
-            } 
-            else {
-                const field = data.detail?.field;
+            await loginUserAPI(formData, setError);
 
-                if (field) {
-                    const message = data.detail?.message || DEFAULT_ERROR_MSG;
-                    setError(field, {type: "server", message: message});
-                } else {
-                    setGeneralError(data.detail || DEFAULT_ERROR_MSG);
-                };
-            };
+            setTimeout(() => {
+                window.location.href = "/";
+            }, 3000);
         } catch (error) {
-            setGeneralError(DEFAULT_ERROR_MSG);
+            toast.error(DEFAULT_ERROR_MSG);
             console.error(error);
         };
     };
 
     return (
-        <div className="flex justify-center items-center h-screen bg-gray-100">
+        <div data-testid="Login" className="flex justify-center items-center h-screen bg-gray-100">
             <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
                 <h1 className="text-center text-2xl font-bold mb-6 text-gray-800">Login to Your Account</h1>
-
-                {generalError && (
-                    <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm text-center">
-                        {generalError}
-                    </div>
-                )}
 
                 <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
                     <div className="flex flex-col">
@@ -80,11 +92,16 @@ export default function Login() {
                         <input
                         type="email"
                         id="email"
+                        data-testid="Login-Email-Input"
                         {...login("email")}
                         className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                         />
                         {errors.email && (
-                            <span className="text-red-500 text-sm mt-1">{errors.email.message}</span>
+                            <span
+                                data-testid="Login-Email-Error"
+                                className="text-red-500 text-sm mt-1">
+                                    {errors.email.message}
+                            </span>
                         )}
                     </div>
 
@@ -93,16 +110,22 @@ export default function Login() {
                         <input
                         type="password"
                         id="password"
+                        data-testid="Login-Password-Input"
                         {...login("password")}
                         className="border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                         />
                         {errors.password && (
-                            <span className="text-red-500 text-sm mt-1">{errors.password.message}</span>
+                            <span
+                                data-testid="Login-Password-Error"
+                                className="text-red-500 text-sm mt-1">
+                                    {errors.password.message}
+                                </span>
                         )}
                     </div>
 
                     <button
                         type="submit"
+                        data-testid="Login-Submit"
                         className="mt-4 bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-all duration-300 cursor-pointer"
                     >
                         Login
@@ -118,5 +141,5 @@ export default function Login() {
                 </form>
             </div>
         </div>
-    )
-}
+    );
+};

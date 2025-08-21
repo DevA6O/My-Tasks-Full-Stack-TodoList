@@ -1,11 +1,12 @@
 import React, { use } from "react";
-import { BrowserRouter, Routes, Route, Navigate, createRoutesFromChildren } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { ToastContainer, Slide } from "react-toastify";
 import LoadingScreen from "./components/LoadingScreen";
 
-import Home from "./pages/home";
 import Register from "./pages/auth/Register";
 import Login from "./pages/auth/Login";
+import HomePage from "./pages/home/homepage";
 
 // Suitable to create a private route
 function PrivateRoute({ children }) {
@@ -44,8 +45,22 @@ export default function App() {
         <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
         <Route path="/login" element={<AuthRoute><Login /></AuthRoute>}/>
 
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<HomePage />} />
       </Routes>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        transition={Slide}
+      />
     </BrowserRouter>
   );
 }

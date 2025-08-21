@@ -1,5 +1,6 @@
+import React from "react";
 import { yupResolver } from "@hookform/resolvers/yup";
-import React, { useState } from "react";
+import { toast } from "react-toastify";
 import { useForm } from "react-hook-form";
 
 
@@ -15,16 +16,19 @@ async function updateTodo(data, accessToken) {
 
     if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "Update failed: An unexpected server error occurred. Please try again later.")
+
+        const error = new Error(errorData.detail || "Update failed: An unexpected server error occurred. Please try again later.");
+        error.todoID = data?.todo_id;
+        throw error;
     };
 };
 
 
-export default function EditorModal({ isOpen, onClose, children }) {
+export default function HomePageEditorModal({ isOpen, onClose, children }) {
     if (!isOpen) return null;
 
     return (
-        <>
+        <div data-testid="HomePageEditorModal">
             {/* Transparent blackground */}
             <div className="fixed inset-0 bg-black/80 z-40" onClick={onClose}></div>
 
@@ -37,15 +41,14 @@ export default function EditorModal({ isOpen, onClose, children }) {
                     {children}
                 </div>
             </div>
-        </>
+        </div>
     )
-}
+};
 
-export function EditTaskForm({ task, validationSchema, accessToken, onSuccess }) {
+export function HomePageEditTaskForm({ task, validationSchema, accessToken, onSuccess }) {
     const {
         register: registerEditor,
         handleSubmit,
-        setError,
         formState: { errors }
     } = useForm({
         resolver: yupResolver(validationSchema),
@@ -65,35 +68,29 @@ export function EditTaskForm({ task, validationSchema, accessToken, onSuccess })
 
             await updateTodo(data, accessToken);
             onSuccess();
+            toast.success("Update successful: Todo has been successfully updated.");
         } catch (error) {
-            setError("apiError", {type: "manual", message: "Update failed: An unexpected error occurred. Please try again later."});
+            toast.error("Update failed: An unexpected error occurred. Please try again later.");
             console.error(error); 
-        }
+        };
     };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form data-testid="HomePageEditTaskForm" onSubmit={handleSubmit(onSubmit)}>
             <h2 className="text-2xl font-bold mb-4">Edit Task</h2>
-
-            {/* Display error */}
-            {errors.apiError && (
-                <div className="flex justify-center w-full mb-4 p-5 border border-red-600 bg-red-200 rounded">
-                    <p className="font-sans text-red-900 break-words text-center">{errors.apiError.message}</p>
-                </div>
-            )}
-
             {/* Title input */}
             <div className="mb-4">
                 <label htmlFor="editTitle" className="block mb-1 font-medium">Title</label>
                 <input
                     type="text"
                     id="editTitle"
-                    data-testid={`edit-title-task-${task.id}`}
+                    data-testid={`EditTodo-Title-For-${task.id}`}
                     {...registerEditor("title")}
                     className="w-full px-3 py-2 border rounded"/>
 
                 {errors.title && (
-                    <p className="font-sans text-red-500 max-w-[90vw] break-words">{errors.title.message}</p>
+                    <p data-testid="EditTodo-Title-Error-Message"
+                    className="font-sans text-red-500 max-w-[90vw] break-words">{errors.title.message}</p>
                 )}
             </div>
 
@@ -103,26 +100,28 @@ export function EditTaskForm({ task, validationSchema, accessToken, onSuccess })
                 <input
                     type="text"
                     id="editDescription"
-                    data-testid={`edit-description-task-${task.id}`}
+                    data-testid={`EditTodo-Description-For-${task.id}`}
                     {...registerEditor("description")}
                     className="w-full px-3 py-2 border rounded"/>
 
                 {errors.description && (
-                    <p className="font-sans text-red-500 max-w-[90vw] break-words">{errors.description.message}</p>
+                    <p data-testid="EditTodo-Description-Error-Message" 
+                    className="font-sans text-red-500 max-w-[90vw] break-words">{errors.description.message}</p>
                 )}
             </div>
 
-            {/* Submit */}
+            {/* Cancel and Submit button */}
             <div className="flex justify-end gap-3">
                 <button 
                     type="button"
                     onClick={onSuccess}
+                    data-testid={`EditTodo-Cancel-Button-For-${task.id}`}
                     className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 cursor-pointer">
                     Cancel
                 </button>
                 <button 
                     type="submit"
-                    data-testid={`edit-submit-btn-task-${task.id}`}
+                    data-testid={`EditTodo-Submit-Button-For-${task.id}`}
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500 cursor-pointer">
                     Save
                 </button>
