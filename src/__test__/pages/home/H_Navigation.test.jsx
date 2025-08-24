@@ -73,7 +73,7 @@ describe(HomePageNavigation, async () => {
         fetch.mockResolvedValueOnce({
             ok: false,
             status: 400,
-            json: async () => ({message: "An unknown error has occurred."})
+            json: async () => ({detail: "An unknown error has occurred."})
         });
 
         // Simulate user clicking the signout button (either desktop or mobile)
