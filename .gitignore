@@ -31,3 +31,6 @@ env
 *.sqlite3
 *.db
 .pytest_cache
+
+
+authLogin.json
