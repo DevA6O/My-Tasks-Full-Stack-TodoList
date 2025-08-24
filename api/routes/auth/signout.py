@@ -39,5 +39,5 @@ async def signout_endpoint(request: Request, db_session: AsyncSession = Depends(
     except ValueError as e:
         logger.exception(f"ValueError: {str(e)}", exc_info=True)
     
-    http_exception.detail = "An unexpected error occurred: Please try again later."
+    http_exception.detail = "Signout failed: An unexpected error occurred: Please try again later."
     raise http_exception
