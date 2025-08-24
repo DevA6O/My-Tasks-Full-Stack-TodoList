@@ -5,7 +5,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { ToastContainer } from "react-toastify";
 
 import { setMockUseAuth } from "../../helper/mockUseAuth";
-import HomePage from "../../../pages/home/homepage";
+import HomePage from "../../../pages/home/HomePage";
 import HomePageManageAndDisplayTodos from "../../../pages/home/H_ManageAndDisplayTodos";
 
 

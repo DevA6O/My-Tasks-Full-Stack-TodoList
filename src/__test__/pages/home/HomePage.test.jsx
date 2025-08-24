@@ -3,8 +3,7 @@ import { cleanup, render, screen, waitForElementToBeRemoved } from "@testing-lib
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setMockUseAuth } from "../../helper/mockUseAuth";
-import HomePage from "../../../pages/home/homepage";
-
+import HomePage from "../../../pages/home/HomePage";
 
 describe(HomePage, async () => {
     beforeEach(async () => {

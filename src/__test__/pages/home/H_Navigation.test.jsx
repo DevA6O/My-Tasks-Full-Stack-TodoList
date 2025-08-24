@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastContainer } from "react-toastify";
 
 import { setMockUseAuth } from "../../helper/mockUseAuth";
-import HomePage from "../../../pages/home/homepage";
+import HomePage from "../../../pages/home/HomePage";
 import HomePageNavigation from "../../../pages/home/H_Navigation";
 
 describe(HomePageNavigation, async () => {
