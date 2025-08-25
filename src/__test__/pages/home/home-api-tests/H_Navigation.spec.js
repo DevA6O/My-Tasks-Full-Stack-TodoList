@@ -23,3 +23,22 @@ test("Signout was successful", async ({ page, context }) => {
     // Check whether the action was successful
     await expect(page).toHaveURL("/login", {timeout: 5000});
 });
+
+test("Signout failed: No authentication token was found", async ({ page, context }) => {
+    // Go to homepage
+    await page.goto("/");
+
+    // Get signout button
+    const signoutButton = page.getByTestId("HomePageNavigation-Desktop-Submit-Button");
+    await expect(signoutButton).toBeVisible();
+
+    // Delete cookie to cause it to fail
+    await context.clearCookies();
+
+    // Click on the signout button
+    await signoutButton.click();
+
+    // Check whether the error message is displayed
+    const errorMessage = page.getByText("Authorization failed: Authentication token could not be found.", {timeout: 5000})
+    await expect(errorMessage).toBeVisible();
+});
