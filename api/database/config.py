@@ -8,6 +8,26 @@ logger = logging.getLogger(__name__)
 
 TEST_MODE: bool = os.getenv("TEST_MODE", "false").lower() == "true"
 
+
+# Move the old test database file
+def move_test_database(TEST_DB: str) -> None:
+    """ 
+        Move the test databases to test-dbs
+    """
+    from pathlib import Path
+    from datetime import datetime, timezone
+
+    if os.path.exists(TEST_DB):
+        source = Path(TEST_DB)
+        target_dir = Path("./test-dbs")
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+        target = target_dir / f"test-{timestamp}.db"
+
+        source.rename(target)
+
+
 # Get the database URL
 def get_db_url() -> Tuple[str, bool]:
     """
@@ -22,6 +42,7 @@ def get_db_url() -> Tuple[str, bool]:
             ValueError: If the database URL cannot be set up correctly for test mode with secure HTTPS. 
     """
     SECURE_HTTPS: bool = os.getenv("SECURE_HTTPS", "false").lower() == "true"
+    TEST_DB: str = "./test.db"
 
     # Define the database URL based on environment variables
     if not TEST_MODE:
@@ -35,4 +56,5 @@ def get_db_url() -> Tuple[str, bool]:
         if confirm.lower() != "y":
             raise ValueError("Tests cannot run with secure HTTPS enabled. Please disable it or set TEST_MODE to false.")
     
-    return "sqlite+aiosqlite:///:memory:", True
+    move_test_database(TEST_DB)
+    return f"sqlite+aiosqlite:///{TEST_DB}", True
