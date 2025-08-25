@@ -4,16 +4,21 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { toast } from "react-toastify";
 
-export const schema = yup.object().shape({
-    title: yup
-        .string()
-        .required("Title is required.")
-        .min(2, "Title must have at least 2 characters.")
-        .max(140, "Title cannot have more than 140 characters."),
-    description: yup
-        .string()
-        .max(320, "Description cannot have more than 320 characters.")
-});
+const validationDisabled = import.meta.env.VITE_DISABLE_FRONTEND_VALIDATION;
+
+export const schema = validationDisabled
+    ? yup.object().shape({})
+    : yup.object().shape({
+        title: yup
+            .string()
+            .required("Title is required.")
+            .min(2, "Title must have at least 2 characters.")
+            .max(140, "Title cannot have more than 140 characters."),
+        description: yup
+            .string()
+            .max(320, "Description cannot have more than 320 characters.")
+    }
+);
 
 export async function createTodoAPI(formData, accessToken) {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/todo/create`, {
