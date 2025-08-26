@@ -15,7 +15,7 @@ export async function signoutUserAPI() {
         const errorMessage = 
             typeof json === "string"
                 ? json
-                : json?.message || "Signout failed: An unexpected error occurred.";
+                : json?.detail || "Signout failed: An unexpected error occurred.";
 
         throw new Error(errorMessage);
     };

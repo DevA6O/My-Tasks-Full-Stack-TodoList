@@ -5,28 +5,31 @@ import * as yup from "yup";
 import { toast } from "react-toastify";
 
 // Default error message for unexpected errors
-const DEFAULT_ERROR_MSG = "Registration failed: An unexpected error has occurred. Please try again later."
+const DEFAULT_ERROR_MSG = "Registration failed: An unexpected error has occurred. Please try again later.";
+const validationDisabled = import.meta.env.VITE_DISABLE_FRONTEND_VALIDATION;
 
-
-const schema = yup.object().shape({
-    username: yup
-        .string()
-        .required("Username is required.")
-        .min(2, "Username must have at least 2 characters.")
-        .max(16, "Username cannot have more than 16 characters."),
-    email: yup
-        .string()
-        .required("Email is required.")
-        .matches(
-            /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
-            "Email must be a valid email address."
-        ),
-    password: yup
-        .string()
-        .required("Password is required.")
-        .min(8, "Password must have at least 8 characters.")
-        .max(32, "Password cannot have more than 32 characters.")
-});
+const schema = validationDisabled
+    ? yup.object().shape({})
+    : yup.object().shape({
+        username: yup
+            .string()
+            .required("Username is required.")
+            .min(2, "Username must have at least 2 characters.")
+            .max(16, "Username cannot have more than 16 characters."),
+        email: yup
+            .string()
+            .required("Email is required.")
+            .matches(
+                /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
+                "Email must be a valid email address."
+            ),
+        password: yup
+            .string()
+            .required("Password is required.")
+            .min(8, "Password must have at least 8 characters.")
+            .max(32, "Password cannot have more than 32 characters.")
+    }
+);
 
 
 

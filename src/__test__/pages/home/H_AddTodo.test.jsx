@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastContainer } from "react-toastify";
 
 import { setMockUseAuth } from "../../helper/mockUseAuth";
-import HomePage from "../../../pages/home/homepage";
+import HomePage from "../../../pages/home/HomePage";
 import HomePageAddTodo from "../../../pages/home/H_AddTodo";
 
 

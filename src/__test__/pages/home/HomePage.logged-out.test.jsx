@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { setMockUseAuth } from "../../helper/mockUseAuth";
-import HomePage from "../../../pages/home/homepage";
+import HomePage from "../../../pages/home/HomePage";
 
 
 describe("HomePage - not logged in", async () => {

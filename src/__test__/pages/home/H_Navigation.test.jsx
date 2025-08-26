@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToastContainer } from "react-toastify";
 
 import { setMockUseAuth } from "../../helper/mockUseAuth";
-import HomePage from "../../../pages/home/homepage";
+import HomePage from "../../../pages/home/HomePage";
 import HomePageNavigation from "../../../pages/home/H_Navigation";
 
 describe(HomePageNavigation, async () => {
@@ -73,7 +73,7 @@ describe(HomePageNavigation, async () => {
         fetch.mockResolvedValueOnce({
             ok: false,
             status: 400,
-            json: async () => ({message: "An unknown error has occurred."})
+            json: async () => ({detail: "An unknown error has occurred."})
         });
 
         // Simulate user clicking the signout button (either desktop or mobile)
