@@ -29,7 +29,7 @@ test("Signout failed: No authentication token was found", async ({ page, context
     await page.goto("/");
 
     // Get signout button
-    const signoutButton = page.getByTestId("HomePageNavigation-Desktop-Submit-Button");
+    const signoutButton = page.getByTestId("HomePageNavigation-Desktop-Submit-Button", {timeout: 5000});
     await expect(signoutButton).toBeVisible();
 
     // Delete cookie to cause it to fail
