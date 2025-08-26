@@ -31,5 +31,35 @@ export const fixtures = base.extend({
         };
 
         await use(createTodo);
+    },
+
+    simulateAndMockPostRequestWithRealData: async ({ page, request }, use) => {
+        /**
+            * This fixture performs a real POST request to the backend API to retrieve a real response,
+            * and then simulates the same endpoint for future requests during the test.
+            *
+            * It is used to:
+            * - Simulate a server response (e.g., an error),
+            * - but still want to use the real response structure from the backend.
+        */
+        const simulateAndMockPostRequestWithRealData = async ({ url, headers, data, status = 400 }) => {
+            // Do a real api request
+            const realResponse = await request.post(url, {
+                headers: headers,
+                data: data
+            });
+            const realData = await realResponse.json();
+            
+            // Mock API response
+            await page.route(url, async route => {
+                await route.fulfill({
+                    status: status,
+                    contentType: "application/json",
+                    body: JSON.stringify(realData)
+                });
+            });
+        };
+
+        await use(simulateAndMockPostRequestWithRealData);
     }
 });
