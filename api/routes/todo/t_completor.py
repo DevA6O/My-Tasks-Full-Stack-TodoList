@@ -20,7 +20,7 @@ from routes.todo.t_utils import (
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-DEFAULT_COMPLETION_ERROR_MSG: str = "Completion failed: Todo could not be deleted for technical reasons. " \
+DEFAULT_COMPLETION_ERROR_MSG: str = "Completion failed: Todo could not be marked as completed for technical reasons. " \
 "Please try again later."
 
 class TodoCompletor:
