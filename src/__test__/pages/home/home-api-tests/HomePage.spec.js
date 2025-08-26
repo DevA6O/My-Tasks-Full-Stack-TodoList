@@ -1,4 +1,22 @@
-import test, { expect } from "@playwright/test";
+import { fixtures as test } from "../../../apiFixtures";
+import { expect } from "@playwright/test";
+
+
+test("Loading tasks was successful (with tasks)", async ({ page, createTodo }) => {
+    // Go to homepgae
+    await page.goto("/");
+
+    // Create a todo
+    await createTodo({
+        title: "Loading tasks was successful - with tasks",
+        description: ""
+    });
+
+    // Check whether tasks are displayed correctly
+    const task = page.getByText("Loading tasks was successful - with tasks", {timeout: 5000});
+    await expect(task).toBeVisible();
+})
+
 
 test("Loading tasks was successful (without tasks)", async ({ page, context }) => {
     // Clear cookies
@@ -27,5 +45,3 @@ test("Loading tasks was successful (without tasks)", async ({ page, context }) =
     const noTaskMessage = page.getByText("Nice work! Currently you have no tasks to solve!", {timeout: 5000});
     await expect(noTaskMessage).toBeVisible();
 });
-
-// Rest is checked with unit tests...
