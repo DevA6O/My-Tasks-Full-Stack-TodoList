@@ -88,14 +88,16 @@ class TestGetDb:
             await gen.__anext__()
 
     def delete_test_db(self) -> bool:
-        """ Deletes the test.db file created in test mode """
-        import os
+        """ Deletes the test.db file and the test-dbs folder created in test mode """
+        import os, shutil
 
         if os.path.exists("./test.db"):
             os.remove("./test.db")
-            return True
         
-        return False
+        if os.path.exists("./test-dbs"):
+            shutil.rmtree("./test-dbs")
+        
+        return True
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("test_mode", [(True), (False)])
