@@ -49,7 +49,7 @@ Please make sure it is installed on your system for the best visual experience.
 ### 🧪 Testing
 ```bash
 - Frontend:
-    npm test
+    npm run test:all
 
 - Backend:
     cd api
