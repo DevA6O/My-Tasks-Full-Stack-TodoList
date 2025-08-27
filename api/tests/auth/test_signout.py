@@ -103,7 +103,7 @@ class TestSignoutAPIEnpoint:
             async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=self.cookies) as ac:
                 response = await ac.post(self.path_url)
                 assert response.status_code == 503
-                assert response.json()["detail"] == "An unexpected error occurred: Please try again later."
+                assert response.json()["detail"] == "Signout failed: An unexpected error occurred: Please try again later."
 
     @pytest.mark.asyncio
     async def test_signout_endpoint_failed_because_value_error(self) -> None:
@@ -112,4 +112,4 @@ class TestSignoutAPIEnpoint:
             async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=self.cookies) as ac:
                 response = await ac.post(self.path_url)
                 assert response.status_code == 400
-                assert response.json()["detail"] == "An unexpected error occurred: Please try again later."
+                assert response.json()["detail"] == "Signout failed: An unexpected error occurred: Please try again later."
