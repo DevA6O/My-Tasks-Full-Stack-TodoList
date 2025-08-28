@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { toast } from "react-toastify";
+import HomePageSettingsModal from "./H_Settings";
 
 export async function signoutUserAPI() {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/signout`, {
@@ -23,6 +24,8 @@ export async function signoutUserAPI() {
 
 
 export default function HomePageNavigation() {
+    const [settings, setSettings] = useState(null);
+
     const signoutUser = async () => {
         try {
             await signoutUserAPI();
@@ -41,7 +44,10 @@ export default function HomePageNavigation() {
                     <h1 className="font-bold text-2xl">MyTasks</h1>
 
                     <div className="flex flex-col font-sans">
-                        <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
+                        <button
+                            onClick={() => setSettings(true)}
+                            className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
+                            >Settings</button>
                         <button 
                             data-testid="HomePageNavigation-Desktop-Submit-Button"
                             onClick={signoutUser}
@@ -55,7 +61,10 @@ export default function HomePageNavigation() {
                     <h1 className="font-bold text-2xl">MyTasks</h1>
 
                     <div className="flex gap-4 mt-4 sm:mt-0">
-                        <button className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200">Settings</button>
+                        <button
+                            onClick={() => setSettings(true)}
+                            className="cursor-pointer hover:text-blue-500 transition-all ease-in duration-200"
+                            >Settings</button>
                         <button 
                             data-testid="HomePageNavigation-Mobile-Submit-Button"
                             onClick={signoutUser}
@@ -64,6 +73,11 @@ export default function HomePageNavigation() {
                     </div>
                 </nav>
             </div>
+
+            <HomePageSettingsModal
+                isOpen={!!settings}
+                onClose={() => setSettings(null)}>
+            </HomePageSettingsModal>
         </>
     )
 }
