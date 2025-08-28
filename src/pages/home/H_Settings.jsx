@@ -67,10 +67,13 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
             },
             body: JSON.stringify({jti_id: jti_id})
         });
+        const data = await response.json();
 
         if (response.ok) {
             setOnUpdate(true);
-        }
+        } else {
+            toast.error(data?.detail || "An unexpected error is occurred. Please try again later.");
+        };
     };
 
     return (
@@ -184,7 +187,7 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
                                             ) : (
                                                 <button
                                                     onClick={() => removeSession(session.jti_id)}
-                                                    className="text-sm text-red-600 hover:underline"
+                                                    className="text-sm text-red-600 hover:underline cursor-pointer"
                                                 >
                                                     Log out
                                                 </button>
