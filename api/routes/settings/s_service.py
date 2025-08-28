@@ -69,7 +69,7 @@ class SessionSchema(BaseModel):
 
 
 @router.post("/api/settings/service")
-async def settings_service(
+async def settings_service_endpoint(
     token: str = Depends(get_bearer_token), db_session: AsyncSession = Depends(get_db)
 ) -> JSONResponse:
     """ Endpoint to get the user information and sessions """
@@ -81,9 +81,13 @@ async def settings_service(
 
         payload: dict = decode_token(token=token)
         user_id_str: str = payload.get("sub")
+        session_id_str: str = payload.get("session_id")
         
         if not user_id_str:
             raise ValueError("Token error: User ID is not included in the token.")
+        
+        if not session_id_str:
+            raise ValueError("Token error: Session ID is not included in the token.")
         
         service = SettingsService(user_id=UUID(user_id_str), db_session=db_session)
         informations = await service.get()
@@ -96,7 +100,13 @@ async def settings_service(
                     "informations": {
                         "username": informations["username"],
                         "email": informations["email"],
-                        "sessions": [session.model_dump(mode="json") for session in map(SessionSchema.model_validate, informations["sessions"])]
+                        "sessions": [
+                            {
+                                **SessionSchema.model_validate(session).model_dump(mode="json"),
+                                "current": str(session.jti_id) == session_id_str
+                            }
+                            for session in informations["sessions"]
+                        ]
                     }
                 }
             )
