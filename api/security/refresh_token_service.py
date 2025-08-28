@@ -220,7 +220,7 @@ async def is_refresh_token_valid_endpoint(
         verifier = RefreshTokenVerifier(request=request, db_session=db_session)
         auth_obj: Auth = await verifier.is_valid()
 
-        access_token = create_token(data={"sub": str(auth_obj.user_id)})
+        access_token = create_token(data={"sub": str(auth_obj.user_id), "session_id": str(auth_obj.jti_id)})
         return JSONResponse(status_code=status.HTTP_200_OK, content={"access_token": access_token, "token_type": "bearer"})
     except PyJWTError:
         logger.exception("JWT verification failed for refresh token", exc_info=True)
