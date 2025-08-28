@@ -2,7 +2,7 @@ import React from "react";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { toast } from "react-toastify";
 import { useForm } from "react-hook-form";
-
+import Modal from "../../components/Modal";
 
 async function updateTodo(data, accessToken) {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/todo/update`, {
@@ -25,23 +25,10 @@ async function updateTodo(data, accessToken) {
 
 
 export default function HomePageEditorModal({ isOpen, onClose, children }) {
-    if (!isOpen) return null;
-
     return (
-        <div data-testid="HomePageEditorModal">
-            {/* Transparent blackground */}
-            <div className="fixed inset-0 bg-black/80 z-40" onClick={onClose}></div>
-
-            {/* Modal box */}
-            <div className="fixed inset-0 flex items-center justify-center z-50">
-                <div 
-                    className="bg-white p-5 rounded shadow-md w-full max-w-md"
-                    onClick={(e) => e.stopPropagation()}>
-                    
-                    {children}
-                </div>
-            </div>
-        </div>
+        <Modal isOpen={isOpen} onClose={onClose} classname="max-w-md">
+            {children}
+        </Modal>
     )
 };
 
