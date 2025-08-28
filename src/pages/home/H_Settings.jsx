@@ -84,7 +84,7 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
                 <div className="max-w-3xl mx-auto p-6 sm:p-10 space-y-10 bg-gray-50 min-h-screen">
                     <button
                         onClick={onClose}
-                        className="text-sm text-blue-600 hover:underline flex items-center"
+                        className="text-sm text-blue-600 hover:underline flex items-center cursor-pointer"
                     >
                         ← Back
                     </button>
