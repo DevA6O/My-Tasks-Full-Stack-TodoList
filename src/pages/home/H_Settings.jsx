@@ -10,7 +10,8 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
 
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
-    const [sessions, setSessions] = useState([])
+    const [sessions, setSessions] = useState([]);
+    const [onUpdate, setOnUpdate] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -24,37 +25,52 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
 
         // Get informations from backend to display
         async function getInformations() {
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/settings/service`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${accessToken}`
-                }
-            });
+            try {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/settings/service`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${accessToken}`
+                    }
+                });
 
-            setLoading(false);
+                setLoading(false);
 
-            if (response.ok) {
-                const data = await response.json();
+                if (response.ok) {
+                    const data = await response.json();
 
-                setUsername(data.informations.username);
-                setEmail(data.informations.email);
-                setSessions(data.informations.sessions);
-            } else {
-                onClose();
-                toast.error("Settings is not accessible: Please try again later.");
-            };
+                    setUsername(data.informations.username);
+                    setEmail(data.informations.email);
+                    setSessions(data.informations.sessions);
+                } else {
+                    onClose();
+                    toast.error("Settings is not accessible: Please try again later.");
+                };
+            } finally {
+                setOnUpdate(false);
+            }
         };
 
         getInformations();
-    }, [isOpen])
+    }, [isOpen, onUpdate])
 
     const handleSave = () => {
         alert("Changes saved");
     };
 
-    const removeSession = (id) => {
-        alert("Ok")
+    const removeSession = async (jti_id) => {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/settings/session/revoke`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({jti_id: jti_id})
+        });
+
+        if (response.ok) {
+            setOnUpdate(true);
+        }
     };
 
     return (
@@ -167,7 +183,7 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
                                                 </span>
                                             ) : (
                                                 <button
-                                                    onClick={() => removeSession(session.id)}
+                                                    onClick={() => removeSession(session.jti_id)}
                                                     className="text-sm text-red-600 hover:underline"
                                                 >
                                                     Log out
