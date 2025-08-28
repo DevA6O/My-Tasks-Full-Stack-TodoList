@@ -24,7 +24,7 @@ class SettingsService:
 
     async def _get_sessions(self) -> List:
         """ Returns all active sessions """
-        stmt = select(Auth).where(Auth.user_id == self.user_id)
+        stmt = select(Auth).where(Auth.user_id == self.user_id, Auth.revoked == False)
         result = await self.db_session.execute(stmt)
         return result.scalars().all()
     
