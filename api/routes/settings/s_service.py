@@ -36,13 +36,13 @@ class SettingsService:
 
         # Define values
         self.user_id_str: str = self.payload.get("sub")
-        self.jti_id_str: str = self.payload.get("session_id")
+        self.session_id_str: str = self.payload.get("session_id")
 
         # Validate params
         if not self.user_id_str:
-            raise ValueError("Authentication failed: Unknown user.")
+            raise ValueError("Authentication failed: User could not be identified.")
         
-        if not self.jti_id_str:
+        if not self.session_id_str:
             raise ValueError("Authentication failed: Server could not verify the user.")
         
         # Define values with correct type
@@ -64,7 +64,7 @@ class SettingsService:
         return [
             {
                 **SessionSchema.model_validate(session, from_attributes=True).model_dump(mode="json"),
-                "current": str(session.jti_id) == str(self.jti_id_str)
+                "current": str(session.jti_id) == str(self.session_id_str)
             } 
             for session in session_objs
         ]
@@ -103,8 +103,15 @@ class SettingsService:
                 - (sessions): A list containing one or more dictionaries with different active sessions
         """
         try:
-            sessions: List = await self._get_sessions()
+            # Fetch username and email
             username, email = await self._get_username_and_email()
+
+            # Check whether user_id or email exists before querying the sessions
+            if username is None or email is None:
+                raise ValueError("Authentication failed: User could not be identified.")
+
+            # Fetch the session
+            sessions: List = await self._get_sessions()
 
             return {
                 "username": username,
