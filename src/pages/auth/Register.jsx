@@ -49,6 +49,10 @@ async function registerUserAPI(formData, setError) {
     // If registration was successful
     if (response.ok && response.status === 201) {
         toast.success("Registration successful! You will be redirected to the homepage shortly.");
+
+        setTimeout(() => {
+            window.location.href = "/";
+        }, 3000);
     }
     // If the email is already registered
     else if (response.status == 409) {
@@ -86,10 +90,6 @@ export default function Register() {
     const onSubmit = async (formData) => {
         try {
             await registerUserAPI(formData, setError);
-
-            setTimeout(() => {
-                window.location.href = "/";
-            }, 3000);
         } catch (error) {
             toast.error(DEFAULT_ERROR_MSG);
             console.log(error);
