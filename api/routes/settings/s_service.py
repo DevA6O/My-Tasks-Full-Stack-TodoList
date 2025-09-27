@@ -1,4 +1,5 @@
 import logging
+import time
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import JSONResponse
@@ -57,7 +58,11 @@ class SettingsService:
             - A List contains:
                 - A dictionary with active sessions
         """
-        stmt = select(Auth).where(Auth.user_id == self.user_id, Auth.revoked == False)
+        stmt = select(Auth).where(
+            Auth.user_id == self.user_id, 
+            Auth.revoked == False,
+            Auth.expires_at > int(time.time())
+        )
         result = await self.db_session.execute(stmt)
         session_objs = result.scalars().all()
 
