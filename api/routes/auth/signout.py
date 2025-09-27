@@ -12,7 +12,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.post("/api/signout")
+@router.post("/signout")
 async def signout_endpoint(request: Request, db_session: AsyncSession = Depends(get_db)) -> None:
     """ Endpoint to logout an user """    
     try:
