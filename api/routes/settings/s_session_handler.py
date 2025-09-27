@@ -45,8 +45,6 @@ class SettingSessionsHandler:
         if not session_id:
             raise ValueError("session_id must be not None.")
         
-        logger.info(str(self.jti_id) == str(session_id))
-
         if str(self.jti_id) == str(session_id):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, 
@@ -79,7 +77,7 @@ class SessionID(BaseModel):
     jti_id: str
 
 
-@router.post("/api/settings/session/revoke")
+@router.post("/session/revoke")
 async def settings_revoke_session_endpoint(
     payload: SessionID, token: str = Depends(get_bearer_token), db_session: AsyncSession = Depends(get_db) 
 ) -> JSONResponse:

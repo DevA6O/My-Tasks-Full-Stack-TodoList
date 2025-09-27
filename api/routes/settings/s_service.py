@@ -128,7 +128,7 @@ class SettingsService:
             return {}
 
 
-@router.post("/api/settings/service")
+@router.post("/service")
 async def settings_service_endpoint(
     token: str = Depends(get_bearer_token), db_session: AsyncSession = Depends(get_db)
 ) -> JSONResponse:
