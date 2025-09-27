@@ -9,8 +9,7 @@ from httpx import AsyncClient, ASGITransport
 from database.models import User
 from database.connection import get_db
 from conftest import fake_email, fake_password, fake_hashed_password
-from routes.auth.login import Login
-from routes.auth.validation_models import LoginModel
+from routes.auth.login import Login, LoginModel
 from main import api
 
 load_dotenv()
