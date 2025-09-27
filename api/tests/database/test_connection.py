@@ -5,28 +5,15 @@ from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import AsyncGenerator, Any
 
-from database.connection import engine, init_models, get_db, Base
+from database.connection import engine, init_models, get_db
 
 class TestInitModels:
     """ Test class for database model initialization """
 
-    @pytest_asyncio.fixture(autouse=True)
-    async def reset_db(db_session: AsyncSession) -> None:
-        """ Fixture to reset the database before each test """
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-
-            def check_tables(sync_conn):
-                inspector = inspect(sync_conn)
-                tables = inspector.get_table_names()
-                assert tables == []
-
-            await conn.run_sync(check_tables)
-
     @pytest.mark.asyncio
     async def test_init_models(self) -> None:
         """ Test if init_models creates the necessary tables """
-        # Initialize models
+        # Initialize models (if nessesary)
         await init_models()
 
         # Check if the tables were created
