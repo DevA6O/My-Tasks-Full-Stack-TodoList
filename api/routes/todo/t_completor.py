@@ -58,7 +58,7 @@ class TodoCompletor:
         )
         
 
-@router.post("/api/todo/complete")
+@router.post("/complete")
 async def completor_endpoint(
     data: TodoCompletorModel, token: str = Depends(get_bearer_token), 
     db_session: AsyncSession = Depends(get_db)

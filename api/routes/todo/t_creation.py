@@ -66,7 +66,7 @@ class TodoCreation:
         )
 
 
-@router.post("/api/todo/create")
+@router.post("/create")
 async def create_todo_endpoint(
     data: TodoCreationModel, token: str = Depends(get_bearer_token), 
     db_session: AsyncSession = Depends(get_db)

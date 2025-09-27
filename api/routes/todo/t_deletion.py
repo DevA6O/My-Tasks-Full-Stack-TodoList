@@ -57,7 +57,7 @@ class TodoDeletion:
 
 
 
-@router.post("/api/todo/delete")
+@router.post("/delete")
 async def todo_deletion_endpoint(
     data: TodoDeletionModel, db_session: AsyncSession = Depends(get_db), 
     token: str = Depends(get_bearer_token)

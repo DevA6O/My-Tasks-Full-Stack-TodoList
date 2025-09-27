@@ -58,7 +58,7 @@ class TodoEditor:
         )
 
 
-@router.post("/api/todo/update")
+@router.post("/update")
 async def todo_update_endpoint(
     data: TodoEditorModel,
     db_session: AsyncSession = Depends(get_db), token: str = Depends(get_bearer_token),

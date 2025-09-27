@@ -69,7 +69,7 @@ class TodoSchema(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-@router.post("/api/todo/get_all")
+@router.post("/get_all")
 async def get_all_todos_endpoint(
     token: str = Depends(get_bearer_token), db_session: AsyncSession = Depends(get_db)
 ) -> JSONResponse:

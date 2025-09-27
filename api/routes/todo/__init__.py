@@ -5,7 +5,8 @@ from .t_deletion import router as TodoDeletionRouter
 from .t_editor import router as TodoEditorRouter
 from .t_completor import router as TodoCompletorRouter
 
-TodoRouter = APIRouter()
+TodoRouter = APIRouter(prefix="/api/todo")
+
 TodoRouter.include_router(HomeRouter)
 TodoRouter.include_router(TodoCreationRouter)
 TodoRouter.include_router(TodoDeletionRouter)
