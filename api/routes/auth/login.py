@@ -11,7 +11,7 @@ from typing import Tuple
 from database.models import User
 from database.connection import get_db
 from security.hashing import is_hashed
-from security.refresh_token_service import RefreshTokenService
+from security.auth.refresh_token_service import RefreshTokenService
 from shared.decorators import validate_params
 
 logger = logging.getLogger(__name__)

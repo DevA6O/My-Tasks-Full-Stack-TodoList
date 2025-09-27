@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict
 
 from database.models import User
 from database.connection import get_db
-from security.jwt import decode_token, get_bearer_token
+from security.auth.jwt import decode_token, get_bearer_token
 from shared.decorators import validate_params
 
 router = APIRouter()

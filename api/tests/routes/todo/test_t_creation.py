@@ -8,7 +8,7 @@ from typing import Tuple
 
 from database.models import User
 from database.connection import get_db
-from security.jwt import create_token, get_bearer_token
+from security.auth.jwt import create_token, get_bearer_token
 from routes.todo.t_creation import TodoCreation, TodoCreationModel
 from routes.todo.t_utils import todo_exists, TodoExistCheckModel
 from main import api

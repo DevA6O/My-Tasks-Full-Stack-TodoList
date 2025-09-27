@@ -15,7 +15,7 @@ from routes.todo.t_utils import (
     run_todo_db_statement, RunTodoDbStatementContext,
     handle_todo_request
 )
-from security.jwt import create_token
+from security.auth.jwt import create_token
 
 
 class TestTodoExists:

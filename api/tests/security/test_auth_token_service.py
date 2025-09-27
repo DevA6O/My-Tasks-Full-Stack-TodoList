@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Tuple
 
 from database.models import User, Auth
-from security.auth_token_service import StoreAuthToken, AuthTokenDetails
+from security.auth.store_token_service import StoreAuthToken, AuthTokenDetails
 
 class TestGetIpAddressMethod:
     """ Test class for different test scenarios for _get_ip_address method """

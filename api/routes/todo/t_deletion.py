@@ -8,7 +8,7 @@ from typing import Tuple
 
 from database.models import Todo
 from database.connection import get_db
-from security.jwt import get_bearer_token
+from security.auth.jwt import get_bearer_token
 from shared.decorators import validate_params
 from routes.todo.t_validation_models import TodoDeletionModel, TodoExistCheckModel
 from routes.todo.t_utils import (

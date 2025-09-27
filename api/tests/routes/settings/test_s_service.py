@@ -9,8 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from httpx import AsyncClient, ASGITransport
 from typing import Tuple
 
-from security.jwt import decode_token, create_token, get_bearer_token
-from security.refresh_token_service import RefreshTokenService
+from security.auth.jwt import decode_token, create_token, get_bearer_token
+from security.auth.refresh_token_service import RefreshTokenService
 from database.models import User
 from database.connection import get_db
 from routes.settings.s_service import SettingsService

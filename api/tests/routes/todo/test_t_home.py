@@ -12,7 +12,7 @@ from typing import Tuple
 from database.models import User, Todo
 from database.connection import get_db
 from routes.todo.t_home import TodoHome
-from security.jwt import get_bearer_token, create_token
+from security.auth.jwt import get_bearer_token, create_token
 from main import api
 
 load_dotenv()

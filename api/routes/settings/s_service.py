@@ -9,7 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from typing import List, Tuple, Dict
 from pydantic import BaseModel
 
-from security.jwt import get_bearer_token, decode_token
+from security.auth.jwt import get_bearer_token, decode_token
 from shared.decorators import validate_params
 from database.connection import get_db
 from database.models import User, Auth

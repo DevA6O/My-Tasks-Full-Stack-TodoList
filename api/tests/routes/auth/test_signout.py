@@ -12,8 +12,8 @@ from httpx import AsyncClient, ASGITransport
 from unittest.mock import AsyncMock, Mock, patch
 from typing import Tuple
 
-from security.jwt import decode_token
-from security.refresh_token_service import RefreshTokenService
+from security.auth.jwt import decode_token
+from security.auth.refresh_token_service import RefreshTokenService
 from database.connection import get_db
 from database.models import User, Auth
 from main import api

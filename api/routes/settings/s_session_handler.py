@@ -6,7 +6,7 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
-from security.jwt import get_bearer_token, decode_token
+from security.auth.jwt import get_bearer_token, decode_token
 from shared.decorators import validate_params
 from database.connection import get_db
 from database.models import Auth

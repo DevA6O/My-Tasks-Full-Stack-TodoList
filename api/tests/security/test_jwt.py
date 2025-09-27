@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import AsyncMock, patch
 from datetime import datetime, timezone, timedelta
 
-from security.jwt import (
+from security.auth.jwt import (
     SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES,
     get_bearer_token, decode_token, create_token
 )
@@ -18,7 +18,7 @@ class TestGetBearerToken:
     @pytest.mark.asyncio
     async def test_get_bearer_token_success(self) -> None:
         """ Tests the success case """
-        with patch("security.jwt._verify_bearer_token", new=AsyncMock(return_value=True)):
+        with patch("security.auth.jwt._verify_bearer_token", new=AsyncMock(return_value=True)):
             token: str = create_token(data={"sub": str(uuid.uuid4())})
             result = await get_bearer_token(authorization=f"Bearer {token}")
         

@@ -17,8 +17,8 @@ from typing import Tuple
 
 from database.connection import get_db
 from database.models import User, Auth
-from security.jwt import create_token, decode_token
-from security.refresh_token_service import (
+from security.auth.jwt import create_token, decode_token
+from security.auth.refresh_token_service import (
     RefreshTokenService, RefreshTokenVerifier,
     REFRESH_MAX_AGE
 )
@@ -103,7 +103,7 @@ class TestSetRefreshTokenMethod:
         """ Tests the success case """
         patch_value = True if secure_https else False
 
-        with patch("security.refresh_token_service.SECURE_HTTPS", patch_value):
+        with patch("security.auth.refresh_token_service.SECURE_HTTPS", patch_value):
             # Sets the refresh token
             response: JSONResponse = await self.service.set_refresh_token()
             assert response.status_code == 200
@@ -148,7 +148,7 @@ class TestSetRefreshTokenMethod:
         """ Tests the failed case when the storage failed and a http exception 
         raised """
         with patch(
-            "security.refresh_token_service.RefreshTokenService._create_and_store_refresh_token", 
+            "security.auth.refresh_token_service.RefreshTokenService._create_and_store_refresh_token", 
             new=AsyncMock(return_value=False)
         ):
             with pytest.raises(HTTPException):
@@ -427,7 +427,10 @@ class TestIsRefreshTokenValidAPIEndpoint:
     @pytest.mark.asyncio
     async def test_refresh_token_failed_because_value_error(self) -> None:
         """ Tests the failed case when a ValueError occurrs """
-        with patch("security.refresh_token_service.RefreshTokenVerifier._check_token_in_db", side_effect=ValueError("Validation failed: ...")):
+        with patch(
+            "security.auth.refresh_token_service.RefreshTokenVerifier._check_token_in_db", 
+            side_effect=ValueError("Validation failed: ...")
+        ):
             async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=self.cookies) as ac:
                 response = await ac.post(self.path_url)
                 assert response.status_code == 400

@@ -11,7 +11,7 @@ from sqlalchemy.sql import Executable
 
 from routes.todo.t_validation_models import TodoExistCheckModel, HandleTodoRequestModel
 from database.models import Todo
-from security.jwt import decode_token
+from security.auth.jwt import decode_token
 
 if TYPE_CHECKING:
     from routes.todo.t_validation_models import TodoExistCheckModel
