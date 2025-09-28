@@ -9,8 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from httpx import AsyncClient, ASGITransport
 from typing import Tuple
 
-from security.auth.jwt import decode_token, create_token, get_bearer_token
-from security.auth.refresh_token_service import RefreshTokenService
+from security.auth.jwt import create_token, get_bearer_token
 from database.models import User
 from database.connection import get_db
 from routes.settings.s_service import SettingsService
@@ -20,37 +19,34 @@ class TestGetSessionsMethod:
     """ Test class for different test scenarios for _get_sessions method """
 
     @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, fake_request: Tuple[Request, User, AsyncSession]) -> None:
+    async def setup(
+        self, fake_refresh_token_with_session_id: Tuple[str, str, Request, User, AsyncSession]
+    ) -> None:
         """ Set up common test data """
-        self.mock_request, self.user, self.db_session = fake_request
-
+        (
+            self.refresh_token,
+            self.session_id,
+            self.mock_request,
+            self.user,
+            self.db_session
+        ) = fake_refresh_token_with_session_id
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("current", [(True), (False)])
     async def test_get_sessions_success(self, current: bool) -> None:
         """ Tests the success case """
-        refresh_service = RefreshTokenService(
-            request=self.mock_request, 
-            user_id=self.user.id, 
-            db_session=self.db_session
-        )
-        refresh_token: str = await refresh_service._create_and_store_refresh_token()
-
-        # Start the test
-        refresh_token_payload: dict = decode_token(token=refresh_token)
-        session_id: str = str(refresh_token_payload.get("jti"))
-
+        # Overwrite so that it is not considered the current session
         if not current:
-            session_id: str = str(uuid.uuid4())
+            self.session_id: str = str(uuid.uuid4())
 
         payload: dict = {
             "sub": str(self.user.id),
-            "session_id": session_id
+            "session_id": self.session_id
         }
 
         service = SettingsService(payload=payload, db_session=self.db_session)
         sessions = await service._get_sessions()
-        
+
         assert sessions != []
         assert sessions[0]["current"] if current else not sessions[0]["current"]
 
@@ -59,7 +55,7 @@ class TestGetSessionsMethod:
     async def test_get_sessions_failed_because_no_db_entry(self) -> None:
         """ Tests the failed case when there is no entry in the database """
         payload: dict = {
-            "sub": str(self.user.id),
+            "sub": str(uuid.uuid4()),
             "session_id": str(uuid.uuid4())
         }
 
@@ -113,23 +109,25 @@ class TestGetMethod:
     """ Test class for different test scenarios for get method """
 
     @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, fake_request: Tuple[Request, User, AsyncSession]) -> None:
+    async def setup(
+        self, fake_refresh_token_with_session_id: Tuple[str, str, Request, User, AsyncSession]
+    ) -> None:
         """ Set up common test data """
-        self.mock_request, self.user, self.db_session = fake_request
+        (
+            self.refresh_token,
+            self.session_id,
+            self.mock_request,
+            self.user,
+            self.db_session
+        ) = fake_refresh_token_with_session_id
 
 
     @pytest.mark.asyncio
     async def test_get_success(self) -> None:
         """ Tests the success case """
-        # Create refresh token
-        refresh_service = RefreshTokenService(request=self.mock_request, user_id=self.user.id, db_session=self.db_session)
-        refresh_token: str = await refresh_service._create_and_store_refresh_token()
-
-        # Start the test
-        refresh_token_payload: dict = decode_token(token=refresh_token)
         payload: dict = {
             "sub": str(self.user.id),
-            "session_id": str(refresh_token_payload.get("jti"))
+            "session_id": self.session_id
         }
 
         service = SettingsService(payload=payload, db_session=self.db_session)
@@ -143,10 +141,8 @@ class TestGetMethod:
     @pytest.mark.asyncio
     async def test_get_failed_because_no_user_or_email(self) -> None:
         """ Tests the error case when user or email is None """
-        user_id: uuid.UUID = uuid.uuid4()
-
         payload: dict = {
-            "sub": str(user_id),
+            "sub": str(uuid.uuid4()),
             "session_id": str(uuid.uuid4())
         }
 
@@ -183,27 +179,23 @@ class TestSettingsServiceEndpoint:
     """ Test class for different test scenarios for settings_service_endpoint api endpoint """
 
     @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, fake_request: Tuple[Request, User, AsyncSession]) -> None:
+    async def setup(
+        self, fake_refresh_token_with_session_id: Tuple[str, str, Request, User, AsyncSession]
+    ) -> None:
         """ Set up common test data """
-        self.mock_request, self.user, self.db_session = fake_request
-
-        api.dependency_overrides[get_db] = lambda: self.db_session
+        (
+            self.refresh_token,
+            self.session_id,
+            self.mock_request,
+            self.user,
+            self.db_session
+        ) = fake_refresh_token_with_session_id
 
         self.transport = ASGITransport(app=api)
         self.base_url: str = os.getenv("VITE_API_URL")
         self.path_url: str = "/settings/service"
 
-        # Create refresh token
-        refresh_service = RefreshTokenService(
-            request=self.mock_request, 
-            user_id=self.user.id, 
-            db_session=self.db_session
-        )
-        refresh_token: str = await refresh_service._create_and_store_refresh_token()
-        
-        refresh_payload: dict = decode_token(token=refresh_token)
-        self.session_id: str = str(refresh_payload.get("session_id"))
-
+        # Create a fake token
         token: str = create_token(
             data={
                 "sub": str(self.user.id), 
@@ -212,7 +204,9 @@ class TestSettingsServiceEndpoint:
             }
         )
 
+        # Pverwrite dependencies
         api.dependency_overrides[get_bearer_token] = lambda: token
+        api.dependency_overrides[get_db] = lambda: self.db_session
 
 
     def teardown_method(self) -> None:

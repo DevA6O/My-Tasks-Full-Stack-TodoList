@@ -104,3 +104,29 @@ async def fake_request(fake_user: Tuple[User, AsyncSession]) -> Tuple[Request, U
     mock_request.client.host = client_host
     
     return (mock_request, fake_user[0], fake_user[1])
+
+
+
+@pytest_asyncio.fixture
+async def fake_refresh_token_with_session_id(
+    fake_request: Tuple[Request, User, AsyncSession]
+) -> Tuple[str, str, Request, User, AsyncSession]:
+    """ Fixture to create a fake refresh token which contains a session id """
+    from security.auth.refresh_token_service import RefreshTokenService
+    from security.auth.jwt import decode_token
+
+    mock_request, user, db_session = fake_request
+
+    # Create the refresh token
+    refresh_service = RefreshTokenService(
+        request=mock_request,
+        user_id=user.id,
+        db_session=db_session
+    )
+    refresh_token: str = await refresh_service._create_and_store_refresh_token()
+
+    # Decode the token to get the session id
+    payload: dict = decode_token(token=refresh_token)
+    session_id: str = str(payload.get("jti"))
+
+    return (refresh_token, session_id, mock_request, user, db_session)
