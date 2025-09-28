@@ -1,8 +1,6 @@
 import jwt
 import uuid
-import time
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import AsyncMock, patch
 from datetime import datetime, timezone, timedelta
 
@@ -49,8 +47,8 @@ class TestDecodeToken:
 
     def test_decode_token_failed_because_py_jwt_error(self) -> None:
         """ Tests the failed case when a PyJWTError occurrs """
-        token: str = create_token(data={"sub": str(uuid.uuid4())}, expire_delta=timedelta(seconds=1))
-        time.sleep(1.5) # Wait until the token is expired (invalid)
+        token: str = create_token(data={"sub": str(uuid.uuid4())}, expire_delta=timedelta(microseconds=1))
+        # Token is immediately expired because of the very short expiration time of 1 microsecond
 
         result = decode_token(token=token)
         assert not result

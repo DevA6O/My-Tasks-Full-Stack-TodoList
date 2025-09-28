@@ -392,9 +392,8 @@ class TestIsRefreshTokenValidAPIEndpoint:
         cookies = {
             "refresh_token": create_token(
                 data={"sub": str(self.user.id)},
-                expire_delta=timedelta(seconds=1)
+                expire_delta=timedelta(microseconds=1)
         )}
-        time.sleep(1.5) # Wait until the token is invalid
 
         async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=cookies) as ac:
             response = await ac.post(self.path_url)
