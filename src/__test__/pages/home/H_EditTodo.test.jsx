@@ -47,7 +47,7 @@ describe("[HomePageManageAndDisplayTodos | HomePageEditTaskForm]", async () => {
         await userEvent.click(editButton);
 
         // Check that the overlay is displayed correctly
-        const editorModal = await screen.findByTestId("HomePageEditorModal");
+        const editorModal = await screen.findByTestId("Modal");
         expect(editorModal).toBeInTheDocument();
 
         const editorForm = await screen.findByTestId("HomePageEditTaskForm");
