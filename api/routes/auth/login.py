@@ -117,7 +117,7 @@ async def login_endpoint(request: Request, data: LoginModel, db_session: AsyncSe
         
         # If the credentials are wrong
         logger.warning(f"Login failed: {message}", extra={"email": data.email})
-    except ValueError as e: # Fallback
+    except (TypeError, ValueError) as e: # Fallback
         logger.exception(str(e), exc_info=True)
 
     raise http_exception

@@ -105,7 +105,7 @@ async def get_all_todos_endpoint(
                 "todos": [todo.model_dump(mode="json") for todo in map(TodoSchema.model_validate, todos)]
             }
         )
-    except ValueError as e: # Fallback
+    except (TypeError, ValueError) as e: # Fallback
         logger.exception(str(e), exc_info=True)
         http_exception.detail = "An unexpected error occurred: Please try again later."
         raise http_exception

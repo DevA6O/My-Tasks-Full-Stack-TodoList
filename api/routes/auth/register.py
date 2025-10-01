@@ -136,7 +136,7 @@ async def register_endpoint(request: Request, data: RegisterModel, db_session: A
         http_exception.status_code = status.HTTP_409_CONFLICT
         http_exception.detail = str(e)
     
-    except ValueError as e:
-        logger.exception(f"An unknown ValueError occurred: {str(e)}", exc_info=True, extra={"email": data.email})
+    except (TypeError, ValueError) as e:
+        logger.exception(str(e), exc_info=True, extra={"email": data.email})
 
     raise http_exception

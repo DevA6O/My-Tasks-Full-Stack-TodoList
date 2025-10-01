@@ -36,7 +36,7 @@ class TestValidateConstructor:
         self, invalid_db_session: bool, invalid_user_id: bool
     ) -> None:
         """ Tests the failed case when a parameter is set incorrectly """
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             if invalid_db_session:
                 self.dummy_service(db_session="Invalid db session", user_id=self.user.id)
             elif invalid_user_id:
@@ -48,7 +48,7 @@ class TestValidateConstructor:
         self, failure_arg: str
     ) -> None:
         """ Tests the failed case when only one parameter is set incorrectly """
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             if failure_arg == "db_session":
                 self.dummy_service(db_session="Invalid db session")
             elif failure_arg == "user_id":
