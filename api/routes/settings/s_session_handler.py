@@ -38,9 +38,13 @@ class SettingSessionsHandler:
         """ Decode the token and set the session_id and user_id globally """
         payload: dict = decode_token(token=self.token)
         
+        # Check whether the token could not be decoded correclty
+        if not payload:
+            raise ValueError("Invalid token: Token has no payload.")
+
         # Extract the session id and the user id from the token
         self.session_id: str = payload.get("session_id", None)
-        self.user_id: str = UUID(payload.get("sub", None))
+        self.user_id: str = payload.get("sub", None)
 
         # Check whether the values are in the token
         if not self.session_id:
@@ -49,6 +53,9 @@ class SettingSessionsHandler:
         if not self.user_id:
             raise ValueError("sub must be not None.")
         
+        # Try to convert the user_id to a UUID
+        self.user_id: UUID = UUID(self.user_id)
+
 
     async def revoke(self) -> bool:
         """ Invalidates the token 
