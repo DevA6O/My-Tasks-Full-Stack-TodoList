@@ -3,7 +3,6 @@ import logging
 from uuid import UUID
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status, Header, Depends
-from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import PyJWTError
 from passlib.context import CryptContext
 from sqlalchemy import select
@@ -16,7 +15,6 @@ from security import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def decode_token(token: str) -> dict:
     """ Function to decode the token 
@@ -91,14 +89,14 @@ async def get_bearer_token(authorization: str = Header(None), db_session: AsyncS
             detail="Authentication failed: An unknown error is occurred. Please try again later."
         )
 
-        if not authorization or not authorization.startswith("Bearer "):
-            raise http_exception
-        
-        token: str = authorization[len("Bearer "):]
-        is_valid: bool = await _verify_bearer_token(token=token, db_session=db_session)
+        # Verify the access token
+        if authorization and authorization.startswith("Bearer "):
+            token: str = authorization[len("Bearer "):]
 
-        if is_valid:
-            return token
+            if await _verify_bearer_token(token=token, db_session=db_session):
+                return token
+        
+        raise http_exception
     except (TypeError, Exception) as e:
         logger.exception(f"An unexpected error is occurred: {str(e)}", exc_info=True)
 
