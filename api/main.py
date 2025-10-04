@@ -22,7 +22,7 @@ api = FastAPI(lifespan=lifespan)
 
 # Add middleware
 origins = [
-    "*" # CHANGE IT
+    "http://localhost:5173"
 ]
 
 api.add_middleware(
