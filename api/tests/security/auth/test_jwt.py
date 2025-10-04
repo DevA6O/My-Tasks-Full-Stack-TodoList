@@ -1,10 +1,10 @@
 import jwt
 import uuid
-import time
 import pytest
+from unittest.mock import AsyncMock, patch
 from datetime import datetime, timezone, timedelta
 
-from security.jwt import (
+from security.auth.jwt import (
     SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES,
     get_bearer_token, decode_token, create_token
 )
@@ -13,20 +13,22 @@ from security.jwt import (
 class TestGetBearerToken:
     """ Test class for different test scenarios for the get_bearer_token function """
     
-    def test_get_bearer_token_success(self) -> None:
+    @pytest.mark.asyncio
+    async def test_get_bearer_token_success(self) -> None:
         """ Tests the success case """
-        token: str = create_token(data={"sub": str(uuid.uuid4())})
-        header: str = f"Bearer {token}"
-
-        result = get_bearer_token(authorization=header)
-        assert result == token
+        with patch("security.auth.jwt._verify_bearer_token", new=AsyncMock(return_value=True)):
+            token: str = create_token(data={"sub": str(uuid.uuid4())})
+            result = await get_bearer_token(authorization=f"Bearer {token}")
         
-    def test_get_bearer_token_failed_because_no_token(self) -> None:
+        assert result == token
+    
+    @pytest.mark.asyncio
+    async def test_get_bearer_token_failed_because_no_token(self) -> None:
         """ Tests the error case when there is no token in the header """
         from fastapi import HTTPException
 
         with pytest.raises(HTTPException) as exc_info:
-            get_bearer_token(authorization="")
+            await get_bearer_token(authorization="")
         
         assert exc_info.value.status_code == 401
         assert exc_info.value.detail
@@ -45,8 +47,8 @@ class TestDecodeToken:
 
     def test_decode_token_failed_because_py_jwt_error(self) -> None:
         """ Tests the failed case when a PyJWTError occurrs """
-        token: str = create_token(data={"sub": str(uuid.uuid4())}, expire_delta=timedelta(seconds=1))
-        time.sleep(1.5) # Wait until the token is expired (invalid)
+        token: str = create_token(data={"sub": str(uuid.uuid4())}, expire_delta=timedelta(microseconds=1))
+        # Token is immediately expired because of the very short expiration time of 1 microsecond
 
         result = decode_token(token=token)
         assert not result

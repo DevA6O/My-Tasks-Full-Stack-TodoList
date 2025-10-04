@@ -35,16 +35,26 @@ test("Completion was successful", async ({ page, createTodo }) => {
 });
 
 
-test("Completion failed due to mocking", async ({ page, createTodo, simulateAndMockPostRequestWithRealData }) => {
-    // Mock api response
-    await simulateAndMockPostRequestWithRealData({
-        url: `${process.env.VITE_API_URL}/todo/complete`,
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer a-string-secret-at-least-256-bits-long" // Fake access token
-        },
-        data: {todo_id: "999526e8-8f81-473c-8d62-b84207493ff8"}, // Fake todo_id
-        status: 400
+test("Completion failed: Authentication - Invalid token", async ({ page, createTodo }) => {
+    await page.route(`${process.env.VITE_API_URL}/todo/complete`, async route => {
+        const response = await route.fetch({
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer Invalid-Token"
+            },
+            body: JSON.stringify({
+                todo_id: "00000000-0000-0000-0000-000000000000"
+            })
+        })
+        const realData = await response.json();
+
+        // Return the failed api response
+        await route.fulfill({
+            status: 400,
+            contentType: "application/json",
+            body: JSON.stringify(realData)
+        })
     })
 
     // Go to homepage
@@ -52,11 +62,11 @@ test("Completion failed due to mocking", async ({ page, createTodo, simulateAndM
 
     // Create a todo
     await createTodo({
-        title: "Completion failed due to mocking",
+        title: "Completion failed",
         description: ""
     });
 
-    await page.getByText("Completion failed due to mocking")
+    await page.getByText("Completion failed")
         .locator("..") // Go to parent div (Description & Title)
         .locator("..") // Go to task-container
         .locator("button:has-text('Completed')") // Find the completed button
@@ -64,8 +74,8 @@ test("Completion failed due to mocking", async ({ page, createTodo, simulateAndM
 
     // Check whether the completion was not successful
     const errorMessage = page.getByText(
-        "Completion failed: Todo could not be marked as completed for technical reasons. Please try again later.", 
-        {timeout: 5000}
+        "Authentication failed: An unknown error is occurred. Please try again later.", 
+        {timeout: 2000}
     );
     await expect(errorMessage).toBeVisible();
 });
@@ -96,16 +106,27 @@ test("Deletion was successful", async ({ page, createTodo }) => {
 });
 
 
-test("Deletion failed due to mocking", async ({ page, createTodo, simulateAndMockPostRequestWithRealData }) => {
-    // Mock api response
-    await simulateAndMockPostRequestWithRealData({
-        url: `${process.env.VITE_API_URL}/todo/delete`,
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer a-string-secret-at-least-256-bits-long" // Fake access token
-        },
-        data: {todo_id: "999526e8-8f81-473c-8d62-b84207493ff8"}, // Fake todo_id
-        status: 400
+test("Deletion failed: Authentication - Invalid token", async ({ page, createTodo }) => {
+    await page.route(`${process.env.VITE_API_URL}/todo/delete`, async route => {
+        // Do a real api request, which fails, because the data aren't correct
+        const response = await route.fetch({
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer Invalid-Token"
+            },
+            body: JSON.stringify({
+                todo_id: "00000000-0000-0000-0000-000000000000" // Invalid todo id
+            })
+        });
+        const realData = await response.json();
+        
+        // Return the failed api response
+        await route.fulfill({
+            status: 400,
+            contentType: "application/json",
+            body: JSON.stringify(realData)
+        });
     });
 
     // Go to homepage
@@ -113,21 +134,21 @@ test("Deletion failed due to mocking", async ({ page, createTodo, simulateAndMoc
 
     // Create a todo
     await createTodo({
-        title: "Deletion failed due to mocking",
+        title: "Deletion failed",
         description: ""
     });
 
     // Click on the delete button
-    await page.getByText("Deletion failed due to mocking")
+    await page.getByText("Deletion failed")
         .locator("..") // Go to parent div
         .locator("..") // Go to task container
         .locator("button:has-text('Delete')") // Find delete button
-        .click();
+        .click(); 
     
-    // Check whether the deletion was not successful
+    // Check whether the deletion was unsuccessful
     const errorMessage = page.getByText(
-        "Deletion failed: Todo could not be deleted for technical reasons. Please try again later.", 
-        {timeout: 5000}
+        "Authentication failed: An unknown error is occurred. Please try again later.", 
+        {timeout: 2000}
     );
     await expect(errorMessage).toBeVisible();
 })

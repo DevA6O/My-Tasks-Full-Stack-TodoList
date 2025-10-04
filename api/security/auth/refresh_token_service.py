@@ -1,6 +1,5 @@
 import uuid
 import logging
-import jwt
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -9,14 +8,14 @@ from fastapi import Request, Depends, HTTPException, status, APIRouter
 from fastapi.responses import JSONResponse
 from jwt.exceptions import PyJWTError
 
-from security import REFRESH_MAX_AGE, ALGORITHM, SECRET_KEY, SECURE_HTTPS
-from security.jwt import create_token, decode_token
-from security.auth_token_service import StoreAuthToken, AuthTokenDetails
+from security import REFRESH_MAX_AGE, SECURE_HTTPS
+from security.auth.jwt import create_token, decode_token
+from security.auth.store_token_service import StoreAuthToken, AuthTokenDetails
 from shared.decorators import validate_params
 from database.models import Auth
 from database.connection import get_db
 
-router = APIRouter()
+router = APIRouter(prefix="/api/token/refresh")
 logger = logging.getLogger(__name__)
 
 
@@ -211,7 +210,7 @@ class RefreshTokenVerifier:
 
         
 
-@router.post("/api/token/refresh/valid")
+@router.post("/valid")
 async def is_refresh_token_valid_endpoint(
     request: Request, db_session: AsyncSession = Depends(get_db)
 ) -> JSONResponse:
@@ -220,7 +219,7 @@ async def is_refresh_token_valid_endpoint(
         verifier = RefreshTokenVerifier(request=request, db_session=db_session)
         auth_obj: Auth = await verifier.is_valid()
 
-        access_token = create_token(data={"sub": str(auth_obj.user_id)})
+        access_token = create_token(data={"sub": str(auth_obj.user_id), "session_id": str(auth_obj.jti_id)})
         return JSONResponse(status_code=status.HTTP_200_OK, content={"access_token": access_token, "token_type": "bearer"})
     except PyJWTError:
         logger.exception("JWT verification failed for refresh token", exc_info=True)

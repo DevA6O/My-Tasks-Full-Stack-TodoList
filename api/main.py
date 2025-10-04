@@ -7,7 +7,8 @@ from database.connection import init_models
 from exception_handler import validation_exception_handler
 from routes.auth import AuthRouter
 from routes.todo import TodoRouter
-from security.refresh_token_service import router as RefreshRouter
+from routes.settings import SettingsRouter
+from security.auth.refresh_token_service import router as RefreshRouter
 
 logging.basicConfig(level=logging.INFO, format="[%(name)s.py:%(lineno)d | %(levelname)s] - %(asctime)s: %(message)s")
 
@@ -39,3 +40,4 @@ api.add_exception_handler(RequestValidationError, validation_exception_handler)
 api.include_router(AuthRouter)
 api.include_router(TodoRouter)
 api.include_router(RefreshRouter)
+api.include_router(SettingsRouter)

@@ -8,7 +8,7 @@ from typing import Tuple
 
 from database.models import Todo
 from database.connection import get_db
-from security.jwt import get_bearer_token
+from security.auth.jwt import get_bearer_token
 from shared.decorators import validate_params
 from routes.todo.t_validation_models import TodoEditorModel, TodoExistCheckModel
 from routes.todo.t_utils import (
@@ -58,7 +58,7 @@ class TodoEditor:
         )
 
 
-@router.post("/api/todo/update")
+@router.post("/update")
 async def todo_update_endpoint(
     data: TodoEditorModel,
     db_session: AsyncSession = Depends(get_db), token: str = Depends(get_bearer_token),

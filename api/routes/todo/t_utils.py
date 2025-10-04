@@ -11,7 +11,7 @@ from sqlalchemy.sql import Executable
 
 from routes.todo.t_validation_models import TodoExistCheckModel, HandleTodoRequestModel
 from database.models import Todo
-from security.jwt import decode_token
+from security.auth.jwt import decode_token
 
 if TYPE_CHECKING:
     from routes.todo.t_validation_models import TodoExistCheckModel
@@ -163,7 +163,7 @@ async def handle_todo_request(
 
         # If it wasn't successfully
         http_exception.detail = msg
-    except ValueError as e:
+    except (TypeError, ValueError) as e:
         logger.exception(str(e), exc_info=True)
         http_exception.detail = params.default_error_message
 

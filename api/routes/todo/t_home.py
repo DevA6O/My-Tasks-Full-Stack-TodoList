@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict
 
 from database.models import User
 from database.connection import get_db
-from security.jwt import decode_token, get_bearer_token
+from security.auth.jwt import decode_token, get_bearer_token
 from shared.decorators import validate_params
 
 router = APIRouter()
@@ -69,7 +69,7 @@ class TodoSchema(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-@router.post("/api/todo/get_all")
+@router.post("/get_all")
 async def get_all_todos_endpoint(
     token: str = Depends(get_bearer_token), db_session: AsyncSession = Depends(get_db)
 ) -> JSONResponse:
@@ -105,7 +105,7 @@ async def get_all_todos_endpoint(
                 "todos": [todo.model_dump(mode="json") for todo in map(TodoSchema.model_validate, todos)]
             }
         )
-    except ValueError as e: # Fallback
+    except (TypeError, ValueError) as e: # Fallback
         logger.exception(str(e), exc_info=True)
         http_exception.detail = "An unexpected error occurred: Please try again later."
         raise http_exception

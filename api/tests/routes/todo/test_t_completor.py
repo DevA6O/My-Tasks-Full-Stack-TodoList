@@ -11,7 +11,7 @@ from typing import Tuple
 
 from database.models import Todo, User
 from database.connection import get_db
-from security.jwt import create_token, get_bearer_token
+from security.auth.jwt import create_token, get_bearer_token
 from routes.todo.t_completor import TodoCompletor, TodoCompletorModel
 from main import api
 

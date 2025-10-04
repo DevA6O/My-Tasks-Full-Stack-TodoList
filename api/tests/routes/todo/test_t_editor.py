@@ -10,7 +10,7 @@ from httpx import ASGITransport, AsyncClient
 from database.models import Todo, User
 from database.connection import get_db
 from routes.todo.t_editor import TodoEditor, TodoEditorModel
-from security.jwt import create_token, get_bearer_token
+from security.auth.jwt import create_token, get_bearer_token
 from main import api
 
 load_dotenv()

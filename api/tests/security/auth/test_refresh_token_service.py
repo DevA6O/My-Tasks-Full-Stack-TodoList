@@ -1,7 +1,6 @@
 import os
 import json
 import uuid
-import time
 import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
@@ -17,8 +16,8 @@ from typing import Tuple
 
 from database.connection import get_db
 from database.models import User, Auth
-from security.jwt import create_token, decode_token
-from security.refresh_token_service import (
+from security.auth.jwt import create_token, decode_token
+from security.auth.refresh_token_service import (
     RefreshTokenService, RefreshTokenVerifier,
     REFRESH_MAX_AGE
 )
@@ -48,6 +47,7 @@ class TestCreateAndStoreRefreshTokenMethod:
             db_session=self.db_session, status_code=200, content={}
         )
 
+
     @pytest.mark.asyncio
     async def test_create_and_store_refresh_token_success(self) -> None:
         """ Tests the success case """
@@ -64,6 +64,7 @@ class TestCreateAndStoreRefreshTokenMethod:
         assert auth_obj is not None
         assert abs(auth_obj.expires_at - expires_at) <= 5 # May have a difference of 5 seconds
 
+
     @pytest.mark.asyncio
     async def test_create_and_store_refresh_token_failed_because_storage_failed(self) -> None:
         """ Tests the failed case when the storage failed """
@@ -79,23 +80,15 @@ class TestSetRefreshTokenMethod:
     """ Test class for different test scenarios for set_refresh_token method """
 
     @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+    async def setup(self, fake_request: Tuple[Request, User, AsyncSession]) -> None:
         """ Set up common test data """
-        self.user, self.db_session = fake_user
-
-        # Define test values
-        self.user_agent_str = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) " \
-        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
-
-        self.mock_request = Mock()
-        self.mock_request.__class__ = Request
-        self.mock_request.headers = {"user-agent": self.user_agent_str}
-        self.mock_request.client.host = "123.123.123.123"
+        self.mock_request, self.user, self.db_session = fake_request
 
         self.service = RefreshTokenService(
             request=self.mock_request, user_id=self.user.id,
             db_session=self.db_session, status_code=200, content={}
         )
+
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("secure_https", [(True), (False), (None)])
@@ -103,7 +96,7 @@ class TestSetRefreshTokenMethod:
         """ Tests the success case """
         patch_value = True if secure_https else False
 
-        with patch("security.refresh_token_service.SECURE_HTTPS", patch_value):
+        with patch("security.auth.refresh_token_service.SECURE_HTTPS", patch_value):
             # Sets the refresh token
             response: JSONResponse = await self.service.set_refresh_token()
             assert response.status_code == 200
@@ -148,7 +141,7 @@ class TestSetRefreshTokenMethod:
         """ Tests the failed case when the storage failed and a http exception 
         raised """
         with patch(
-            "security.refresh_token_service.RefreshTokenService._create_and_store_refresh_token", 
+            "security.auth.refresh_token_service.RefreshTokenService._create_and_store_refresh_token", 
             new=AsyncMock(return_value=False)
         ):
             with pytest.raises(HTTPException):
@@ -159,13 +152,9 @@ class TestGetRefreshTokenMethod:
     """ Test class for different test scenarios for _get_refresh_token method """
 
     @pytest.fixture(autouse=True)
-    def setup(self, db_session: AsyncSession) -> None:
+    def setup(self, fake_request: Tuple[Request, User, AsyncSession]) -> None:
         """ Set up common test data """
-        self.db_session: AsyncSession = db_session
-
-        self.mock_request = Mock()
-        self.mock_request.__class__ = Request
-        self.mock_request.client.host = "123.123.123.123"
+        self.mock_request, self.user, self.db_session = fake_request
 
         self.token = create_token(data={
             "sub": str(uuid.uuid4()), 
@@ -173,11 +162,13 @@ class TestGetRefreshTokenMethod:
         })
         self.mock_request.cookies = {"refresh_token": self.token}
         
+
     def test_get_refresh_token_success(self) -> None:
         """ Tests the success case """
         verifier = RefreshTokenVerifier(request=self.mock_request, db_session=self.db_session)
         result = verifier._get_refresh_token()
         assert isinstance(result, str)
+
 
     def test_get_refresh_token_failed_because_no_refresh_token(self) -> None:
         """ Tests the failed case when no refresh token is given """
@@ -197,18 +188,10 @@ class TestCheckTokenInDb:
     """ Test class for different test scenarios for _check_token_in_db method """
 
     @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+    async def setup(self, fake_request: Tuple[Request, User, AsyncSession]) -> None:
         """ Set up common test data """
-        self.user, self.db_session = fake_user
+        self.mock_request, self.user, self.db_session = fake_request
 
-        # Mock request
-        self.user_agent_str = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) " \
-        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
-
-        self.mock_request = Mock()
-        self.mock_request.__class__ = Request
-        self.mock_request.headers = {"user-agent": self.user_agent_str}
-        self.mock_request.client.host = "000.000.000.000"
 
     @pytest.mark.asyncio
     async def test_check_token_in_db_success(self) -> None:
@@ -230,12 +213,14 @@ class TestCheckTokenInDb:
         auth_obj: Auth = await verifier._check_token_in_db(user_id=self.user.id, jti_id=uuid.UUID(jti_id))
         assert isinstance(auth_obj, Auth)
 
+
     @pytest.mark.asyncio
     async def test_check_token_in_db_failed_because_no_token_in_db(self) -> None:
         """ Tests the failed case when no token is in the database """
         verifier = RefreshTokenVerifier(request=self.mock_request, db_session=self.db_session)
         auth_obj: None = await verifier._check_token_in_db(user_id=self.user.id, jti_id=uuid.uuid4())
         assert auth_obj is None
+
 
     @pytest.mark.asyncio
     async def test_check_token_in_db_failed_because_value_error(self) -> None:
@@ -250,18 +235,9 @@ class TestIsValidMethod:
     """ Test class for different test scenarios for is_valid method """
 
     @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+    async def setup(self, fake_request: Tuple[Request, User, AsyncSession]) -> None:
         """ Set up common test data """
-        self.user, self.db_session = fake_user
-
-        # Mock request
-        self.user_agent_str = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) " \
-        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
-
-        self.mock_request = Mock()
-        self.mock_request.__class__ = Request
-        self.mock_request.headers = {"user-agent": self.user_agent_str}
-        self.mock_request.client.host = "000.000.000.000"
+        self.mock_request, self.user, self.db_session = fake_request
 
 
     @pytest.mark.asyncio
@@ -347,9 +323,9 @@ class TestIsRefreshTokenValidAPIEndpoint:
     """ Test class for different test scenarios for api endpoint """
 
     @pytest_asyncio.fixture(autouse=True)
-    async def setup(self, fake_user: Tuple[User, AsyncSession]) -> None:
+    async def setup(self, fake_request: Tuple[Request, User, AsyncSession]) -> None:
         """ Set up common test data """
-        self.user, self.db_session = fake_user
+        self.mock_request, self.user, self.db_session = fake_request
 
         # Set up the dependency
         api.dependency_overrides[get_db] = lambda: self.db_session
@@ -359,11 +335,6 @@ class TestIsRefreshTokenValidAPIEndpoint:
         self.transport = ASGITransport(app=api)
 
         # Create refresh token
-        self.mock_request = Mock()
-        self.mock_request.__class__ = Request
-        self.mock_request.headers = {}
-        self.mock_request.client.host = "123.123.123.123"
-
         self.service = RefreshTokenService(
             request=self.mock_request, user_id=self.user.id,
             db_session=self.db_session, status_code=200, content={}
@@ -371,6 +342,7 @@ class TestIsRefreshTokenValidAPIEndpoint:
 
         self.refresh_token = await self.service._create_and_store_refresh_token()
         self.cookies = {"refresh_token": self.refresh_token}
+
 
     @pytest.mark.asyncio
     async def test_is_refresh_token_valid_endpoint_success(self) -> None:
@@ -380,6 +352,7 @@ class TestIsRefreshTokenValidAPIEndpoint:
             assert response.status_code == 200
             assert "access_token" in response.json()
 
+
     @pytest.mark.asyncio
     async def test_refresh_token_endpoint_failed_because_refresh_token_does_not_exist(self) -> None:
         """ Tests the error case when the refresh token is not present 
@@ -388,6 +361,7 @@ class TestIsRefreshTokenValidAPIEndpoint:
             response = await ac.post(self.path_url)
             assert response.status_code == 401
             assert "detail" in response.json()
+
 
     @pytest.mark.asyncio
     async def test_refresh_token_endpoint_failed_because_user_does_not_exist(self) -> None:
@@ -399,6 +373,7 @@ class TestIsRefreshTokenValidAPIEndpoint:
             assert response.status_code == 401
             assert "detail" in response.json()
 
+
     @pytest.mark.asyncio
     async def test_refresh_token_endpoint_failed_because_jti_does_not_exist(self) -> None:
         """ Tests the failed case when the jti id is not in the refresh token """
@@ -409,25 +384,29 @@ class TestIsRefreshTokenValidAPIEndpoint:
             assert response.status_code == 401
             assert "detail" in response.json()
 
+
     @pytest.mark.asyncio
     async def test_refresh_token_endpoint_failed_because_py_jwt_error(self) -> None:
         """ Tests the failed case when a PyJWTError occurrs """
         cookies = {
             "refresh_token": create_token(
                 data={"sub": str(self.user.id)},
-                expire_delta=timedelta(seconds=1)
+                expire_delta=timedelta(microseconds=1)
         )}
-        time.sleep(1.5) # Wait until the token is invalid
 
         async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=cookies) as ac:
             response = await ac.post(self.path_url)
             assert response.status_code == 401
             assert "detail" in response.json()
 
+
     @pytest.mark.asyncio
     async def test_refresh_token_failed_because_value_error(self) -> None:
         """ Tests the failed case when a ValueError occurrs """
-        with patch("security.refresh_token_service.RefreshTokenVerifier._check_token_in_db", side_effect=ValueError("Validation failed: ...")):
+        with patch(
+            "security.auth.refresh_token_service.RefreshTokenVerifier._check_token_in_db", 
+            side_effect=ValueError("Validation failed: ...")
+        ):
             async with AsyncClient(transport=self.transport, base_url=self.base_url, cookies=self.cookies) as ac:
                 response = await ac.post(self.path_url)
                 assert response.status_code == 400

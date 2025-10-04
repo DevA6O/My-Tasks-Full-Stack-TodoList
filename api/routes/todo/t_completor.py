@@ -8,7 +8,7 @@ from typing import Tuple
 
 from database.models import Todo
 from database.connection import get_db
-from security.jwt import get_bearer_token
+from security.auth.jwt import get_bearer_token
 from shared.decorators import validate_params
 from routes.todo.t_validation_models import TodoCompletorModel
 from routes.todo.t_utils import (
@@ -58,7 +58,7 @@ class TodoCompletor:
         )
         
 
-@router.post("/api/todo/complete")
+@router.post("/complete")
 async def completor_endpoint(
     data: TodoCompletorModel, token: str = Depends(get_bearer_token), 
     db_session: AsyncSession = Depends(get_db)

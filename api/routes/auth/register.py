@@ -4,13 +4,13 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select, insert, exists
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, Field, EmailStr
 from typing import Tuple
 
 from database.models import User
 from database.connection import get_db
-from .validation_models import RegisterModel
 from security.hashing import hash_pwd
-from security.refresh_token_service import RefreshTokenService
+from security.auth.refresh_token_service import RefreshTokenService
 from shared.decorators import validate_params
 
 router = APIRouter()
@@ -25,6 +25,11 @@ class EmailAlreadyRegisteredException(Exception):
         self.message = message
         super().__init__(message)
 
+class RegisterModel(BaseModel):
+    username: str = Field(min_length=2, max_length=16)
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=32)
+    
 
 class Register:
     @validate_params
@@ -105,7 +110,7 @@ class Register:
 
 
 
-@router.post("/api/register")
+@router.post("/register")
 async def register_endpoint(request: Request, data: RegisterModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
     """ Endpoint to register a new user """
     try:
@@ -131,7 +136,7 @@ async def register_endpoint(request: Request, data: RegisterModel, db_session: A
         http_exception.status_code = status.HTTP_409_CONFLICT
         http_exception.detail = str(e)
     
-    except ValueError as e:
-        logger.exception(f"An unknown ValueError occurred: {str(e)}", exc_info=True, extra={"email": data.email})
+    except (TypeError, ValueError) as e:
+        logger.exception(str(e), exc_info=True, extra={"email": data.email})
 
     raise http_exception

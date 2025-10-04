@@ -5,17 +5,21 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, Field, EmailStr
 from typing import Tuple
 
 from database.models import User
 from database.connection import get_db
 from security.hashing import is_hashed
-from security.refresh_token_service import RefreshTokenService
+from security.auth.refresh_token_service import RefreshTokenService
 from shared.decorators import validate_params
-from routes.auth.validation_models import LoginModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+class LoginModel(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=32)
 
 class Login:
     @validate_params
@@ -89,7 +93,7 @@ class Login:
             return None, "Server error: An unexpected server error occurred. Please try again later."
     
 
-@router.post("/api/login")
+@router.post("/login")
 async def login_endpoint(request: Request, data: LoginModel, db_session: AsyncSession = Depends(get_db)) -> JSONResponse:
     """ Endpoint to log in a user """
     try:
@@ -113,7 +117,7 @@ async def login_endpoint(request: Request, data: LoginModel, db_session: AsyncSe
         
         # If the credentials are wrong
         logger.warning(f"Login failed: {message}", extra={"email": data.email})
-    except ValueError as e: # Fallback
+    except (TypeError, ValueError) as e: # Fallback
         logger.exception(str(e), exc_info=True)
 
     raise http_exception
