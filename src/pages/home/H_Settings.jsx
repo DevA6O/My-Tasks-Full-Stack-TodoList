@@ -54,10 +54,8 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
         getInformations();
     }, [isOpen, onUpdate])
 
-    const handleSave = () => {
-        alert("Changes saved");
-    };
 
+    // Revoke the session
     const removeSession = async (jti_id) => {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/settings/session/revoke`, {
             method: "POST",
@@ -109,6 +107,7 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="w-full focus:outline-none"
                                     placeholder="Nutzername"
+                                    disabled
                                 />
                             </div>
                         </div>
@@ -127,32 +126,10 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="w-full focus:outline-none"
                                     placeholder="E-Mail-Adresse"
+                                    disabled
                                 />
                             </div>
                         </div>
-
-                        {/* Password */}
-                        <div className="relative">
-                            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-600 mb-1">
-                                Password
-                            </label>
-                            <div className="flex items-center border rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500">
-                                <FiLock className="text-gray-400 mr-2" />
-                                <input
-                                    id="newPassword"
-                                    type="password"
-                                    className="w-full focus:outline-none"
-                                    placeholder="New Password"
-                                />
-                            </div>
-                        </div>
-
-                        <button
-                            onClick={handleSave}
-                            className="bg-blue-600 text-white px-5 py-2.5 rounded-md cursor-pointer hover:bg-blue-700 transition duration-150"
-                        >
-                            Save changes
-                        </button>
                     </section>
 
                     {/* Sessions */}
