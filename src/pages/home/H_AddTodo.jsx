@@ -39,8 +39,15 @@ export async function createTodoAPI(formData, accessToken) {
             errorMsg = data.detail?.message;
         };
 
-        throw new Error(errorMsg || "Creation failed: An unexpected error occurred. Please try again later.");
+        // Throw an error if the creation was unsuccessful
+        const error = new Error(
+            errorMsg || "Creation failed: An unexpected error occurred. Please try again later."
+        );
+        error.status_code = response?.status;
+        throw error;
     };
+
+    return true;
 };
 
 
@@ -56,13 +63,34 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
     });
 
     const onSubmit = async (formData) => {
+        // Define a default error message for create
+        const defaultCreateErrorMsg = `Creation failed: An unexpected error has occurred 
+        Please try again later.`
+
         try {
-            await createTodoAPI(formData, accessToken); 
-            onSuccess(); // Reload the tasks
-            reset(); // Reset form 
-            toast.success("Creation successful: Todo was created successfully.");
+            const success = await createTodoAPI(formData, accessToken);
+            
+            // Check whether the creation was successful
+            if (success) {
+                onSuccess(); // Reload the tasks
+                reset(); // Reset form 
+
+                toast.success("Creation successful: Todo was created successfully.");
+            } else {
+                toast.error(defaultCreateErrorMsg);
+            };
         } catch (error) {
-            toast.error(error.message);
+            // Check whether the user could not be authenticated
+            if (error?.status_code == 401) {
+                toast.error("Creation failed: The session is expired. Please log in again.");
+
+                setTimeout(() => {
+                    window.location.href = "/login";
+                }, 3000);
+            };
+
+            // If an unknown error has occurred
+            toast.error(error?.message || defaultCreateErrorMsg);
             console.error(error);
         };
     };

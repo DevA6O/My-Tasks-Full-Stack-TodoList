@@ -13,13 +13,17 @@ export async function signoutUserAPI() {
     
     if (!response.ok) {
         const json = await response.json();
-        const errorMessage = 
+
+        const error = new Error(
             typeof json === "string"
                 ? json
-                : json?.detail || "Signout failed: An unexpected error occurred.";
-
-        throw new Error(errorMessage);
+                : json?.detail || "Signout failed: An unexpected error occurred."
+        );
+        error.status_code = response?.status;
+        throw error;
     };
+
+    return true;
 };
 
 
@@ -27,11 +31,31 @@ export default function HomePageNavigation() {
     const [settings, setSettings] = useState(null);
 
     const signoutUser = async () => {
+        // Define a default error message for signout
+        const signoutErrorMsg = `Signout failed: An unexpected error has occurred. 
+        Please try again later.`
+
         try {
-            await signoutUserAPI();
-            window.location.href = "/";
+            const success = await signoutUserAPI();
+
+            // Check whether the signout was successful
+            if (success) {
+                window.location.href = "/";
+            } else {
+                toast.error(signoutErrorMsg);
+            }
         } catch (error) {
-            toast.error(error.message);
+            // Check whether the session is expired already
+            if (error?.status_code == 401) {
+                toast.error("Logout failed: You could not be authenticated. Please try again later.");
+
+                setTimeout(() => {
+                    window.location.href = "/login";
+                }, 3000);
+            }
+            
+            // If an unknown error occurs
+            toast.error(error?.message || signoutErrorMsg);
             console.log(error);
         };
     };

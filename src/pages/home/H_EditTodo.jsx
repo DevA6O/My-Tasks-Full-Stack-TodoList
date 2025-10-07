@@ -19,8 +19,11 @@ async function updateTodo(data, accessToken) {
 
         const error = new Error(errorData.detail || "Update failed: An unexpected server error occurred. Please try again later.");
         error.todoID = data?.todo_id;
+        error.status_code = response?.status;
         throw error;
     };
+
+    return true;
 };
 
 
@@ -47,17 +50,39 @@ export function HomePageEditTaskForm({ task, validationSchema, accessToken, onSu
     })
 
     const onSubmit = async (formData) => {
+        // Define a default error message for update
+        const defaultEditErrorMsg = `Update failed: An unexpected error has occurred. 
+        Please try again later.`
+
         try {
+            // Define a data object to send this to the api
             const data = {
                 ...formData,
                 todo_id: task.id
             }
-
-            await updateTodo(data, accessToken);
-            onSuccess();
-            toast.success("Update successful: Todo has been successfully updated.");
+            
+            // Try to update the todo
+            const success = await updateTodo(data, accessToken);
+            
+            // Check whether the update was successful
+            if (success) {
+                onSuccess();
+                toast.success("Update successful: Todo has been successfully updated.");
+            } else {
+                toast.error(defaultEditErrorMsg);
+            };
         } catch (error) {
-            toast.error("Update failed: An unexpected error occurred. Please try again later.");
+            // Check whether the user could not be authenticated
+            if (error?.status_code == 401) {
+                toast.error("Update failed: The session is expired. Please log in again.");
+
+                setTimeout(() => {
+                    window.location.href = "/login";
+                });
+            }
+
+            // If an unknown error has occurred
+            toast.error(error?.message || defaultEditErrorMsg);
             console.error(error); 
         };
     };

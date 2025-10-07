@@ -9,25 +9,68 @@ import { deleteTodoAPI, completeTodoAPI } from "./H_ManageTodos";
 
 export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setReloadTasks }) {
     const [editTask, setEditTask] = useState(null);
+    
+    
+
 
     const completeTodo = async (todoID) => {
+        // Define a default error message for complete
+        const defaultCompleteErrorMsg = `Completion failed: An unexpected error has occurred. 
+        Please try again later.`
+
         try {
-            await completeTodoAPI(todoID, accessToken);
-            setReloadTasks(true);
-            toast.success("Completion successful: Todo has been marked as successfully completed.");
+            const success = await completeTodoAPI(todoID, accessToken);
+            
+            // Check whether the completion was successful
+            if (success) {
+                setReloadTasks(true);
+                toast.success("Completion successful: Todo has been marked as successfully completed.");
+            } else {
+                toast.error(defaultCompleteErrorMsg);
+            };
         } catch (error) {
-            toast.error(error.message);
+            // Check whether the user could not be authenticated
+            if (error?.status_code == 401) {
+                toast.error("Completion failed: The session is expired. Please log in again.");
+                
+                setTimeout(() => {
+                    window.location.href = "/login";
+                }, 3000);
+            };
+            
+            // If an unknown error has occurred
+            toast.error(error?.message || defaultCompleteErrorMsg);
             console.error(error);
         };
     };
 
     const deleteTodo = async (todoID) => {
+        // Define a default error message for delete
+        const defaultDeleteErrorMsg = `Deletion failed: An unexpected error has occurred. 
+        Please try again later.`
+
         try {
-            await deleteTodoAPI(todoID, accessToken);
-            setReloadTasks(true);
-            toast.success("Deletion successful: Todo has been successfully deleted.");
+            const success = await deleteTodoAPI(todoID, accessToken);
+
+            // Check whether the deletion was successful
+            if (success) {
+                setReloadTasks(true);
+                toast.success("Deletion successful: Todo has been successfully deleted.");
+            } else {
+                toast.error(defaultDeleteErrorMsg);
+            };
         } catch (error) {
-            toast.error(error.message);
+            // Check whether the user could not be authenticated
+            if (error?.status_code == 401) {
+                toast.error("Deletion failed: The session is expired. Please log in again.");
+                
+                setTimeout(() => {
+                    window.location.href = "/login";
+                }, 3000);
+            };
+
+            // If an unknown error has occurred
+            toast.error(error?.message || defaultDeleteErrorMsg);
             console.error(error);
         };
     };
