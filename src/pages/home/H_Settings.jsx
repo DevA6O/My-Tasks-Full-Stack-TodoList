@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Modal from "../../components/Modal";
-import { FiMail, FiUser, FiLock } from "react-icons/fi";
+import { FiMail, FiUser } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import LoadingScreen from "../../components/LoadingScreen";
@@ -44,7 +44,7 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
                     setSessions(data.informations.sessions);
                 } else {
                     onClose();
-                    toast.error("Settings is not accessible: Please try again later.");
+                    toast.error("Settings is not accessible. Please try again later.");
                 };
             } finally {
                 setOnUpdate(false);
@@ -56,7 +56,7 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
 
 
     // Revoke the session
-    const removeSession = async (jti_id) => {
+    const revokeSession = async (jti_id) => {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/settings/session/revoke`, {
             method: "POST",
             headers: {
@@ -70,6 +70,16 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
         if (response.ok) {
             setOnUpdate(true);
         } else {
+            // Check whether the authentication is failed
+            if (response.status == 401) {
+                toast.error("Access denied: The session is expired. Please log in again.");
+
+                setTimeout(() => {
+                    window.location.href = "/login";
+                }, 3000);
+            };
+
+            // If an unexpected error has occurred
             toast.error(data?.detail || "An unexpected error is occurred. Please try again later.");
         };
     };
@@ -163,7 +173,7 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
                                                 </span>
                                             ) : (
                                                 <button
-                                                    onClick={() => removeSession(session.jti_id)}
+                                                    onClick={() => revokeSession(session.jti_id)}
                                                     className="text-sm text-red-600 hover:underline cursor-pointer"
                                                 >
                                                     Log out
