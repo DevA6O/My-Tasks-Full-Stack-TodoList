@@ -15,8 +15,8 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
 
     const completeTodo = async (todoID) => {
         // Define a default error message for complete
-        const defaultCompleteErrorMsg = `Completion failed: An unexpected error has occurred. 
-        Please try again later.`
+        const defaultCompleteErrorMsg = "Completion failed: An unexpected error has occurred. " +
+        "Please try again later."
 
         try {
             const success = await completeTodoAPI(todoID, accessToken);

@@ -64,8 +64,8 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
 
     const onSubmit = async (formData) => {
         // Define a default error message for create
-        const defaultCreateErrorMsg = `Creation failed: An unexpected error has occurred 
-        Please try again later.`
+        const defaultCreateErrorMsg = "Creation failed: An unexpected error has occurred. " +
+        "Please try again later."
 
         try {
             const success = await createTodoAPI(formData, accessToken);
@@ -90,7 +90,7 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
             };
 
             // If an unknown error has occurred
-            toast.error(error?.message || defaultCreateErrorMsg);
+            toast.error(defaultCreateErrorMsg);
             console.error(error);
         };
     };

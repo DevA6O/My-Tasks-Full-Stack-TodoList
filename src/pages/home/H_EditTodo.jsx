@@ -17,7 +17,7 @@ async function updateTodo(data, accessToken) {
     if (!response.ok) {
         const errorData = await response.json();
 
-        const error = new Error(errorData.detail || "Update failed: An unexpected server error occurred. Please try again later.");
+        const error = new Error(errorData.detail || "Update failed: An unexpected error occurred. Please try again later.");
         error.todoID = data?.todo_id;
         error.status_code = response?.status;
         throw error;
@@ -51,8 +51,8 @@ export function HomePageEditTaskForm({ task, validationSchema, accessToken, onSu
 
     const onSubmit = async (formData) => {
         // Define a default error message for update
-        const defaultEditErrorMsg = `Update failed: An unexpected error has occurred. 
-        Please try again later.`
+        const defaultEditErrorMsg = "Update failed: An unexpected error has occurred. " +
+        "Please try again later."
 
         try {
             // Define a data object to send this to the api

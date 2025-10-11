@@ -32,8 +32,8 @@ export default function HomePageNavigation() {
 
     const signoutUser = async () => {
         // Define a default error message for signout
-        const signoutErrorMsg = `Signout failed: An unexpected error has occurred. 
-        Please try again later.`
+        const signoutErrorMsg = "Signout failed: An unexpected error has occurred. " +
+        "Please try again later."
 
         try {
             const success = await signoutUserAPI();
