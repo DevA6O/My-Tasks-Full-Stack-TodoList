@@ -47,7 +47,7 @@ describe(HomePageAddTodo, async () => {
                 status: 400,
                 json: async () => ({})
             },
-            "Creation failed: An unexpected error occurred. Please try again later."
+            "Creation failed: An unexpected error has occurred. Please try again later."
         ]
     ])("%s", async (funcDescription, mockResponse, displayedMessage) => {
         // Mock onSuccess
@@ -67,19 +67,16 @@ describe(HomePageAddTodo, async () => {
             </>   
         );
 
-        // Check whether the input fields are present
+        // Get the input fields
         const titleInput = await screen.findByTestId("HomePageAddTodo-Title-Input");
-        expect(titleInput).toBeInTheDocument();
-
         const descriptionInput = await screen.findByTestId("HomePageAddTodo-Description-Input");
-        expect(descriptionInput).toBeInTheDocument();
 
-        const submitButton = await screen.findByTestId("HomePageAddTodo-Submit-Button");
-        expect(submitButton).toBeInTheDocument();
-
-        // Enter the information and submit it
+        // Fill the input fields
         await userEvent.type(titleInput, "Title");
         await userEvent.type(descriptionInput, "Description");
+
+        // Click on the submit button
+        const submitButton = await screen.findByTestId("HomePageAddTodo-Submit-Button");
         await userEvent.click(submitButton);
 
         // Check whether the message is displayed correctly
@@ -96,17 +93,12 @@ describe(HomePageAddTodo, async () => {
     ])("Add task shows a validation error message for '%s' input", async (type, titleValue, descriptionValue, errorMsg) => {
         render(<HomePageAddTodo accessToken={null} onSuccess={null}/>);
 
-        // Check that the input fields and the “Send” button are present
+        // Get the input fields and the submit button
         const titleInput = await screen.findByTestId("HomePageAddTodo-Title-Input");
-        expect(titleInput).toBeInTheDocument();
-
         const descriptionInput = await screen.findByTestId("HomePageAddTodo-Description-Input");
-        expect(descriptionInput).toBeInTheDocument();
-
         const submitButton = await screen.findByTestId("HomePageAddTodo-Submit-Button");
-        expect(submitButton).toBeInTheDocument();
 
-        // Check the validation error message
+        // Check which field needs to be filled in
         if (titleValue !== "") {
             await userEvent.type(titleInput, titleValue);
         };
@@ -114,8 +106,10 @@ describe(HomePageAddTodo, async () => {
             await userEvent.type(descriptionInput, descriptionValue);
         };
         
+        // Click on the submit button
         await userEvent.click(submitButton);
 
+        // Check whether the error message is displayed correctly
         const displayedErrorMessage = await screen.findByText(errorMsg);
         expect(displayedErrorMessage).toBeInTheDocument();
     }, 10000);
