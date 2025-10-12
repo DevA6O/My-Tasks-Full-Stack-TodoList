@@ -47,8 +47,6 @@ export default function HomePageNavigation() {
         } catch (error) {
             // Check whether the session is expired already
             if (error?.status_code == 401) {
-                localStorage.setItem("authError", true);
-
                 window.location.href = "/login"; return;
             }
             

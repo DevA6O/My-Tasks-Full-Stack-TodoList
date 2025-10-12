@@ -34,7 +34,7 @@ describe(HomePageNavigation, async () => {
     it.each([
         ["Desktop", "HomePageNavigation-Desktop-Submit-Button"],
         ["Mobile", "HomePageNavigation-Mobile-Submit-Button"]
-    ])("HomePageNavigation '%s' signout button works", async (device, testID) => {
+    ])("HomePageNavigation '%s' signout button works", async (_, testID) => {
         render(<HomePageNavigation />);
 
         // Mock API response
@@ -46,7 +46,7 @@ describe(HomePageNavigation, async () => {
         
         // Spy on window location
         delete window.location;
-        window.location = {href: ""}
+        window.location = { href: "" };
 
         // Simulate user clicking the signout button (either desktop or mobile)
         const signoutButton = await screen.findByTestId(testID);
@@ -54,14 +54,42 @@ describe(HomePageNavigation, async () => {
         await userEvent.click(signoutButton);
 
         // Check whether the redirection was successful
-        expect(window.location.href).toBe("/")
+        expect(window.location.href).toBe("/");
     });
 
 
     it.each([
         ["Desktop", "HomePageNavigation-Desktop-Submit-Button"],
         ["Mobile", "HomePageNavigation-Mobile-Submit-Button"]
-    ])("HomePageNavigation '%s' signout button displays API error message", async (device, testID) => {
+    ])("Authentication failed when attempting to log out on the '%s'.", async (_, testID) => {
+        // Spy on window location
+        delete window.location;
+        window.location = { href: "" };
+        
+        // Mock API response
+        fetch.mockResolvedValueOnce({
+            ok: false,
+            status: 401,
+            json: async () => ({})
+        });
+
+        // Render the page
+        render(<HomePageNavigation />);
+
+        // Simulate user clicking the signout button (either desktop or mobile)
+        const signoutButton = await screen.findByTestId(testID);
+        expect(signoutButton).toBeInTheDocument();
+        await userEvent.click(signoutButton);
+
+        // Check whether the redirection was successful
+        expect(window.location.href).toBe("/login");
+    });
+
+
+    it.each([
+        ["Desktop", "HomePageNavigation-Desktop-Submit-Button"],
+        ["Mobile", "HomePageNavigation-Mobile-Submit-Button"]
+    ])("HomePageNavigation '%s' signout button displays API error message", async (_, testID) => {
         render(
             <>
                 <HomePageNavigation />
@@ -90,7 +118,9 @@ describe(HomePageNavigation, async () => {
     it.each([
         ["Desktop", "HomePageNavigation-Desktop-Submit-Button"], 
         ["Mobile", "HomePageNavigation-Mobile-Submit-Button"]
-    ])("HomePageNavigation '%s' signout button triggers default error because no message is returned", async (device, testID) => {
+    ])(
+        "HomePageNavigation '%s' signout button triggers default " +
+        "error because no message is returned", async (_, testID) => {
         render(
             <>
                 <HomePageNavigation />
@@ -103,7 +133,7 @@ describe(HomePageNavigation, async () => {
             ok: false,
             status: 400,
             json: async () => ({}) // no 'message' field returned
-        })        
+        });
 
         // Simulate user clicking the signout button (either desktop or mobile)
         const signoutButton = await screen.findByTestId(testID);
@@ -114,4 +144,4 @@ describe(HomePageNavigation, async () => {
         const errorMessage = await screen.findByText("Signout failed: An unexpected error occurred.");
         expect(errorMessage).toBeInTheDocument();
     });
-})
+});
