@@ -31,11 +31,9 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
         } catch (error) {
             // Check whether the user could not be authenticated
             if (error?.status_code == 401) {
-                toast.error("Completion failed: The session is expired. Please log in again.");
-                
-                setTimeout(() => {
-                    window.location.href = "/login";
-                }, 3000);
+                localStorage.setItem("authError", true);
+
+                window.location.href = "/login"; return;
             };
             
             // If an unknown error has occurred
@@ -62,11 +60,9 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
         } catch (error) {
             // Check whether the user could not be authenticated
             if (error?.status_code == 401) {
-                toast.error("Deletion failed: The session is expired. Please log in again.");
-                
-                setTimeout(() => {
-                    window.location.href = "/login";
-                }, 3000);
+                localStorage.setItem("authError", true);
+
+                window.location.href = "/login"; return;
             };
 
             // If an unknown error has occurred

@@ -72,11 +72,9 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
         } else {
             // Check whether the authentication is failed
             if (response.status == 401) {
-                toast.error("Access denied: The session is expired. Please log in again.");
+                localStorage.setItem("authError", true);
 
-                setTimeout(() => {
-                    window.location.href = "/login";
-                }, 3000);
+                window.location.href = "/login"; return;
             };
 
             // If an unexpected error has occurred

@@ -47,11 +47,9 @@ export default function HomePageNavigation() {
         } catch (error) {
             // Check whether the session is expired already
             if (error?.status_code == 401) {
-                toast.error("Logout failed: You could not be authenticated. Please try again later.");
+                localStorage.setItem("authError", true);
 
-                setTimeout(() => {
-                    window.location.href = "/login";
-                }, 3000);
+                window.location.href = "/login"; return;
             }
             
             // If an unknown error occurs

@@ -74,11 +74,9 @@ export function HomePageEditTaskForm({ task, validationSchema, accessToken, onSu
         } catch (error) {
             // Check whether the user could not be authenticated
             if (error?.status_code == 401) {
-                toast.error("Update failed: The session is expired. Please log in again.");
+                localStorage.setItem("authError", true);
 
-                setTimeout(() => {
-                    window.location.href = "/login";
-                });
+                window.location.href = "/login"; return;
             }
 
             // If an unknown error has occurred

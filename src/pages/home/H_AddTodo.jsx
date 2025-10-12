@@ -81,12 +81,10 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
             };
         } catch (error) {
             // Check whether the user could not be authenticated
-            if (error?.status_code == 401) {
-                toast.error("Creation failed: The session is expired. Please log in again.");
+            if (error?.status_code == 401) {                
+                localStorage.setItem("authError", true);
 
-                setTimeout(() => {
-                    window.location.href = "/login";
-                }, 3000);
+                window.location.href = "/login"; return;
             };
 
             // If an unknown error has occurred
