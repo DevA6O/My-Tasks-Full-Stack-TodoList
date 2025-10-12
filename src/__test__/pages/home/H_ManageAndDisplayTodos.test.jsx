@@ -112,6 +112,50 @@ describe(HomePageManageAndDisplayTodos, async () => {
 
     it.each([
         [
+            "Complete", "HomePageManageAndDisplayTodos-Complete-Button-For-1"
+        ],
+
+        [
+            "Delete", "HomePageManageAndDisplayTodos-Delete-Button-For-1"
+        ]
+    ])("Authentication failed while trying to '%s' a todo", async (_, testID) => {
+        // Reset location to check the redirection
+        delete window.location;
+        window.location = { href: "" };
+
+        // Mock api response
+        fetch.mockResolvedValueOnce({
+            ok: false,
+            status: 401,
+            json: async () => ({})
+        });
+
+        // Render the page
+        render(
+            <>
+                <HomePageManageAndDisplayTodos 
+                    tasks={[{id: 1, title: "Todo", description: "Unique description", completed: false}]}
+                    accessToken={null}
+                    setReloadTasks={vi.fn()}
+                />
+
+                <ToastContainer />
+            </>
+        );
+
+        // Check and click on the button
+        const button = await screen.findByTestId(testID);
+        expect(button).toBeInTheDocument();
+
+        await userEvent.click(button);
+
+        // Check whether the forwarding worked
+        expect(window.location.href).toBe("/login");
+    });
+    
+
+    it.each([
+        [
             "Complete", "HomePageManageAndDisplayTodos-Complete-Button-For-1",
             "Completion failed: An unexpected error is occurred. Please try again later."
         ],
@@ -156,4 +200,4 @@ describe(HomePageManageAndDisplayTodos, async () => {
         const failedMessage = await screen.findByText(message);
         expect(failedMessage).toBeInTheDocument();
     });
-})
+});
