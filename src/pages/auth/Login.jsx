@@ -70,6 +70,19 @@ export default function Login() {
         mode: "onBlur"
     });
 
+    // Check whether the user needs to log in again
+    const [authError, setAuthError] = React.useState(null);
+
+    React.useEffect(() => {
+        const storedError = localStorage.getItem("authError");
+
+        if (storedError) {
+            setAuthError(true);
+            localStorage.removeItem("authError");
+        }
+    }, []);
+
+    // Log in event
     const onSubmit = async (formData) => {
         try {
             await loginUserAPI(formData, setError);
@@ -86,6 +99,20 @@ export default function Login() {
     return (
         <div data-testid="Login" className="flex justify-center items-center h-screen bg-gray-100">
             <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
+                {/* If necessary, display an error message */}
+                {
+                    authError && 
+                    <div className="flex justify-center mt-4">
+                        <div className="max-w-md w-full bg-red-500/90 text-white p-4 rounded-xl shadow-md border border-red-600 flex flex-col items-center text-center">
+                            <p className="font-semibold text-lg mb-1">Authentication failed</p>
+                            <p className="text-sm opacity-90">
+                            Please log in to continue.
+                            </p>
+                        </div>
+                    </div>
+                }
+
+
                 <h1 className="text-center text-2xl font-bold mb-6 text-gray-800">Login to Your Account</h1>
 
                 <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
