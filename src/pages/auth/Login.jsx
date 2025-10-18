@@ -44,6 +44,10 @@ async function loginUserAPI(formData, setError) {
     // If Login was successful
     if (response.ok && response.status === 200) {
         toast.success("Login successful! Redirecting to the homepage...");
+
+        setTimeout(() => {
+            window.location.href = "/";
+        }, 3000);
     }
     // Handle validation error occurred
     else if (response.status === 422) {
@@ -79,17 +83,13 @@ export default function Login() {
         if (storedError) {
             setAuthError(true);
             localStorage.removeItem("authError");
-        }
+        };
     }, []);
 
     // Log in event
     const onSubmit = async (formData) => {
         try {
             await loginUserAPI(formData, setError);
-
-            setTimeout(() => {
-                window.location.href = "/";
-            }, 3000);
         } catch (error) {
             toast.error(DEFAULT_ERROR_MSG);
             console.error(error);
