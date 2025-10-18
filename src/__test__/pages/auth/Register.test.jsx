@@ -53,20 +53,23 @@ describe(Register, async () => {
     });
 
 
-
     it.each([
         ["", "Username is required."], 
         ["x", "Username must have at least 2 characters."],
         ["x".repeat(17), "Username cannot have more than 16 characters."]
     ])("Username '%s' shows an error message '%s'", async (usernameValue, errorMsg) => {
-        await checkFormValidation(usernameInput, usernameValue, submitButton, "Register-Username-Error", errorMsg);
+        await checkFormValidation(
+            usernameInput, usernameValue, submitButton, "Register-Username-Error", errorMsg
+        );
     });
 
     it.each([
         ["", "Email is required."],
         ["invalid-email", "Email must be a valid email address."],
     ])("Email '%s' shows an error message '%s'", async (emailValue, errorMsg) => {
-        await checkFormValidation(emailInput, emailValue, submitButton, "Register-Email-Error", errorMsg);
+        await checkFormValidation(
+            emailInput, emailValue, submitButton, "Register-Email-Error", errorMsg
+        );
     });
 
     it.each([
@@ -74,12 +77,36 @@ describe(Register, async () => {
         ["short", "Password must have at least 8 characters."],
         ["x".repeat(33), "Password cannot have more than 32 characters."]
     ])("Password '%s' shows an error message '%s'", async (passwordValue, errorMsg) => {
-        await checkFormValidation(passwordInput, passwordValue, submitButton, "Register-Password-Error", errorMsg);
+        await checkFormValidation(
+            passwordInput, passwordValue, submitButton, "Register-Password-Error", errorMsg
+        );
     });
 
 
+    it.each([
+        ["Message is displayed correclty", true],
+        ["Redirection is working", false]
+    ])("Registration was successful: %s", async (_, action) => {
+        // Save the current setTimeout
+        const realSetTimeout = global.setTimeout;
 
-    it("Registration was successful and a success message is displayed", async () => {
+        // Check whether the redirection should be checked
+        if (!action) {
+            // Prevents waiting for setTimeout
+            global.setTimeout = (cb, _ms, ...args) => {
+                try { 
+                    cb(...args); 
+                } catch (e) {
+                    // let test fail normally 
+                }
+                return 0; // fake id
+            };
+
+            // Spy on location to check the redirection later
+            delete window.location;
+            window.location = { href: "" };
+        };
+
         // Mock API response
         fetch.mockResolvedValueOnce({
             ok: true,
@@ -100,10 +127,18 @@ describe(Register, async () => {
         );
 
         // Checks whether the success message is displayed
-        const successMessage = await screen.findByText("Registration successful! You will be redirected to the homepage shortly.");
-        expect(successMessage).toBeInTheDocument();
-    });
+        if (action) {
+            const successMessage = await screen.findByText(
+                "Registration successful! You will be redirected to the homepage shortly."
+            );
+            expect(successMessage).toBeInTheDocument();
+        } else {
+            expect(window.location.href).toBe("/");
 
+            // Restore normal state from setTimeout
+            global.setTimeout = realSetTimeout;   
+        };
+    });
 
 
     it("Register shows an error message when the email is already registered", async () => {
@@ -156,7 +191,30 @@ describe(Register, async () => {
 
 
 
-    it("Backend returns an unknown error", async () => {
+    it.each([
+        ["Error message is displayed correctly", true],
+        ["Page reload is working correclty", false]
+    ])("Backend returns an unknown error: %s", async (_, action) => {
+        // Save the current setTimeout
+        const realSetTimeout = global.setTimeout;
+
+        // Check whether the page reload should be checked
+        if (!action) {
+            // Prevents waiting for setTimeout
+            global.setTimeout = (cb, _ms, ...args) => {
+                try { 
+                    cb(...args); 
+                } catch (e) {
+                    // let test fail normally 
+                }
+                return 0; // fake id
+            };
+
+            // Spy on location to check the reload later
+            delete window.location;
+            window.location = { reload: vi.fn() };
+        };
+
         fetch.mockResolvedValueOnce({
             ok: false,
             status: 400,
@@ -170,8 +228,17 @@ describe(Register, async () => {
         await userEvent.click(submitButton);
 
         // Check whether the error message is displayed
-        const errorMsg = await screen.findByText("Registration failed: An unknown page error occurred. You will be redirected shortly...");
-        expect(errorMsg).toBeInTheDocument();
+        if (action) {
+            const errorMsg = await screen.findByText(
+                "Registration failed: An unknown page error occurred. You will be redirected shortly..."
+            );
+            expect(errorMsg).toBeInTheDocument();
+        } else {
+            expect(window.location.reload).toHaveBeenCalled();
+
+            // Restore normal state from setTimeout
+            global.setTimeout = realSetTimeout;   
+        };
     });
 
 
@@ -186,7 +253,9 @@ describe(Register, async () => {
         await userEvent.click(submitButton);
 
         // Check whether the error message is displayed
-        const errorMsg = await screen.findByText("Registration failed: An unexpected error has occurred. Please try again later.");
+        const errorMsg = await screen.findByText(
+            "Registration failed: An unexpected error has occurred. Please try again later."
+        );
         expect(errorMsg).toBeInTheDocument();
     });
 });
