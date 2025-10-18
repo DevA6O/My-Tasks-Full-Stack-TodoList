@@ -164,7 +164,7 @@ describe(HomePageManageAndDisplayTodos, async () => {
             "Delete", "HomePageManageAndDisplayTodos-Delete-Button-For-1", 
             "Deletion failed: An unexpected error occurred. Please try again later."
         ]
-    ])("HomePageManageAndDisplayTodos - Failed to '%s' a task", async (type, testID, message) => {
+    ])("HomePageManageAndDisplayTodos - Failed to '%s' a task", async (_, testID, message) => {
         // Mock the setReloadTasks function
         const mockSetReloadTasks = vi.fn();
 
