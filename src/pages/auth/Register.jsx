@@ -32,7 +32,6 @@ const schema = validationDisabled
 );
 
 
-
 async function registerUserAPI(formData, setError) {
     const response = await fetch(`${import.meta.env.VITE_API_URL}/register`, {
         method: "POST",
@@ -43,34 +42,42 @@ async function registerUserAPI(formData, setError) {
         body: JSON.stringify(formData)
     });
     const data = await response.json();
-    
+
     // Handle the response based on the status code
 
     // If registration was successful
     if (response.ok && response.status === 201) {
-        toast.success("Registration successful! You will be redirected to the homepage shortly.");
+        toast.success(
+            "Registration successful! You will be redirected to the homepage shortly."
+        );
 
         setTimeout(() => {
             window.location.href = "/";
         }, 3000);
     }
+
     // If the email is already registered
     else if (response.status == 409) {
         setError("email", {type: "server", message: data.detail});
     } 
+
     // Handle validation errors
     else if (response.status == 422) {
         const field = data.detail?.field;
         const message = data.detail?.message || DEFAULT_ERROR_MSG;
         setError(field, {type: "server", message: message});
     } 
+
     // Handle other errors
     else {
-        toast.error(data.detail || "Registration failed: An unknown page error occurred. You will be redirected shortly...");
+        toast.error(
+            data.detail || 
+            "Registration failed: An unknown page error occurred. You will be redirected shortly..."
+        );
 
         setTimeout(() => {
-            window.location.href = "/";
-        }, 5000);
+            window.location.reload();
+        }, 3000);
     };
 };
 
