@@ -1,6 +1,6 @@
 import React from "react";
 import userEvent from "@testing-library/user-event";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { ToastContainer } from "react-toastify";
 
@@ -52,7 +52,9 @@ describe(Login, async () => {
         ["", "Email is required."],
         ["invalidemail", "Email must be a valid email address."]
     ])("Login shows validation error for email field ('%s')", async (emailValue, errorMsg) => {
-        await checkFormValidation(emailInput, emailValue, submitButton, "Login-Email-Error", errorMsg);
+        await checkFormValidation(
+            emailInput, emailValue, submitButton, "Login-Email-Error", errorMsg
+        );
     });
 
 
@@ -61,11 +63,36 @@ describe(Login, async () => {
         ["short", "Password must have at least 8 characters."],
         ["x".repeat(33), "Password cannot have more than 32 characters."],
     ])("Login shows validation error for password field ('%s')", async (passwordValue, errorMsg) => {
-        await checkFormValidation(passwordInput, passwordValue, submitButton, "Login-Password-Error", errorMsg);
+        await checkFormValidation(
+            passwordInput, passwordValue, submitButton, "Login-Password-Error", errorMsg
+        );
     });
 
 
-    it("Login submits the form with valid data", async () => {
+    it.each([
+        ["Message is displayed correctly", true],
+        ["Redirecting was successful", false]
+    ])("Login: %s", async (_, action) => {
+        // Save the current setTimeout
+        const realSetTimeout = global.setTimeout;
+
+        // Check whether the redirection should be checked
+        if (!action) {
+            // Prevents waiting for setTimeout
+            global.setTimeout = (cb, _ms, ...args) => {
+                try {
+                    cb(...args);
+                } catch (e) {
+                    // let test fail normally
+                };
+                return 0; // fake id
+            };
+            
+            // Spy on location to check the redirection later
+            delete window.location;
+            window.location = { href: "" };
+        };
+
         fetch.mockResolvedValueOnce({
             ok: true,
             status: 200,
@@ -84,8 +111,17 @@ describe(Login, async () => {
         );
 
         // Check whether the success message is displayed
-        const successMessage = await screen.findByText("Login successful! Redirecting to the homepage...");
-        expect(successMessage).toBeInTheDocument();
+        if (action) {
+            const successMessage = await screen.findByText(
+                "Login successful! Redirecting to the homepage..."
+            );
+            expect(successMessage).toBeInTheDocument();
+        } else {
+            expect(window.location.href).toBe("/");
+
+            // Restore normal state from setTimeout
+            global.setTimeout = realSetTimeout; 
+        };
     });
 
 
@@ -118,7 +154,7 @@ describe(Login, async () => {
     it.each([
         ["email", "Login-Email-Error"], 
         ["password", "Login-Password-Error"]
-    ])("Backend returns a validation error for input field '%s'", async (field, errorField) => {
+    ])("Backend returns a validation error for input field '%s'", async (field, errorFieldID) => {
         fetch.mockResolvedValueOnce({
             ok: false,
             status: 422,
@@ -136,7 +172,7 @@ describe(Login, async () => {
         await userEvent.click(submitButton);
 
         // Check whether the displayed message is placed correctly
-        const errorElement = await screen.getByTestId(errorField);
+        const errorElement = await screen.getByTestId(errorFieldID);
         expect(errorElement).toBeInTheDocument();
         expect(errorElement).toHaveTextContent("String has not been validated correctly.")
     })
