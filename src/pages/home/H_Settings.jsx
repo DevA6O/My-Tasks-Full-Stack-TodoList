@@ -48,11 +48,11 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
                 };
             } finally {
                 setOnUpdate(false);
-            }
+            };
         };
 
         getInformations();
-    }, [isOpen, onUpdate])
+    }, [isOpen, onUpdate]);
 
 
     // Revoke the session

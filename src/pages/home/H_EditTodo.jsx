@@ -17,7 +17,9 @@ async function updateTodo(data, accessToken) {
     if (!response.ok) {
         const errorData = await response.json();
 
-        const error = new Error(errorData.detail || "Update failed: An unexpected error occurred. Please try again later.");
+        const error = new Error(
+            errorData.detail || "Update failed: An unexpected error occurred. Please try again later."
+        );
         error.todoID = data?.todo_id;
         error.status_code = response?.status;
         throw error;
@@ -47,11 +49,11 @@ export function HomePageEditTaskForm({ task, validationSchema, accessToken, onSu
             title: task.title,
             description: task.description
         }
-    })
+    });
 
     const onSubmit = async (formData) => {
         // Define a default error message for update
-        const defaultEditErrorMsg = "Update failed: An unexpected error has occurred. " +
+        const defaultErrorMsg = "Update failed: An unexpected error has occurred. " +
         "Please try again later."
 
         try {
@@ -69,7 +71,7 @@ export function HomePageEditTaskForm({ task, validationSchema, accessToken, onSu
                 onSuccess();
                 toast.success("Update successful: Todo has been successfully updated.");
             } else {
-                toast.error(defaultEditErrorMsg);
+                toast.error(defaultErrorMsg);
             };
         } catch (error) {
             // Check whether the user could not be authenticated
@@ -77,10 +79,10 @@ export function HomePageEditTaskForm({ task, validationSchema, accessToken, onSu
                 localStorage.setItem("authError", true);
 
                 window.location.href = "/login"; return;
-            }
+            };
 
             // If an unknown error has occurred
-            toast.error(error?.message || defaultEditErrorMsg);
+            toast.error(error?.message || defaultErrorMsg);
             console.error(error); 
         };
     };

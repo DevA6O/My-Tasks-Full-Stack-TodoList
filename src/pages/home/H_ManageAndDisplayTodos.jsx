@@ -10,12 +10,9 @@ import { deleteTodoAPI, completeTodoAPI } from "./H_ManageTodos";
 export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setReloadTasks }) {
     const [editTask, setEditTask] = useState(null);
     
-    
-
-
     const completeTodo = async (todoID) => {
         // Define a default error message for complete
-        const defaultCompleteErrorMsg = "Completion failed: An unexpected error has occurred. " +
+        const defaultErrorMsg = "Completion failed: An unexpected error has occurred. " +
         "Please try again later."
 
         try {
@@ -26,7 +23,7 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
                 setReloadTasks(true);
                 toast.success("Completion successful: Todo has been marked as successfully completed.");
             } else {
-                toast.error(defaultCompleteErrorMsg);
+                toast.error(defaultErrorMsg);
             };
         } catch (error) {
             // Check whether the user could not be authenticated
@@ -37,14 +34,14 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
             };
             
             // If an unknown error has occurred
-            toast.error(error?.message || defaultCompleteErrorMsg);
+            toast.error(error?.message || defaultErrorMsg);
             console.error(error);
         };
     };
 
     const deleteTodo = async (todoID) => {
         // Define a default error message for delete
-        const defaultDeleteErrorMsg = `Deletion failed: An unexpected error has occurred. 
+        const defaultErrorMsg = `Deletion failed: An unexpected error has occurred. 
         Please try again later.`
 
         try {
@@ -55,7 +52,7 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
                 setReloadTasks(true);
                 toast.success("Deletion successful: Todo has been successfully deleted.");
             } else {
-                toast.error(defaultDeleteErrorMsg);
+                toast.error(defaultErrorMsg);
             };
         } catch (error) {
             // Check whether the user could not be authenticated
@@ -66,7 +63,7 @@ export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setR
             };
 
             // If an unknown error has occurred
-            toast.error(error?.message || defaultDeleteErrorMsg);
+            toast.error(error?.message || defaultErrorMsg);
             console.error(error);
         };
     };

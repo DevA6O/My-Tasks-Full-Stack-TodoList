@@ -43,12 +43,14 @@ export default function HomePageNavigation() {
                 window.location.href = "/";
             } else {
                 toast.error(signoutErrorMsg);
-            }
+            };
         } catch (error) {
             // Check whether the session is expired already
             if (error?.status_code == 401) {
+                localStorage.setItem("authError", true);
+
                 window.location.href = "/login"; return;
-            }
+            };
             
             // If an unknown error occurs
             toast.error(error?.message || signoutErrorMsg);
