@@ -41,7 +41,7 @@ export async function createTodoAPI(formData, accessToken) {
 
         // Throw an error if the creation was unsuccessful
         const error = new Error(
-            errorMsg || "Creation failed: An unexpected error occurred. Please try again later."
+            errorMsg || "Creation failed: An unexpected error has occurred. Please try again later."
         );
         error.status_code = response?.status;
         throw error;
@@ -64,8 +64,8 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
 
     const onSubmit = async (formData) => {
         // Define a default error message for create
-        const defaultCreateErrorMsg = "Creation failed: An unexpected error has occurred. " +
-        "Please try again later."
+        const defaultErrorMsg = "Creation failed: An unexpected error has occurred. " +
+        "Please try again later.";
 
         try {
             const success = await createTodoAPI(formData, accessToken);
@@ -77,7 +77,7 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
 
                 toast.success("Creation successful: Todo was created successfully.");
             } else {
-                toast.error(defaultCreateErrorMsg);
+                toast.error(defaultErrorMsg);
             };
         } catch (error) {
             // Check whether the user could not be authenticated
@@ -88,7 +88,7 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
             };
 
             // If an unknown error has occurred
-            toast.error(defaultCreateErrorMsg);
+            toast.error(error?.message || defaultErrorMsg);
             console.error(error);
         };
     };
