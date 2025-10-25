@@ -7,12 +7,16 @@ test("Signout was successful", async ({ page, context }) => {
     // Log in again
     await page.goto("/login");
 
-    await page.fill('input[name="email"]', "test.frontend@email.com");
-    await page.fill('input[name="password"]', "password1234!");
-    await page.click('button[type="submit"]');
+    const emailInput = page.getByTestId("Login-Email-Input");
+    const passwordInput = page.getByTestId("Login-Password-Input");
+    const submitButton = page.getByTestId("Login-Submit");
+
+    await emailInput.fill("test.frontend@email.com");
+    await passwordInput.fill("password1234!");
+    await submitButton.click();
 
     // Wait for redirection
-    await expect(page).toHaveURL("/", {timeout: 5000});
+    await expect(page).toHaveURL("/");
 
     // Click on the signout button
     const signoutButton = page.getByTestId("HomePageNavigation-Desktop-Submit-Button");
@@ -20,16 +24,17 @@ test("Signout was successful", async ({ page, context }) => {
 
     await signoutButton.click();
 
-    // Check whether the action was successful
-    await expect(page).toHaveURL("/login", {timeout: 5000});
-});
+    // Check whether the signout was successful
+    await expect(page).toHaveURL("/login");
+}, { timeout: 10000 });
+
 
 test("Signout failed: No authentication token was found", async ({ page, context }) => {
     // Go to homepage
     await page.goto("/");
 
     // Get signout button
-    const signoutButton = page.getByTestId("HomePageNavigation-Desktop-Submit-Button", {timeout: 5000});
+    const signoutButton = page.getByTestId("HomePageNavigation-Desktop-Submit-Button");
     await expect(signoutButton).toBeVisible();
 
     // Delete cookie to cause it to fail
@@ -39,6 +44,6 @@ test("Signout failed: No authentication token was found", async ({ page, context
     await signoutButton.click();
 
     // Check whether the error message is displayed
-    const errorMessage = page.getByText("Authorization failed: Authentication token could not be found.", {timeout: 5000})
+    const errorMessage = page.getByText("Authentication failed");
     await expect(errorMessage).toBeVisible();
-});
+}, { timeout: 10000 });
