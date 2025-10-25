@@ -18,52 +18,52 @@ describe("[HomePageManageAndDisplayTodos | HomePageEditTaskForm]", async () => {
         cleanup();
     });
 
-    it("[HomePage - HomePageManageAndDisplayTodos] displays the edit form overlay after clicking the 'Edit' button", async () => {
-        // Mock API response for useEffect in HomePage
-        fetch.mockResolvedValueOnce({
-            ok: true,
-            status: 200,
-            json: async () => ({
-                todos: [
-                    {
-                        id: 1,
-                        title: "Todo",
-                        description: "",
-                        completed: false
-                    }
-                ],
-                username: "TestUser"
-            })
-        });
+    it(
+        "[HomePage - HomePageManageAndDisplayTodos] displays the edit form overlay " +
+        "after clicking the 'Edit' button", async () => {
+            // Mock API response for useEffect in HomePage
+            fetch.mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    todos: [
+                        {
+                            id: 1,
+                            title: "Todo",
+                            description: "",
+                            completed: false
+                        }
+                    ],
+                    username: "TestUser"
+                })
+            });
 
-        // Mock useAuth for HomePage and render HomePage
-        setMockUseAuth({accessToken: "fake-token", loading: false});
-        render(<HomePage/>);
+            // Mock useAuth for HomePage and render HomePage
+            setMockUseAuth({accessToken: "fake-token", loading: false});
+            render(<HomePage/>);
 
-        // Check and click the edit button
-        const editButton = await screen.findByTestId("HomePageManageAndDisplayTodos-Edit-Button-For-1");
-        expect(editButton).toBeInTheDocument();
+            // Check and click the edit button
+            const editButton = await screen.findByTestId("HomePageManageAndDisplayTodos-Edit-Button-For-1");
+            expect(editButton).toBeInTheDocument();
 
-        await userEvent.click(editButton);
+            await userEvent.click(editButton);
 
-        // Check that the overlay is displayed correctly
-        const editorModal = await screen.findByTestId("Modal");
-        expect(editorModal).toBeInTheDocument();
+            // Check that the overlay is displayed correctly
+            const editorModal = await screen.findByTestId("Modal");
+            expect(editorModal).toBeInTheDocument();
 
-        const editorForm = await screen.findByTestId("HomePageEditTaskForm");
-        expect(editorForm).toBeInTheDocument();
-    });
+            const editorForm = await screen.findByTestId("HomePageEditTaskForm");
+            expect(editorForm).toBeInTheDocument();
+        }
+    );
 
 
     it("HomePageEditTaskForm - Cancel editing task", async () => {
-        // Mock the setReloadTasks function
-        const mockSetReloadTasks = vi.fn();
-
         render(
             <HomePageManageAndDisplayTodos 
                 tasks={[{id: 1, title: "Todo", description: "Unique description", completed: false}]}
                 accessToken={null}
-                setReloadTasks={mockSetReloadTasks}
+                setReloadTasks={vi.fn()}
             />  
         );
 
@@ -110,10 +110,7 @@ describe("[HomePageManageAndDisplayTodos | HomePageEditTaskForm]", async () => {
             },
             "Update failed: An unexpected error occurred. Please try again later."
         ]
-    ])("HomePageEditTaskForm - %s", async (funcDescription, mockResponse, expectedMessage) => {
-        // Mock the setReloadTasks function
-        const mockSetReloadTasks = vi.fn();
-
+    ])("HomePageEditTaskForm - %s", async (_, mockResponse, expectedMessage) => {
         // Mock API response
         fetch.mockResolvedValueOnce(mockResponse);
 
@@ -122,7 +119,7 @@ describe("[HomePageManageAndDisplayTodos | HomePageEditTaskForm]", async () => {
                 <HomePageManageAndDisplayTodos 
                     tasks={[{id: 1, title: "Todo", description: "Unique description", completed: false}]}
                     accessToken={null}
-                    setReloadTasks={mockSetReloadTasks}
+                    setReloadTasks={vi.fn()}
                 />
                 
                 <ToastContainer />
@@ -147,6 +144,47 @@ describe("[HomePageManageAndDisplayTodos | HomePageEditTaskForm]", async () => {
     });
 
 
+    it("Authentication failed while editing a todo", async () => {
+        // Reset location to check the redirection
+        delete window.location;
+        window.location = { href: "" };
+
+        // Mock api response
+        fetch.mockResolvedValueOnce({
+            ok: false,
+            status: 401,
+            json: async () => ({})
+        });
+
+        // Render the page
+        render(
+            <>
+                <HomePageManageAndDisplayTodos 
+                    tasks={[{id: 1, title: "Todo", description: "Unique description", completed: false}]}
+                    accessToken={null}
+                    setReloadTasks={vi.fn()}
+                />
+                
+                <ToastContainer />
+            </>
+        );
+
+        // Check and click the edit button
+        const editButton = await screen.findByTestId("HomePageManageAndDisplayTodos-Edit-Button-For-1");
+        expect(editButton).toBeInTheDocument();
+
+        await userEvent.click(editButton);
+
+        // Click on the submit button
+        const submitButton = await screen.findByTestId("EditTodo-Submit-Button-For-1");
+        expect(submitButton).toBeInTheDocument();
+
+        await userEvent.click(submitButton);
+
+        // Check whether the forwarding worked
+        expect(window.location.href).toBe("/login");
+    });
+    
 
     it.each([
         ["Title", "", "", "Title is required."],

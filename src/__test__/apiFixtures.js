@@ -6,26 +6,25 @@ export const fixtures = base.extend({
             // Go to homepage
             await page.goto("/");
 
-            // Fill the input fields
-            await page.fill('input[name="title"]', title);
-            await page.fill('input[name="description"]', description);
+            // Create the todo
+            const titleInput = page.getByTestId("HomePageAddTodo-Title-Input");
+            const descriptionInput = page.getByTestId("HomePageAddTodo-Description-Input");
+            const submitButton = page.getByTestId("HomePageAddTodo-Submit-Button");
             
-            // Submit the informations
-            const submitButton = page.getByTestId("HomePageAddTodo-Submit-Button", {timeout: 5000});
-            await expect(submitButton).toBeVisible();
-            
+            await titleInput.fill(title);
+            await descriptionInput.fill(description);
             await submitButton.click();
 
             // Check whether the success message is displayed 
-            const successMessage = page.getByText("Creation successful: Todo was created successfully.", {timeout: 5000});
+            const successMessage = page.getByText("Creation successful: Todo was created successfully.");
             await expect(successMessage).toBeVisible();
 
             // Check whether the todo is displayed correctly
-            const todoTitle = page.getByText(title, {timeout: 5000});
+            const todoTitle = page.getByText(title);
             await expect(todoTitle).toBeVisible();
 
             if (description !== "") {
-                const todoDescription = page.getByText(description, {timeout: 5000});
+                const todoDescription = page.getByText(description);
                 await expect(todoDescription).toBeVisible();
             };
         };
@@ -42,7 +41,26 @@ export const fixtures = base.extend({
             * - Simulate a server response (e.g., an error),
             * - but still want to use the real response structure from the backend.
         */
-        const simulateAndMockPostRequestWithRealData = async ({ url, headers, data, status = 400 }) => {
+        const simulateAndMockPostRequestWithRealData = async (
+            { url, headers, data, accessToken = false, status = 400 }
+        ) => {
+            // Add authorization header if needed
+            if (accessToken) {
+                // Get the access token
+                const response = await request.post(`${process.env.VITE_API_URL}/token/refresh/valid`, {
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include"
+                });
+
+                const data = await response.json();
+                const accessToken = data.access_token;
+
+                // Add authorization header
+                headers["Authorization"] = `Bearer ${accessToken}`;
+            }
+
             // Do a real api request
             const realResponse = await request.post(url, {
                 headers: headers,

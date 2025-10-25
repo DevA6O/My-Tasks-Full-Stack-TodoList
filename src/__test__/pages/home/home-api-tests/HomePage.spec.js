@@ -13,9 +13,9 @@ test("Loading tasks was successful (with tasks)", async ({ page, createTodo }) =
     });
 
     // Check whether tasks are displayed correctly
-    const task = page.getByText("Loading tasks was successful - with tasks", {timeout: 5000});
-    await expect(task).toBeVisible();
-})
+    const task = page.getByText("Loading tasks was successful - with tasks");
+    await expect(task).toBeVisible({ timeout: 5000 });
+}, { timeout: 10000 })
 
 
 test("Loading tasks was successful (without tasks)", async ({ page, context }) => {
@@ -31,17 +31,17 @@ test("Loading tasks was successful (without tasks)", async ({ page, context }) =
     await page.click('button[type="submit"]');
 
     // Wait for redirection
-    await expect(page).toHaveURL("/", {timeout: 5000});
+    await expect(page).toHaveURL("/", { timeout: 5000 });
 
     // Wait for loading
     const loading = page.getByText("Loading...");
     await expect(loading).not.toBeVisible();
 
     // Check whether the username is displayed correctly
-    const username = page.getByText("Welcome back, TestUserForTasks!", {timeout: 5000});
-    await expect(username).toBeVisible();
+    const username = page.getByText("Welcome back, TestUserForTasks!");
+    await expect(username).toBeVisible({ timeout: 5000 });
 
     // Check whether the no task message is displayed and loaded correctly
-    const noTaskMessage = page.getByText("Nice work! Currently you have no tasks to solve!", {timeout: 5000});
-    await expect(noTaskMessage).toBeVisible();
-});
+    const noTaskMessage = page.getByText("Nice work! Currently you have no tasks to solve!");
+    await expect(noTaskMessage).toBeVisible({ timeout: 5000 });
+}, { timeout: 10000 });

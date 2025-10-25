@@ -4,19 +4,15 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { toast } from "react-toastify";
 
-const validationDisabled = import.meta.env.VITE_DISABLE_FRONTEND_VALIDATION;
-
-export const schema = validationDisabled
-    ? yup.object().shape({})
-    : yup.object().shape({
-        title: yup
-            .string()
-            .required("Title is required.")
-            .min(2, "Title must have at least 2 characters.")
-            .max(140, "Title cannot have more than 140 characters."),
-        description: yup
-            .string()
-            .max(320, "Description cannot have more than 320 characters.")
+export const schema = yup.object().shape({
+    title: yup
+        .string()
+        .required("Title is required.")
+        .min(2, "Title must have at least 2 characters.")
+        .max(140, "Title cannot have more than 140 characters."),
+    description: yup
+        .string()
+        .max(320, "Description cannot have more than 320 characters.")
     }
 );
 
@@ -39,8 +35,15 @@ export async function createTodoAPI(formData, accessToken) {
             errorMsg = data.detail?.message;
         };
 
-        throw new Error(errorMsg || "Creation failed: An unexpected error occurred. Please try again later.");
+        // Throw an error if the creation was unsuccessful
+        const error = new Error(
+            errorMsg || "Creation failed: An unexpected error has occurred. Please try again later."
+        );
+        error.status_code = response?.status;
+        throw error;
     };
+
+    return true;
 };
 
 
@@ -56,13 +59,32 @@ export default function HomePageAddTodo({ accessToken, onSuccess }) {
     });
 
     const onSubmit = async (formData) => {
+        // Define a default error message for create
+        const defaultErrorMsg = "Creation failed: An unexpected error has occurred. " +
+        "Please try again later.";
+
         try {
-            await createTodoAPI(formData, accessToken); 
-            onSuccess(); // Reload the tasks
-            reset(); // Reset form 
-            toast.success("Creation successful: Todo was created successfully.");
+            const success = await createTodoAPI(formData, accessToken);
+            
+            // Check whether the creation was successful
+            if (success) {
+                onSuccess(); // Reload the tasks
+                reset(); // Reset form 
+
+                toast.success("Creation successful: Todo was created successfully.");
+            } else {
+                toast.error(defaultErrorMsg);
+            };
         } catch (error) {
-            toast.error(error.message);
+            // Check whether the user could not be authenticated
+            if (error?.status_code == 401) {                
+                localStorage.setItem("authError", true);
+
+                window.location.href = "/login"; return;
+            };
+
+            // If an unknown error has occurred
+            toast.error(error?.message || defaultErrorMsg);
             console.error(error);
         };
     };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Modal from "../../components/Modal";
-import { FiMail, FiUser, FiLock } from "react-icons/fi";
+import { FiMail, FiUser } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-toastify";
 import LoadingScreen from "../../components/LoadingScreen";
@@ -44,19 +44,19 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
                     setSessions(data.informations.sessions);
                 } else {
                     onClose();
-                    toast.error("Settings is not accessible: Please try again later.");
+                    toast.error("Settings is not accessible. Please try again later.");
                 };
             } finally {
                 setOnUpdate(false);
-            }
+            };
         };
 
         getInformations();
-    }, [isOpen, onUpdate])
+    }, [isOpen, onUpdate]);
 
 
     // Revoke the session
-    const removeSession = async (jti_id) => {
+    const revokeSession = async (jti_id) => {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/settings/session/revoke`, {
             method: "POST",
             headers: {
@@ -70,6 +70,14 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
         if (response.ok) {
             setOnUpdate(true);
         } else {
+            // Check whether the authentication is failed
+            if (response.status == 401) {
+                localStorage.setItem("authError", true);
+
+                window.location.href = "/login"; return;
+            };
+
+            // If an unexpected error has occurred
             toast.error(data?.detail || "An unexpected error is occurred. Please try again later.");
         };
     };
@@ -79,7 +87,7 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
             {isOpen && loading && <LoadingScreen />}
 
             <Modal isOpen={isOpen} onClose={onClose} classname="h-full overflow-auto">
-                <div className="max-w-3xl mx-auto p-6 sm:p-10 space-y-10 bg-gray-50 min-h-screen">
+                <div data-testid="settings-modal" className="max-w-3xl mx-auto p-6 sm:p-10 space-y-10 bg-gray-50 min-h-screen">
                     <button
                         onClick={onClose}
                         className="text-sm text-blue-600 hover:underline flex items-center cursor-pointer"
@@ -95,18 +103,19 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
 
                         {/* Username */}
                         <div className="relative">
-                            <label htmlFor="newUsername" className="block text-sm font-medium text-gray-600 mb-1">
+                            <label htmlFor="currentUsername" className="block text-sm font-medium text-gray-600 mb-1">
                                 Username
                             </label>
                             <div className="flex items-center border rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500">
                                 <FiUser className="text-gray-400 mr-2" />
                                 <input
-                                    id="newUsername"
+                                    id="currentUsername"
+                                    data-testid="currentUsername"
                                     type="text"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="w-full focus:outline-none"
-                                    placeholder="Nutzername"
+                                    placeholder="Username"
                                     disabled
                                 />
                             </div>
@@ -114,18 +123,19 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
 
                         {/* Email */}
                         <div className="relative">
-                            <label htmlFor="newEmail" className="block text-sm font-medium text-gray-600 mb-1">
+                            <label htmlFor="currentEmail" className="block text-sm font-medium text-gray-600 mb-1">
                                 E-Mail
                             </label>
                             <div className="flex items-center border rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500">
                                 <FiMail className="text-gray-400 mr-2" />
                                 <input
-                                    id="newEmail"
+                                    id="currentEmail"
+                                    data-testid="currentEmail"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="w-full focus:outline-none"
-                                    placeholder="E-Mail-Adresse"
+                                    placeholder="Email address"
                                     disabled
                                 />
                             </div>
@@ -163,7 +173,8 @@ export default function HomePageSettingsModal({ isOpen, onClose }) {
                                                 </span>
                                             ) : (
                                                 <button
-                                                    onClick={() => removeSession(session.jti_id)}
+                                                    onClick={() => revokeSession(session.jti_id)}
+                                                    data-testid={`revoke-btn-${session.jti_id}`}
                                                     className="text-sm text-red-600 hover:underline cursor-pointer"
                                                 >
                                                     Log out

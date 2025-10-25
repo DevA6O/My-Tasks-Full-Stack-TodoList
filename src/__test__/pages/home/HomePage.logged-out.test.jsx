@@ -8,7 +8,7 @@ import HomePage from "../../../pages/home/HomePage";
 
 describe("HomePage - not logged in", async () => {
     it("HomePage shows a loading screen", async () => {
-        setMockUseAuth({accessToken: null, loading: true});
+        setMockUseAuth({ accessToken: null, loading: true });
         render(<HomePage />);
         
         // Check that the loading screen is displayed correctly
@@ -19,7 +19,7 @@ describe("HomePage - not logged in", async () => {
     it("HomePage redirect user to /login", async () => {
         // Spy on location
         delete window.location;
-        window.location = {href: ""};
+        window.location = { href: "" };
 
         // Render homepage and mock useAuth
         setMockUseAuth({accessToken: null, loading: false});
@@ -27,5 +27,5 @@ describe("HomePage - not logged in", async () => {
 
         // Check whether the redirection is successful
         expect(window.location.href).toBe("/login");
-    })
-})
+    });
+});

@@ -101,7 +101,9 @@ describe(HomePage, async () => {
         await waitForElementToBeRemoved(() => screen.queryByTestId("loading-text"));
 
         // Check that the error message is displayed correctly
-        const taskErrorMessage = await screen.findByText("An unexpected error occurred while loading all tasks. Please try again later.");
+        const taskErrorMessage = await screen.findByText(
+            "An unexpected error occurred while loading all tasks. Please try again later."
+        );
         expect(taskErrorMessage).toBeInTheDocument();
     });
-})
+});

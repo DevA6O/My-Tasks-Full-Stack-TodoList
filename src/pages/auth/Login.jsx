@@ -6,25 +6,21 @@ import { toast } from "react-toastify";
 
 // Default error message for unexpected errors
 const DEFAULT_ERROR_MSG = "Login failed: An unexpected error has occurred. Please try again later.";
-const validationDisabled = import.meta.env.VITE_DISABLE_FRONTEND_VALIDATION;
 
-const schema = validationDisabled
-    ? yup.object().shape({})
-    : yup.object().shape({
-        email: yup
-            .string()
-            .required("Email is required.")
-            .matches(
-                /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
-                "Email must be a valid email address."
-            ),
-        password: yup
-            .string()
-            .required("Password is required.")
-            .min(8, "Password must have at least 8 characters.")
-            .max(32, "Password cannot have more than 32 characters.")
-    }
-);
+const schema = yup.object().shape({
+    email: yup
+        .string()
+        .required("Email is required.")
+        .matches(
+            /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
+            "Email must be a valid email address."
+        ),
+    password: yup
+        .string()
+        .required("Password is required.")
+        .min(8, "Password must have at least 8 characters.")
+        .max(32, "Password cannot have more than 32 characters.")
+});
 
 
 
@@ -44,6 +40,10 @@ async function loginUserAPI(formData, setError) {
     // If Login was successful
     if (response.ok && response.status === 200) {
         toast.success("Login successful! Redirecting to the homepage...");
+
+        setTimeout(() => {
+            window.location.href = "/";
+        }, 3000);
     }
     // Handle validation error occurred
     else if (response.status === 422) {
@@ -70,13 +70,22 @@ export default function Login() {
         mode: "onBlur"
     });
 
+    // Check whether the user needs to log in again
+    const [authError, setAuthError] = React.useState(null);
+
+    React.useEffect(() => {
+        const storedError = localStorage.getItem("authError");
+
+        if (storedError) {
+            setAuthError(true);
+            localStorage.removeItem("authError");
+        };
+    }, []);
+
+    // Log in event
     const onSubmit = async (formData) => {
         try {
             await loginUserAPI(formData, setError);
-
-            setTimeout(() => {
-                window.location.href = "/";
-            }, 3000);
         } catch (error) {
             toast.error(DEFAULT_ERROR_MSG);
             console.error(error);
@@ -86,6 +95,20 @@ export default function Login() {
     return (
         <div data-testid="Login" className="flex justify-center items-center h-screen bg-gray-100">
             <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
+                {/* If necessary, display an error message */}
+                {
+                    authError && 
+                    <div className="flex justify-center mt-4">
+                        <div className="max-w-md w-full bg-red-500/90 text-white p-4 rounded-xl shadow-md border border-red-600 flex flex-col items-center text-center">
+                            <p className="font-semibold text-lg mb-1">Authentication failed</p>
+                            <p className="text-sm opacity-90">
+                            Please log in to continue.
+                            </p>
+                        </div>
+                    </div>
+                }
+
+
                 <h1 className="text-center text-2xl font-bold mb-6 text-gray-800">Login to Your Account</h1>
 
                 <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>

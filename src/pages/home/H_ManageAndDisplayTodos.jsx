@@ -9,25 +9,61 @@ import { deleteTodoAPI, completeTodoAPI } from "./H_ManageTodos";
 
 export default function HomePageManageAndDisplayTodos({ tasks, accessToken, setReloadTasks }) {
     const [editTask, setEditTask] = useState(null);
-
+    
     const completeTodo = async (todoID) => {
+        // Define a default error message for complete
+        const defaultErrorMsg = "Completion failed: An unexpected error has occurred. " +
+        "Please try again later."
+
         try {
-            await completeTodoAPI(todoID, accessToken);
-            setReloadTasks(true);
-            toast.success("Completion successful: Todo has been marked as successfully completed.");
+            const success = await completeTodoAPI(todoID, accessToken);
+            
+            // Check whether the completion was successful
+            if (success) {
+                setReloadTasks(true);
+                toast.success("Completion successful: Todo has been marked as successfully completed.");
+            } else {
+                toast.error(defaultErrorMsg);
+            };
         } catch (error) {
-            toast.error(error.message);
+            // Check whether the user could not be authenticated
+            if (error?.status_code == 401) {
+                localStorage.setItem("authError", true);
+
+                window.location.href = "/login"; return;
+            };
+            
+            // If an unknown error has occurred
+            toast.error(error?.message || defaultErrorMsg);
             console.error(error);
         };
     };
 
     const deleteTodo = async (todoID) => {
+        // Define a default error message for delete
+        const defaultErrorMsg = `Deletion failed: An unexpected error has occurred. 
+        Please try again later.`
+
         try {
-            await deleteTodoAPI(todoID, accessToken);
-            setReloadTasks(true);
-            toast.success("Deletion successful: Todo has been successfully deleted.");
+            const success = await deleteTodoAPI(todoID, accessToken);
+
+            // Check whether the deletion was successful
+            if (success) {
+                setReloadTasks(true);
+                toast.success("Deletion successful: Todo has been successfully deleted.");
+            } else {
+                toast.error(defaultErrorMsg);
+            };
         } catch (error) {
-            toast.error(error.message);
+            // Check whether the user could not be authenticated
+            if (error?.status_code == 401) {
+                localStorage.setItem("authError", true);
+
+                window.location.href = "/login"; return;
+            };
+
+            // If an unknown error has occurred
+            toast.error(error?.message || defaultErrorMsg);
             console.error(error);
         };
     };

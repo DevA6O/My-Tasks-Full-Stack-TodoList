@@ -6,31 +6,26 @@ import { toast } from "react-toastify";
 
 // Default error message for unexpected errors
 const DEFAULT_ERROR_MSG = "Registration failed: An unexpected error has occurred. Please try again later.";
-const validationDisabled = import.meta.env.VITE_DISABLE_FRONTEND_VALIDATION;
 
-const schema = validationDisabled
-    ? yup.object().shape({})
-    : yup.object().shape({
-        username: yup
-            .string()
-            .required("Username is required.")
-            .min(2, "Username must have at least 2 characters.")
-            .max(16, "Username cannot have more than 16 characters."),
-        email: yup
-            .string()
-            .required("Email is required.")
-            .matches(
-                /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
-                "Email must be a valid email address."
-            ),
-        password: yup
-            .string()
-            .required("Password is required.")
-            .min(8, "Password must have at least 8 characters.")
-            .max(32, "Password cannot have more than 32 characters.")
-    }
-);
-
+const schema = yup.object().shape({
+    username: yup
+        .string()
+        .required("Username is required.")
+        .min(2, "Username must have at least 2 characters.")
+        .max(16, "Username cannot have more than 16 characters."),
+    email: yup
+        .string()
+        .required("Email is required.")
+        .matches(
+            /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
+            "Email must be a valid email address."
+        ),
+    password: yup
+        .string()
+        .required("Password is required.")
+        .min(8, "Password must have at least 8 characters.")
+        .max(32, "Password cannot have more than 32 characters.")
+});
 
 
 async function registerUserAPI(formData, setError) {
@@ -43,34 +38,42 @@ async function registerUserAPI(formData, setError) {
         body: JSON.stringify(formData)
     });
     const data = await response.json();
-    
+
     // Handle the response based on the status code
 
     // If registration was successful
     if (response.ok && response.status === 201) {
-        toast.success("Registration successful! You will be redirected to the homepage shortly.");
+        toast.success(
+            "Registration successful! You will be redirected to the homepage shortly."
+        );
 
         setTimeout(() => {
             window.location.href = "/";
         }, 3000);
     }
+
     // If the email is already registered
     else if (response.status == 409) {
         setError("email", {type: "server", message: data.detail});
     } 
+
     // Handle validation errors
     else if (response.status == 422) {
         const field = data.detail?.field;
         const message = data.detail?.message || DEFAULT_ERROR_MSG;
         setError(field, {type: "server", message: message});
     } 
+
     // Handle other errors
     else {
-        toast.error(data.detail || "Registration failed: An unknown page error occurred. You will be redirected shortly...");
+        toast.error(
+            data.detail || 
+            "Registration failed: An unknown page error occurred. You will be redirected shortly..."
+        );
 
         setTimeout(() => {
-            window.location.href = "/";
-        }, 5000);
+            window.location.reload();
+        }, 3000);
     };
 };
 

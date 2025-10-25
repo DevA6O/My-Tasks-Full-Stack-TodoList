@@ -17,10 +17,15 @@ async function updateTodo(data, accessToken) {
     if (!response.ok) {
         const errorData = await response.json();
 
-        const error = new Error(errorData.detail || "Update failed: An unexpected server error occurred. Please try again later.");
+        const error = new Error(
+            errorData.detail || "Update failed: An unexpected error occurred. Please try again later."
+        );
         error.todoID = data?.todo_id;
+        error.status_code = response?.status;
         throw error;
     };
+
+    return true;
 };
 
 
@@ -44,20 +49,40 @@ export function HomePageEditTaskForm({ task, validationSchema, accessToken, onSu
             title: task.title,
             description: task.description
         }
-    })
+    });
 
     const onSubmit = async (formData) => {
+        // Define a default error message for update
+        const defaultErrorMsg = "Update failed: An unexpected error has occurred. " +
+        "Please try again later."
+
         try {
+            // Define a data object to send this to the api
             const data = {
                 ...formData,
                 todo_id: task.id
             }
-
-            await updateTodo(data, accessToken);
-            onSuccess();
-            toast.success("Update successful: Todo has been successfully updated.");
+            
+            // Try to update the todo
+            const success = await updateTodo(data, accessToken);
+            
+            // Check whether the update was successful
+            if (success) {
+                onSuccess();
+                toast.success("Update successful: Todo has been successfully updated.");
+            } else {
+                toast.error(defaultErrorMsg);
+            };
         } catch (error) {
-            toast.error("Update failed: An unexpected error occurred. Please try again later.");
+            // Check whether the user could not be authenticated
+            if (error?.status_code == 401) {
+                localStorage.setItem("authError", true);
+
+                window.location.href = "/login"; return;
+            };
+
+            // If an unknown error has occurred
+            toast.error(error?.message || defaultErrorMsg);
             console.error(error); 
         };
     };
