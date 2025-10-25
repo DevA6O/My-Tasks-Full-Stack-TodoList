@@ -6,25 +6,21 @@ import { toast } from "react-toastify";
 
 // Default error message for unexpected errors
 const DEFAULT_ERROR_MSG = "Login failed: An unexpected error has occurred. Please try again later.";
-const validationDisabled = import.meta.env.VITE_DISABLE_FRONTEND_VALIDATION;
 
-const schema = validationDisabled
-    ? yup.object().shape({})
-    : yup.object().shape({
-        email: yup
-            .string()
-            .required("Email is required.")
-            .matches(
-                /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
-                "Email must be a valid email address."
-            ),
-        password: yup
-            .string()
-            .required("Password is required.")
-            .min(8, "Password must have at least 8 characters.")
-            .max(32, "Password cannot have more than 32 characters.")
-    }
-);
+const schema = yup.object().shape({
+    email: yup
+        .string()
+        .required("Email is required.")
+        .matches(
+            /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
+            "Email must be a valid email address."
+        ),
+    password: yup
+        .string()
+        .required("Password is required.")
+        .min(8, "Password must have at least 8 characters.")
+        .max(32, "Password cannot have more than 32 characters.")
+});
 
 
 
