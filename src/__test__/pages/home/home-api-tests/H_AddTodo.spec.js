@@ -4,8 +4,8 @@ import { fixtures as test } from "../../../apiFixtures.js";
 
 test("Todo successfully added", async ({ page }) => {
     // Define a title and a description
-    const title = "My todo";
-    const description = "My description";
+    const title = "My todo to be added";
+    const description = "My description to be added.";
 
     // Go to the homepage
     await page.goto("/");
@@ -23,9 +23,9 @@ test("Todo successfully added", async ({ page }) => {
     const createdTodoTitle = page.getByText(title);
     const createdTodoDescription = page.getByText(description);
 
-    await expect(createdTodoTitle).toBeVisible();
-    await expect(createdTodoDescription).toBeVisible();
-})
+    await expect(createdTodoTitle).toBeVisible({ timeout: 5000 });
+    await expect(createdTodoDescription).toBeVisible({ timeout: 5000 });
+}, { timeout: 10000 });
 
 
 test("Todo could not be added successfully", async ({ page }) => {
@@ -48,4 +48,4 @@ test("Todo could not be added successfully", async ({ page }) => {
     // Check whether the error message is displayed correctly
     const errorMessage = page.getByText("Title should have at least 2 characters");
     await expect(errorMessage).toBeVisible();
-});
+}, { timeout: 10000 });
