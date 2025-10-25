@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "e2e:server": "concurrently -k -n backend,frontend -c blue,green \"cross-env TEST_MODE=true uvicorn main:api --port 8000 --app-dir api\" \"npm run dev\"",
-    "test:e2e": "cross-env VITE_DISABLE_FRONTEND_VALIDATION=true start-server-and-test \"npm run e2e:server\" http://localhost:8000/docs \"npx playwright test\"",
+    "test:e2e": "cross-env start-server-and-test \"npm run e2e:server\" http://localhost:8000/docs \"npx playwright test\"",
     "test:all": "npm run test && npm run test:e2e"
   },
   "dependencies": {
