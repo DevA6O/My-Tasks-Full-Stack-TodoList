@@ -28,10 +28,24 @@ test("Todo successfully added", async ({ page }) => {
 }, { timeout: 10000 });
 
 
-test("Todo could not be added successfully", async ({ page }) => {
-    // Define a title and a description
-    const title = "X";
-    const description = "The todo could not be added successfully because the title is too short.";
+test("Todo could not be added successfully", async (
+    { page, simulateAndMockPostRequestWithRealData }
+) => {
+    // Mock api response
+    const targetURL = `${process.env.VITE_API_URL}/todo/create`
+
+    await simulateAndMockPostRequestWithRealData({
+        url: targetURL,
+        headers: {
+            "Content-Type": "application/json"
+        },
+        data: {
+            "title": "X",
+            "description": "The todo could not be added successfully because the title is too short."
+        },
+        accessToken: true,
+        status: 422
+    });
 
     // Go to the homepage
     await page.goto("/");
@@ -41,8 +55,8 @@ test("Todo could not be added successfully", async ({ page }) => {
     const descriptionInput = page.getByTestId("HomePageAddTodo-Description-Input");
     const submitButton = page.getByTestId("HomePageAddTodo-Submit-Button");
 
-    await titleInput.fill(title);
-    await descriptionInput.fill(description);
+    await titleInput.fill("Valid title");
+    await descriptionInput.fill("Valid description");
     await submitButton.click();
 
     // Check whether the error message is displayed correctly
