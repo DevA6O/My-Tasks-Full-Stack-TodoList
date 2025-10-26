@@ -2,7 +2,6 @@
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Built With](https://img.shields.io/badge/built%20with-React%20%26%20FastAPI-blue)
-![Status](https://img.shields.io/badge/status-in%20development-yellow)
 
 MyTasks is a modern and responsive full-stack **To-Do List App** built with **React** (frontend) and **FastAPI** (backend).  
 The goal is to provide a clean, intuitive, and fast interface for managing personal tasks – ideal for productivity lovers who care about simplicity and performance.
